@@ -6,10 +6,7 @@
 <title>GoalRush Jackpot</title>
 <style>
 /* ═══════════════════════════════════════
-   FIREBASE SPACE — paste config below
-   ═══════════════════════════════════════
-   import { initializeApp } from "firebase/app";
-   const firebaseConfig = { apiKey:"", ... };
+   🔥 FIREBASE LIVE CONFIG — see script tag
    ═══════════════════════════════════════ */
 
 :root{
@@ -407,6 +404,40 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
   .cover-amount{font-size:24px;}
 }
 </style>
+
+<!-- 🔥 FIREBASE SDK — LIVE -->
+<script type="module">
+  import { initializeApp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, collection, getDocs,
+           getDoc, setDoc, updateDoc, onSnapshot }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDDgcOPxwXS8P5kAvmcqaRd8nTCl2a3Q4E",
+    authDomain:        "goalrushjackpot.firebaseapp.com",
+    projectId:         "goalrushjackpot",
+    storageBucket:     "goalrushjackpot.firebasestorage.app",
+    messagingSenderId: "996412041306",
+    appId:             "1:996412041306:web:99bb7a5092c958b0055063",
+    measurementId:     "G-FDNDS7FDCD"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // Expose to global scope for data wrappers
+  window._db          = db;
+  window._fbDoc       = doc;
+  window._fbCollection= collection;
+  window._fbGetDocs   = getDocs;
+  window._fbGetDoc    = getDoc;
+  window._fbSetDoc    = setDoc;
+  window._fbUpdateDoc = updateDoc;
+  window._fbOnSnapshot= onSnapshot;
+  window._FB          = true;
+  document.dispatchEvent(new Event('firebase-ready'));
+</script>
 </head>
 <body>
 
@@ -730,26 +761,11 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
 
 <script>
 // ════════════════════════════════════════════════════════
-//  🔥 FIREBASE SPACE
-//  Paste your Firebase config here and uncomment.
-//  All data functions are wrappers — swap localStorage
-//  for Firebase by replacing the functions below.
-// ════════════════════════════════════════════════════════
-//
-// import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-// import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs }
-//   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-//
-// const firebaseConfig = {
-//   apiKey:            "YOUR_API_KEY",
-//   authDomain:        "YOUR_PROJECT.firebaseapp.com",
-//   projectId:         "YOUR_PROJECT_ID",
-//   storageBucket:     "YOUR_PROJECT.appspot.com",
-//   messagingSenderId: "YOUR_SENDER_ID",
-//   appId:             "YOUR_APP_ID"
-// };
-// const app = initializeApp(firebaseConfig);
-// const db  = getFirestore(app);
+//  🔥 FIREBASE — LIVE CONFIG (injected via module script above)
+//  window._FB, window._db, window._fbDoc etc. are available.
+//  Data functions below use localStorage as primary store.
+//  To migrate fully to Firestore, swap the getXxx/saveXxx
+//  wrappers to use window._db Firestore calls.
 // ════════════════════════════════════════════════════════
 
 // ── DATA LAYER (localStorage wrappers — swap for Firebase later) ──

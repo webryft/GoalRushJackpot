@@ -6,10 +6,7 @@
 <title>GoalRush Admin Panel</title>
 <style>
 /* ════════════════════════════════════════
-   🔥 FIREBASE SPACE — paste config below
-   ════════════════════════════════════════
-   import { initializeApp } from "firebase/app";
-   const firebaseConfig = { apiKey:"", ... };
+   🔥 FIREBASE LIVE CONFIG
    ════════════════════════════════════════ */
 
 :root{
@@ -385,6 +382,41 @@ tbody tr:hover td{background:#0a1a0a40;}
   .tab-btn{padding:10px 10px;font-size:11px;}
 }
 </style>
+
+<!-- 🔥 FIREBASE SDK — LIVE -->
+<script type="module">
+  import { initializeApp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, collection, getDocs,
+           getDoc, setDoc, updateDoc, deleteDoc, onSnapshot }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDDgcOPxwXS8P5kAvmcqaRd8nTCl2a3Q4E",
+    authDomain:        "goalrushjackpot.firebaseapp.com",
+    projectId:         "goalrushjackpot",
+    storageBucket:     "goalrushjackpot.firebasestorage.app",
+    messagingSenderId: "996412041306",
+    appId:             "1:996412041306:web:99bb7a5092c958b0055063",
+    measurementId:     "G-FDNDS7FDCD"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // Expose to global scope for data wrappers below
+  window._db          = db;
+  window._fbDoc       = doc;
+  window._fbCollection= collection;
+  window._fbGetDocs   = getDocs;
+  window._fbGetDoc    = getDoc;
+  window._fbSetDoc    = setDoc;
+  window._fbUpdateDoc = updateDoc;
+  window._fbDeleteDoc = deleteDoc;
+  window._fbOnSnapshot= onSnapshot;
+  window._FB          = true;
+  document.dispatchEvent(new Event('firebase-ready'));
+</script>
 </head>
 <body>
 
@@ -750,17 +782,30 @@ tbody tr:hover td{background:#0a1a0a40;}
 <!-- NEW ROUND CONFIRM -->
 <div class="mo" id="mo-newround">
   <div class="mo-box">
-    <div class="mo-title">🔄 Confirm New Round</div>
+    <div class="mo-title">🔄 Start New Round</div>
     <div class="mo-info">
-      This will permanently:<br/>
-      ✅ Delete all bet tickets from this round<br/>
-      ✅ Clear all saved results<br/>
-      ✅ Reset the countdown to zero<br/>
-      ✅ Keep all user accounts and balances<br/><br/>
-      <strong style="color:var(--red)">⚠️ This cannot be undone. Make sure all winners have been paid first.</strong>
+      Choose what to reset for the new round:<br/><br/>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px;">
+        <input type="checkbox" id="nr-clear-tickets" style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;"/>
+        <span>✅ <strong style="color:var(--green)">Clear all user bet tickets</strong> from this round<br/>
+        <span style="font-size:11px;color:var(--text3)">(Uncheck to keep tickets for record keeping)</span></span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px;">
+        <input type="checkbox" id="nr-clear-results" checked style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;"/>
+        <span>✅ <strong style="color:var(--green)">Clear saved match results</strong><br/>
+        <span style="font-size:11px;color:var(--text3)">(Ready for new week's results)</span></span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:4px;">
+        <input type="checkbox" id="nr-reset-cd" checked style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;"/>
+        <span>✅ <strong style="color:var(--green)">Reset countdown timer</strong><br/>
+        <span style="font-size:11px;color:var(--text3)">(Open betting for next round)</span></span>
+      </label>
+      <div style="margin-top:12px;padding:10px;background:#1a0000;border:1px solid var(--red);border-radius:8px;font-size:12px;color:#fca5a5;">
+        ⚠️ Make sure all winners from this round have been paid before starting a new round.
+      </div>
     </div>
     <div class="mo-btns">
-      <button class="mb-red" onclick="confirmNewRound()">🔄 Yes, Start New Round</button>
+      <button class="mb-red" onclick="confirmNewRound()">🔄 Start New Round</button>
       <button class="mb-gray" onclick="closeMo('mo-newround')">Cancel</button>
     </div>
   </div>
@@ -778,21 +823,11 @@ tbody tr:hover td{background:#0a1a0a40;}
 <script>
 'use strict';
 // ════════════════════════════════════════════════════════
-//  🔥 FIREBASE SPACE — paste your config here
-//  All data functions below use localStorage as wrappers.
-//  Swap internals for Firebase calls when you're ready.
+//  🔥 FIREBASE — LIVE CONFIG
 // ════════════════════════════════════════════════════════
-//
-// import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-// import { getFirestore, doc, setDoc, getDoc, updateDoc,
-//          collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-// const firebaseConfig = {
-//   apiKey: "YOUR_KEY", authDomain: "YOUR_PROJECT.firebaseapp.com",
-//   projectId: "YOUR_PROJECT_ID", storageBucket: "YOUR_PROJECT.appspot.com",
-//   messagingSenderId: "YOUR_SENDER_ID", appId: "YOUR_APP_ID"
-// };
-// const app = initializeApp(firebaseConfig);
-// const db  = getFirestore(app);
+//  NOTE: Data functions below still use localStorage as
+//  the primary store. To switch fully to Firestore, swap
+//  the getXxx / saveXxx wrappers to use window._db.
 // ════════════════════════════════════════════════════════
 
 /* ── DATA WRAPPERS ── */
@@ -1478,25 +1513,49 @@ function winnerCard(t,cls){
 }
 
 /* ── NEW ROUND ── */
-function startNewRound(){openMo('mo-newround');}
+function startNewRound(){ openMo('mo-newround'); }
 function confirmNewRound(){
+  var clearTickets = document.getElementById('nr-clear-tickets').checked;
+  var clearResults = document.getElementById('nr-clear-results').checked;
+  var resetCd      = document.getElementById('nr-reset-cd').checked;
+
+  // At least one must be selected
+  if(!clearTickets && !clearResults && !resetCd){
+    toast('Select at least one option to proceed.','t-err');
+    return;
+  }
+
   closeMo('mo-newround');
   showLoad('Starting new round...');
   setTimeout(function(){
-    saveTickets([]);
-    saveResults2([]);
-    _currentResults=[];
-    clearCountdown();
+    var actions=[];
+
+    if(clearTickets){
+      saveTickets([]);
+      actions.push('tickets cleared');
+    }
+    if(clearResults){
+      saveResults2([]);
+      _currentResults=[];
+      renderResultsEditor();
+      actions.push('results cleared');
+    }
+    if(resetCd){
+      clearCountdown();
+      loadCurrentCountdown();
+      actions.push('countdown reset');
+    }
+
+    // Always hide scan UI
     document.getElementById('scan-results').innerHTML='';
     document.getElementById('scan-summary').style.display='none';
     document.getElementById('new-round-box').style.display='none';
     document.getElementById('alarm-banner').classList.remove('show');
-    renderResultsEditor();
-    loadCurrentCountdown();
-    addLog('New round started — tickets & results cleared','admin');
+
     updateStats();
+    addLog('New round started — '+actions.join(', '),'admin');
     hideLoad();
-    toast('🔄 New round started! Matches are open for betting.','t-gold');
+    toast('🔄 New round started! ('+actions.join(', ')+')','t-gold');
   },1000);
 }
 
