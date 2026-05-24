@@ -6,7 +6,10 @@
 <title>GoalRush Admin Panel</title>
 <style>
 /* ════════════════════════════════════════
-   🔥 FIREBASE LIVE CONFIG
+   🔥 FIREBASE SPACE — paste config below
+   ════════════════════════════════════════
+   import { initializeApp } from "firebase/app";
+   const firebaseConfig = { apiKey:"", ... };
    ════════════════════════════════════════ */
 
 :root{
@@ -382,41 +385,6 @@ tbody tr:hover td{background:#0a1a0a40;}
   .tab-btn{padding:10px 10px;font-size:11px;}
 }
 </style>
-
-<!-- 🔥 FIREBASE SDK — LIVE -->
-<script type="module">
-  import { initializeApp }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, collection, getDocs,
-           getDoc, setDoc, updateDoc, deleteDoc, onSnapshot }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey:            "AIzaSyDDgcOPxwXS8P5kAvmcqaRd8nTCl2a3Q4E",
-    authDomain:        "goalrushjackpot.firebaseapp.com",
-    projectId:         "goalrushjackpot",
-    storageBucket:     "goalrushjackpot.firebasestorage.app",
-    messagingSenderId: "996412041306",
-    appId:             "1:996412041306:web:99bb7a5092c958b0055063",
-    measurementId:     "G-FDNDS7FDCD"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
-
-  // Expose to global scope for data wrappers below
-  window._db          = db;
-  window._fbDoc       = doc;
-  window._fbCollection= collection;
-  window._fbGetDocs   = getDocs;
-  window._fbGetDoc    = getDoc;
-  window._fbSetDoc    = setDoc;
-  window._fbUpdateDoc = updateDoc;
-  window._fbDeleteDoc = deleteDoc;
-  window._fbOnSnapshot= onSnapshot;
-  window._FB          = true;
-  document.dispatchEvent(new Event('firebase-ready'));
-</script>
 </head>
 <body>
 
@@ -543,13 +511,19 @@ tbody tr:hover td{background:#0a1a0a40;}
 
     <!-- ══ RESULTS TAB ══ -->
     <div class="tab-content" id="tab-results">
+
+      <!-- STEP 1: Enter match results -->
       <div class="section-card">
         <div class="sc-head">
-          <div class="sc-title">📊 Enter Match Results</div>
+          <div class="sc-title">📊 Step 1 — Enter Match Results</div>
         </div>
         <div class="sc-body">
           <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-            Select the correct result for each match — <strong style="color:var(--green)">1</strong> = Home Win, <strong style="color:var(--gold)">X</strong> = Draw, <strong style="color:var(--blue)">2</strong> = Away Win.
+            For each match select <strong style="color:var(--green)">1</strong> = Home Win,
+            <strong style="color:var(--gold)">X</strong> = Draw,
+            <strong style="color:var(--blue)">2</strong> = Away Win, or
+            <strong style="color:var(--red)">Void</strong> if the match was cancelled.
+            Also enter the final score (optional).
           </p>
           <div id="results-editor"></div>
           <button class="save-btn" onclick="saveResults()">💾 Save Results</button>
@@ -557,46 +531,130 @@ tbody tr:hover td{background:#0a1a0a40;}
         </div>
       </div>
 
-      <!-- SCANNER -->
+      <!-- STEP 2: Scan tickets -->
       <div class="section-card">
         <div class="sc-head">
-          <div class="sc-title">🔍 Scan All Tickets vs Results</div>
+          <div class="sc-title">🔍 Step 2 — Scan All Tickets</div>
         </div>
         <div class="sc-body">
           <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-            After saving results above, click Scan to check all user tickets and find winners.
+            After saving results, click Scan to check all user tickets and find winners.
           </p>
           <button class="save-btn" style="background:linear-gradient(135deg,#1a7aff,#0055dd)" onclick="scanAllTickets()">🔍 Scan All Tickets Now</button>
-
-          <!-- ALARM -->
           <div id="alarm-banner">
             <div class="alarm-text" id="alarm-text">🏆 JACKPOT WINNER FOUND!</div>
             <div class="alarm-sub" id="alarm-sub">Check winners below immediately.</div>
           </div>
-
-          <!-- SCAN SUMMARY -->
           <div class="scan-summary" id="scan-summary" style="display:none;margin-top:14px;">
             <div class="ss-card"><div class="ss-num sn-g" id="sc-total">0</div><div class="ss-lbl">Total Scanned</div></div>
             <div class="ss-card"><div class="ss-num" style="color:var(--green)" id="sc-14">0</div><div class="ss-lbl">🟢 14 Correct</div></div>
             <div class="ss-card"><div class="ss-num" style="color:var(--blue)" id="sc-13">0</div><div class="ss-lbl">🔵 13 Correct</div></div>
             <div class="ss-card"><div class="ss-num" style="color:var(--yellow)" id="sc-12">0</div><div class="ss-lbl">🟡 12 Correct</div></div>
           </div>
-
-          <!-- WINNER RESULTS -->
           <div id="scan-results" style="margin-top:10px;"></div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Set winners count & prizes, then publish -->
+      <div class="section-card" id="publish-section" style="display:none">
+        <div class="sc-head">
+          <div class="sc-title">🏆 Step 3 — Set Winners & Publish to Users</div>
+        </div>
+        <div class="sc-body">
+          <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">
+            Fill in the number of winning tickets and prize per ticket for each tier that had winners.
+            Leave blank if nobody hit that tier. Then click <strong style="color:var(--green)">Publish</strong> — users will see the results table immediately in their Results tab.
+          </p>
+
+          <!-- Round label -->
+          <div style="margin-bottom:16px;">
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px;">Round Label (e.g. 20260024)</label>
+            <input class="mo-input" id="pub-round-id" placeholder="e.g. 20260024" style="max-width:220px;"/>
+          </div>
+
+          <!-- Winners table entry -->
+          <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+            <thead>
+              <tr>
+                <th style="padding:9px 12px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">Correct Events</th>
+                <th style="padding:9px 12px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">No. of Tickets</th>
+                <th style="padding:9px 12px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">Winning per Ticket (₦)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border)">
+                  <span style="display:inline-block;width:4px;height:28px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px"></span>
+                  <span style="font-size:13px;font-weight:600">14 out of 14</span>
+                </td>
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
+                  <input type="number" id="wn-14-tickets" class="mo-input" placeholder="0" style="width:90px;text-align:center;margin:0;"/>
+                </td>
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
+                  <input type="number" id="wn-14-prize" class="mo-input" placeholder="e.g. 3000000" style="width:140px;text-align:center;margin:0;"/>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border)">
+                  <span style="display:inline-block;width:4px;height:28px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px"></span>
+                  <span style="font-size:13px;font-weight:600">13 out of 14</span>
+                </td>
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
+                  <input type="number" id="wn-13-tickets" class="mo-input" placeholder="0" style="width:90px;text-align:center;margin:0;"/>
+                </td>
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
+                  <input type="number" id="wn-13-prize" class="mo-input" placeholder="e.g. 15000" style="width:140px;text-align:center;margin:0;"/>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border)">
+                  <span style="display:inline-block;width:4px;height:28px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px"></span>
+                  <span style="font-size:13px;font-weight:600">12 out of 14</span>
+                </td>
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
+                  <input type="number" id="wn-12-tickets" class="mo-input" placeholder="0" style="width:90px;text-align:center;margin:0;"/>
+                </td>
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
+                  <input type="number" id="wn-12-prize" class="mo-input" placeholder="e.g. 5000" style="width:140px;text-align:center;margin:0;"/>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 12px;">
+                  <span style="display:inline-block;width:4px;height:28px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px"></span>
+                  <span style="font-size:13px;font-weight:600">11 out of 14</span>
+                </td>
+                <td style="padding:10px 12px;text-align:center">
+                  <input type="number" id="wn-11-tickets" class="mo-input" placeholder="0" style="width:90px;text-align:center;margin:0;"/>
+                </td>
+                <td style="padding:10px 12px;text-align:center">
+                  <input type="number" id="wn-11-prize" class="mo-input" placeholder="e.g. 1000" style="width:140px;text-align:center;margin:0;"/>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <button class="save-btn" onclick="publishResults()">📢 Publish Results to Users</button>
+          <div class="save-msg" id="publish-save-msg"></div>
 
           <!-- NEW ROUND -->
-          <div class="new-round-box" id="new-round-box" style="display:none">
+          <div class="new-round-box" id="new-round-box" style="display:none;margin-top:16px;">
             <div class="nr-title">🔄 Start New Round</div>
-            <div class="nr-list">
-              <span>✅</span> Clear all bet tickets<br/>
-              <span>✅</span> Clear saved results<br/>
-              <span>✅</span> Reset countdown timer<br/>
-              <span>✅</span> Keep all user accounts &amp; balances
+            <div class="nr-list" style="margin-bottom:12px;">
+              Choose what to reset:<br/><br/>
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px;">
+                <input type="checkbox" id="nr-clear-tickets" style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;"/>
+                <span><strong style="color:var(--green)">Clear all user bet tickets</strong><br/><span style="font-size:11px;color:var(--text3)">Uncheck to keep for record</span></span>
+              </label>
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px;">
+                <input type="checkbox" id="nr-clear-results" checked style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;"/>
+                <span><strong style="color:var(--green)">Clear saved match results</strong><br/><span style="font-size:11px;color:var(--text3)">Ready for new week</span></span>
+              </label>
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                <input type="checkbox" id="nr-reset-cd" checked style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;"/>
+                <span><strong style="color:var(--green)">Reset countdown timer</strong><br/><span style="font-size:11px;color:var(--text3)">Open betting for next round</span></span>
+              </label>
             </div>
-            <button class="save-btn" style="background:linear-gradient(135deg,#880022,#550011);color:#fff" onclick="startNewRound()">
-              🔄 Yes — Start New Round
-            </button>
+            <button class="save-btn" style="background:linear-gradient(135deg,#880022,#550011);color:#fff;box-shadow:none;" onclick="startNewRound()">🔄 Start New Round</button>
           </div>
         </div>
       </div>
@@ -782,30 +840,17 @@ tbody tr:hover td{background:#0a1a0a40;}
 <!-- NEW ROUND CONFIRM -->
 <div class="mo" id="mo-newround">
   <div class="mo-box">
-    <div class="mo-title">🔄 Start New Round</div>
+    <div class="mo-title">🔄 Confirm New Round</div>
     <div class="mo-info">
-      Choose what to reset for the new round:<br/><br/>
-      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px;">
-        <input type="checkbox" id="nr-clear-tickets" style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;"/>
-        <span>✅ <strong style="color:var(--green)">Clear all user bet tickets</strong> from this round<br/>
-        <span style="font-size:11px;color:var(--text3)">(Uncheck to keep tickets for record keeping)</span></span>
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px;">
-        <input type="checkbox" id="nr-clear-results" checked style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;"/>
-        <span>✅ <strong style="color:var(--green)">Clear saved match results</strong><br/>
-        <span style="font-size:11px;color:var(--text3)">(Ready for new week's results)</span></span>
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:4px;">
-        <input type="checkbox" id="nr-reset-cd" checked style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;"/>
-        <span>✅ <strong style="color:var(--green)">Reset countdown timer</strong><br/>
-        <span style="font-size:11px;color:var(--text3)">(Open betting for next round)</span></span>
-      </label>
-      <div style="margin-top:12px;padding:10px;background:#1a0000;border:1px solid var(--red);border-radius:8px;font-size:12px;color:#fca5a5;">
-        ⚠️ Make sure all winners from this round have been paid before starting a new round.
-      </div>
+      This will permanently:<br/>
+      ✅ Delete all bet tickets from this round<br/>
+      ✅ Clear all saved results<br/>
+      ✅ Reset the countdown to zero<br/>
+      ✅ Keep all user accounts and balances<br/><br/>
+      <strong style="color:var(--red)">⚠️ This cannot be undone. Make sure all winners have been paid first.</strong>
     </div>
     <div class="mo-btns">
-      <button class="mb-red" onclick="confirmNewRound()">🔄 Start New Round</button>
+      <button class="mb-red" onclick="confirmNewRound()">🔄 Yes, Start New Round</button>
       <button class="mb-gray" onclick="closeMo('mo-newround')">Cancel</button>
     </div>
   </div>
@@ -823,11 +868,21 @@ tbody tr:hover td{background:#0a1a0a40;}
 <script>
 'use strict';
 // ════════════════════════════════════════════════════════
-//  🔥 FIREBASE — LIVE CONFIG
+//  🔥 FIREBASE SPACE — paste your config here
+//  All data functions below use localStorage as wrappers.
+//  Swap internals for Firebase calls when you're ready.
 // ════════════════════════════════════════════════════════
-//  NOTE: Data functions below still use localStorage as
-//  the primary store. To switch fully to Firestore, swap
-//  the getXxx / saveXxx wrappers to use window._db.
+//
+// import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+// import { getFirestore, doc, setDoc, getDoc, updateDoc,
+//          collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+// const firebaseConfig = {
+//   apiKey: "YOUR_KEY", authDomain: "YOUR_PROJECT.firebaseapp.com",
+//   projectId: "YOUR_PROJECT_ID", storageBucket: "YOUR_PROJECT.appspot.com",
+//   messagingSenderId: "YOUR_SENDER_ID", appId: "YOUR_APP_ID"
+// };
+// const app = initializeApp(firebaseConfig);
+// const db  = getFirestore(app);
 // ════════════════════════════════════════════════════════
 
 /* ── DATA WRAPPERS ── */
@@ -1159,7 +1214,7 @@ function viewUserBets(phone){
   var balanceBox='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:14px;">'
     +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Real Account Balance</div>'
     +'<div style="font-size:20px;font-weight:900;color:var(--gold)">₦'+Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2})+'</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">Phone: '+esc(u.phone||'—')+' · Email: '+esc(u.email||'—')+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">Phone: '+esc(u.phone||'—')+' · Email: '+esc(u.email||'—')+(u.age?' · Age: '+u.age:'')+'</div>'
     +'</div>';
 
   if(!tickets.length){
@@ -1170,41 +1225,42 @@ function viewUserBets(phone){
   var html=balanceBox+tickets.map(function(t,ti){
     var correctCount=0;
     var rows=t.selections.map(function(s,i){
-      var matchResult=results?results[i]:null;
-      // user picks — can be multiple e.g. ['home','draw']
-      var picks=s.picks||[];
-      // The single selection code (1/X/2)
-      var pickCode=s.code||'';
-      // check if result matches any of user's picks
-      var matchVal=matchResult?resultToVal(matchResult):null;
-      var pickVals=picks.map(function(p){return pickToVal(p);});
-      var isMatch=matchVal&&pickVals.indexOf(matchVal)!==-1;
+      // result can be object {result:'1',...} or plain string
+      var rawRes=results?results[i]:null;
+      var resVal=rawRes?(typeof rawRes==='object'?rawRes.result:rawRes):null;
+      var isVoid=resVal&&resVal.toUpperCase()==='VOID';
+      var matchVal=resVal?resultToVal(resVal):null;
+      var picks=(s.picks||[]).map(function(p){return pickToVal(p);});
+      var isMatch=!isVoid&&matchVal&&picks.indexOf(matchVal)!==-1;
       if(isMatch) correctCount++;
-      var matchIndicator='';
-      if(matchResult){
-        matchIndicator=isMatch
-          ?'<span class="rr-match">✅</span>'
-          :'<span class="rr-no">❌</span>';
+      var matchIcon='';
+      if(resVal){
+        matchIcon=isVoid
+          ?'<span style="color:var(--text3);font-size:11px">void</span>'
+          :isMatch
+            ?'<span style="color:var(--green)">✅</span>'
+            :'<span style="color:var(--red)">❌</span>';
+      }
+      // score display
+      var score='';
+      if(rawRes&&typeof rawRes==='object'&&rawRes.scoreHome!==''&&rawRes.scoreAway!==''){
+        score='<span style="color:var(--text2);font-size:11px">'+rawRes.scoreHome+'-'+rawRes.scoreAway+'</span> ';
       }
       return '<div class="receipt-row">'
         +'<span class="rr-num">'+s.matchIndex+'</span>'
         +'<span class="rr-teams">'+esc(s.home||'—')+' v '+esc(s.away||'—')+'</span>'
-        +'<span class="rr-pick" style="color:var(--green)">'+esc(pickCode)+'</span>'
-        +(matchResult?'<span class="rr-result" style="color:var(--gold)">'+esc(matchResult)+'</span>':'')
-        +matchIndicator
+        +'<span class="rr-pick" style="color:var(--green)">'+esc(s.code||'')+'</span>'
+        +(resVal?'<span class="rr-result">'+score+esc(isVoid?'void':resVal)+'</span>':'')
+        +matchIcon
         +'</div>';
     }).join('');
 
-    // colour code the ticket by correct count
     var ticketColor=!results?'var(--text2)':
-      correctCount===14?'var(--green)':
-      correctCount===13?'var(--blue)':
+      correctCount===14?'var(--green)':correctCount===13?'var(--blue)':
       correctCount===12?'var(--yellow)':'var(--red)';
     var ticketLabel=!results?'':
-      correctCount===14?'🟢 JACKPOT — 14/14':
-      correctCount===13?'🔵 2nd Prize — 13/14':
-      correctCount===12?'🟡 3rd Prize — 12/14':
-      '🔴 '+correctCount+'/14 Correct';
+      correctCount===14?'🟢 JACKPOT — 14/14':correctCount===13?'🔵 2nd Prize — 13/14':
+      correctCount===12?'🟡 3rd Prize — 12/14':'🔴 '+correctCount+'/14 Correct';
 
     return '<div class="ticket-summary-box">'
       +'<div class="ts-ref">Ticket '+(ti+1)+' · Ref: '+esc(t.id||'—')+' · '+fmtDate(t.created)+'</div>'
@@ -1218,7 +1274,7 @@ function viewUserBets(phone){
   openMo('mo-bets');
 }
 
-/* ── helper: pick code → val ── */
+/* ── helpers ── */
 function pickToVal(p){
   p=(p||'').toLowerCase();
   if(p==='home'||p==='1') return '1';
@@ -1228,9 +1284,10 @@ function pickToVal(p){
 }
 function resultToVal(r){
   r=(r||'').toUpperCase();
-  if(r==='1') return '1';
-  if(r==='X') return 'X';
-  if(r==='2') return '2';
+  if(r==='1')    return '1';
+  if(r==='X')    return 'X';
+  if(r==='2')    return '2';
+  if(r==='VOID') return 'VOID';
   return '';
 }
 
@@ -1345,20 +1402,33 @@ function markWdPaid(id){
 }
 
 /* ════════════════════════════════════════
-   RESULTS EDITOR
+   RESULTS EDITOR (with score + void)
 ════════════════════════════════════════ */
 function renderResultsEditor(){
   var matches=getMatches();
   var saved=getResults()||[];
   var html=matches.map(function(m,i){
-    var cur=saved[i]||'';
-    return '<div class="result-row">'
+    var cur=(saved[i]&&saved[i].result)||'';
+    var scoreH=(saved[i]&&saved[i].scoreHome!==undefined)?saved[i].scoreHome:'';
+    var scoreA=(saved[i]&&saved[i].scoreAway!==undefined)?saved[i].scoreAway:'';
+    var isVoid=cur==='VOID';
+    return '<div class="result-row" style="flex-wrap:wrap;gap:8px;">'
       +'<span class="result-match-num">Match '+(i+1)+'</span>'
-      +'<span class="result-match-name">'+esc(m.home)+' v '+esc(m.away)+'</span>'
+      +'<div style="flex:1;min-width:140px;">'
+        +'<div style="font-size:12px;color:var(--text2);font-weight:600">'+esc(m.home)+'</div>'
+        +'<div style="font-size:12px;color:var(--text2);font-weight:600">'+esc(m.away)+'</div>'
+        +(m.time?'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+esc(m.time)+'</div>':'')
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
+        +'<input type="number" id="sc-h-'+i+'" value="'+esc(String(scoreH))+'" placeholder="H" min="0" max="99" style="width:48px;text-align:center;background:#030a03;border:1px solid var(--border);color:var(--text);padding:6px;border-radius:7px;font-size:13px;font-weight:700;outline:none;" />'
+        +'<span style="color:var(--text3);font-weight:700">-</span>'
+        +'<input type="number" id="sc-a-'+i+'" value="'+esc(String(scoreA))+'" placeholder="A" min="0" max="99" style="width:48px;text-align:center;background:#030a03;border:1px solid var(--border);color:var(--text);padding:6px;border-radius:7px;font-size:13px;font-weight:700;outline:none;" />'
+      +'</div>'
       +'<div class="result-btns">'
         +'<button class="res-btn'+(cur==='1'?' sel-1':'')+'" id="rb-'+i+'-1" onclick="setResult('+i+',\'1\')">1</button>'
         +'<button class="res-btn'+(cur==='X'?' sel-x':'')+'" id="rb-'+i+'-X" onclick="setResult('+i+',\'X\')">X</button>'
         +'<button class="res-btn'+(cur==='2'?' sel-2':'')+'" id="rb-'+i+'-2" onclick="setResult('+i+',\'2\')">2</button>'
+        +'<button class="res-btn'+(isVoid?' sel-void':'')+'" id="rb-'+i+'-VOID" onclick="setResult('+i+',\'VOID\')" style="'+(isVoid?'background:#3d0000;border-color:var(--red);color:var(--red);':'')+'">Void</button>'
       +'</div>'
       +'</div>';
   }).join('');
@@ -1367,35 +1437,49 @@ function renderResultsEditor(){
 
 var _currentResults=[];
 function setResult(idx,val){
-  // Make sure array is long enough
-  while(_currentResults.length<=idx) _currentResults.push('');
-  _currentResults[idx]=val;
+  while(_currentResults.length<=idx) _currentResults.push(null);
+  if(!_currentResults[idx]) _currentResults[idx]={};
+  _currentResults[idx].result=val;
   // Update button UI
-  ['1','X','2'].forEach(function(v){
+  ['1','X','2','VOID'].forEach(function(v){
     var el=document.getElementById('rb-'+idx+'-'+v);
-    if(!el)return;
-    el.className='res-btn'+(v===val?(' sel-'+v.toLowerCase()):'');
+    if(!el) return;
+    var base='res-btn';
+    if(v===val){
+      if(v==='1')     el.className=base+' sel-1';
+      else if(v==='X')el.className=base+' sel-x';
+      else if(v==='2')el.className=base+' sel-2';
+      else            el.className=base;
+      if(v==='VOID'){el.style.background='#3d0000';el.style.borderColor='var(--red)';el.style.color='var(--red)';}
+    } else {
+      el.className=base;
+      if(v==='VOID'){el.style.background='';el.style.borderColor='';el.style.color='';}
+    }
   });
 }
 
 function saveResults(){
   var matches=getMatches();
-  // Build from current state (or load saved)
   var saved=getResults()||[];
-  // Merge: use _currentResults where set, fall back to saved
   var final=[];
   for(var i=0;i<14;i++){
-    final.push(_currentResults[i]||saved[i]||'');
+    var res=(_currentResults[i]&&_currentResults[i].result)||
+            (saved[i]&&(typeof saved[i]==='object'?saved[i].result:saved[i]))||'';
+    var scoreH=document.getElementById('sc-h-'+i);
+    var scoreA=document.getElementById('sc-a-'+i);
+    var sh=scoreH?scoreH.value:'';
+    var sa=scoreA?scoreA.value:'';
+    final.push({result:res,scoreHome:sh,scoreAway:sa,home:matches[i]?matches[i].home:'',away:matches[i]?matches[i].away:'',time:matches[i]?matches[i].time:''});
   }
-  var missing=final.filter(function(r){return !r;}).length;
+  var missing=final.filter(function(r){return !r.result;}).length;
   if(missing>0){
-    document.getElementById('results-save-msg').innerHTML='<span style="color:var(--red)">⚠️ '+missing+' match(es) still need a result selected.</span>';
+    document.getElementById('results-save-msg').innerHTML='<span style="color:var(--red)">⚠️ '+missing+' match(es) still need a result (1, X, 2 or Void).</span>';
     return;
   }
   saveResults2(final);
   addLog('Match results saved','admin');
-  document.getElementById('results-save-msg').innerHTML='<span style="color:var(--green)">✅ All 14 results saved! Click Scan to find winners.</span>';
-  setTimeout(function(){document.getElementById('results-save-msg').textContent='';},4000);
+  document.getElementById('results-save-msg').innerHTML='<span style="color:var(--green)">✅ Results saved! Now click Scan to find winners, then publish.</span>';
+  setTimeout(function(){document.getElementById('results-save-msg').textContent='';},5000);
   toast('✅ Results saved');
 }
 
@@ -1412,6 +1496,7 @@ function scanAllTickets(){
     document.getElementById('scan-results').innerHTML='<div class="tbl-empty">No tickets to scan this round.</div>';
     document.getElementById('scan-summary').style.display='grid';
     setText('sc-total','0');setText('sc-14','0');setText('sc-13','0');setText('sc-12','0');
+    document.getElementById('publish-section').style.display='block';
     return;
   }
 
@@ -1420,7 +1505,11 @@ function scanAllTickets(){
   tickets.forEach(function(t){
     var correct=0;
     t.selections.forEach(function(s,i){
-      var res=resultToVal(results[i]);
+      // result can be string or object {result:'1',...}
+      var rawRes=results[i];
+      var resVal=typeof rawRes==='object'?(rawRes.result||''):rawRes;
+      var res=resultToVal(resVal);
+      if(res==='VOID') return; // void matches don't count for or against
       var picks=(s.picks||[]).map(function(p){return pickToVal(p);});
       if(res && picks.indexOf(res)!==-1) correct++;
     });
@@ -1431,12 +1520,11 @@ function scanAllTickets(){
     else                  others.push(t);
   });
 
-  // Update summary
   document.getElementById('scan-summary').style.display='grid';
-  setText('sc-total', tickets.length);
-  setText('sc-14',    w14.length);
-  setText('sc-13',    w13.length);
-  setText('sc-12',    w12.length);
+  setText('sc-total',tickets.length);
+  setText('sc-14',w14.length);
+  setText('sc-13',w13.length);
+  setText('sc-12',w12.length);
 
   // Alarm
   var hasWinners=w14.length>0||w13.length>0||w12.length>0;
@@ -1448,19 +1536,23 @@ function scanAllTickets(){
     if(w13.length>0) msgs.push(w13.length+' 2nd Prize Winner(s)');
     if(w12.length>0) msgs.push(w12.length+' 3rd Prize Winner(s)');
     setText('alarm-text','🔔 '+msgs.join(' · '));
-    setText('alarm-sub','Check winners below and contact them immediately.');
-    // Play browser notification beep if supported
-    try{var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    setText('alarm-sub','Check winners below — fill in the winners table and publish results to users.');
+    try{
+      var ctx=new(window.AudioContext||window.webkitAudioContext)();
       var osc=ctx.createOscillator();osc.connect(ctx.destination);
-      osc.frequency.value=880;osc.start();osc.stop(ctx.currentTime+0.3);
+      osc.frequency.value=880;osc.start();osc.stop(ctx.currentTime+0.4);
     }catch(e){}
   } else {
     alarmBanner.classList.remove('show');
   }
 
+  // Pre-fill winners count from scan
+  if(w14.length){ var el=document.getElementById('wn-14-tickets'); if(el&&!el.value) el.value=w14.length; }
+  if(w13.length){ var el=document.getElementById('wn-13-tickets'); if(el&&!el.value) el.value=w13.length; }
+  if(w12.length){ var el=document.getElementById('wn-12-tickets'); if(el&&!el.value) el.value=w12.length; }
+
   // Build winner HTML
   var html='';
-
   if(w14.length){
     html+='<div class="winner-section">'
       +'<div class="winner-section-title ws-14">🟢 14 CORRECT — SUPER JACKPOT WINNERS ('+w14.length+')</div>'
@@ -1486,6 +1578,8 @@ function scanAllTickets(){
   }
 
   document.getElementById('scan-results').innerHTML=html;
+  // Show publish section
+  document.getElementById('publish-section').style.display='block';
   document.getElementById('new-round-box').style.display='block';
   _scanDone=true;
   addLog('Tickets scanned. 14:'+w14.length+' 13:'+w13.length+' 12:'+w12.length,'admin');
@@ -1512,46 +1606,86 @@ function winnerCard(t,cls){
     +'</div>';
 }
 
+/* ── PUBLISH RESULTS TO USERS ── */
+function publishResults(){
+  var roundId=document.getElementById('pub-round-id').value.trim();
+  if(!roundId){ toast('Enter a Round label e.g. 20260024','t-err'); return; }
+
+  var results=getResults();
+  if(!results||results.length<14){ toast('Save match results first','t-err'); return; }
+
+  var matches=getMatches();
+
+  // Build winners object — only tiers with tickets > 0
+  var winners={};
+  [['14','wn-14'],['13','wn-13'],['12','wn-12'],['11','wn-11']].forEach(function(p){
+    var tier=p[0], prefix=p[1];
+    var tEl=document.getElementById(prefix+'-tickets');
+    var pEl=document.getElementById(prefix+'-prize');
+    var tickets=tEl?parseInt(tEl.value||'0'):0;
+    var prize=pEl?parseInt(pEl.value||'0'):0;
+    if(tickets>0){
+      winners[tier]={tickets:tickets,prize:prize};
+    }
+  });
+
+  // Build match list with result objects
+  var matchList=matches.map(function(m,i){
+    var r=results[i]||{};
+    return {
+      home:   m.home,
+      away:   m.away,
+      time:   m.time||'',
+      result: typeof r==='object'?r.result:r,
+      scoreHome: typeof r==='object'?r.scoreHome:'',
+      scoreAway: typeof r==='object'?r.scoreAway:''
+    };
+  });
+
+  var now=new Date();
+  var savedAt=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
+    +' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+
+  var round={
+    id: roundId,
+    savedAt: savedAt,
+    winners: winners,
+    matches: matchList,
+    results: results
+  };
+
+  // Save to published rounds array
+  var rounds=JSON.parse(localStorage.getItem('grj_published_rounds')||'[]');
+  // Replace if same id already exists
+  var idx=rounds.findIndex(function(r){return r.id===roundId;});
+  if(idx>=0) rounds[idx]=round;
+  else rounds.push(round);
+  localStorage.setItem('grj_published_rounds',JSON.stringify(rounds));
+
+  addLog('Results published — Round '+roundId,'admin');
+  document.getElementById('publish-save-msg').innerHTML=
+    '<span style="color:var(--green)">✅ Round '+esc(roundId)+' published! Users can now see results in their Results tab.</span>';
+  setTimeout(function(){document.getElementById('publish-save-msg').textContent='';},6000);
+  toast('📢 Results published to users!','t-gold');
+}
+
 /* ── NEW ROUND ── */
-function startNewRound(){ openMo('mo-newround'); }
+function startNewRound(){ /* uses inline modal checkboxes inside publish-section */ }
 function confirmNewRound(){
-  var clearTickets = document.getElementById('nr-clear-tickets').checked;
-  var clearResults = document.getElementById('nr-clear-results').checked;
-  var resetCd      = document.getElementById('nr-reset-cd').checked;
-
-  // At least one must be selected
-  if(!clearTickets && !clearResults && !resetCd){
-    toast('Select at least one option to proceed.','t-err');
-    return;
-  }
-
-  closeMo('mo-newround');
+  var clearTickets=document.getElementById('nr-clear-tickets')&&document.getElementById('nr-clear-tickets').checked;
+  var clearResults=document.getElementById('nr-clear-results')&&document.getElementById('nr-clear-results').checked;
+  var resetCd=document.getElementById('nr-reset-cd')&&document.getElementById('nr-reset-cd').checked;
+  if(!clearTickets&&!clearResults&&!resetCd){ toast('Select at least one option.','t-err'); return; }
   showLoad('Starting new round...');
   setTimeout(function(){
     var actions=[];
-
-    if(clearTickets){
-      saveTickets([]);
-      actions.push('tickets cleared');
-    }
-    if(clearResults){
-      saveResults2([]);
-      _currentResults=[];
-      renderResultsEditor();
-      actions.push('results cleared');
-    }
-    if(resetCd){
-      clearCountdown();
-      loadCurrentCountdown();
-      actions.push('countdown reset');
-    }
-
-    // Always hide scan UI
+    if(clearTickets){ saveTickets([]); actions.push('tickets cleared'); }
+    if(clearResults){ saveResults2([]); _currentResults=[]; renderResultsEditor(); actions.push('results cleared'); }
+    if(resetCd){ clearCountdown(); loadCurrentCountdown(); actions.push('countdown reset'); }
     document.getElementById('scan-results').innerHTML='';
     document.getElementById('scan-summary').style.display='none';
-    document.getElementById('new-round-box').style.display='none';
+    document.getElementById('publish-section').style.display='none';
     document.getElementById('alarm-banner').classList.remove('show');
-
     updateStats();
     addLog('New round started — '+actions.join(', '),'admin');
     hideLoad();

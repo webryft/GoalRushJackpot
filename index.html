@@ -6,7 +6,10 @@
 <title>GoalRush Jackpot</title>
 <style>
 /* ═══════════════════════════════════════
-   🔥 FIREBASE LIVE CONFIG — see script tag
+   FIREBASE SPACE — paste config below
+   ═══════════════════════════════════════
+   import { initializeApp } from "firebase/app";
+   const firebaseConfig = { apiKey:"", ... };
    ═══════════════════════════════════════ */
 
 :root{
@@ -404,40 +407,6 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
   .cover-amount{font-size:24px;}
 }
 </style>
-
-<!-- 🔥 FIREBASE SDK — LIVE -->
-<script type="module">
-  import { initializeApp }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, collection, getDocs,
-           getDoc, setDoc, updateDoc, onSnapshot }
-    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey:            "AIzaSyDDgcOPxwXS8P5kAvmcqaRd8nTCl2a3Q4E",
-    authDomain:        "goalrushjackpot.firebaseapp.com",
-    projectId:         "goalrushjackpot",
-    storageBucket:     "goalrushjackpot.firebasestorage.app",
-    messagingSenderId: "996412041306",
-    appId:             "1:996412041306:web:99bb7a5092c958b0055063",
-    measurementId:     "G-FDNDS7FDCD"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
-
-  // Expose to global scope for data wrappers
-  window._db          = db;
-  window._fbDoc       = doc;
-  window._fbCollection= collection;
-  window._fbGetDocs   = getDocs;
-  window._fbGetDoc    = getDoc;
-  window._fbSetDoc    = setDoc;
-  window._fbUpdateDoc = updateDoc;
-  window._fbOnSnapshot= onSnapshot;
-  window._FB          = true;
-  document.dispatchEvent(new Event('firebase-ready'));
-</script>
 </head>
 <body>
 
@@ -446,7 +415,7 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
   <button id="hamburger" onclick="openMenu()" aria-label="Menu">
     <span></span><span></span><span></span>
   </button>
-  <div class="header-logo">⚽ GoalRush Jackpot</div>
+  <div class="header-logo">GoalRush Jackpot</div>
   <div class="header-right">
     <div id="header-balance" onclick="openDeposit()">₦ <span id="hdr-bal">0.00</span></div>
     <button id="slip-counter-btn" onclick="openSlip()">
@@ -520,9 +489,21 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
 
 <!-- ── RESULTS SECTION ── -->
 <div id="results" class="section">
-  <img src="example1.jpg" alt="Previous Result 1" class="results-img" onerror="this.style.display='none'"/>
-  <img src="example2.jpg" alt="Previous Result 2" class="results-img" onerror="this.style.display='none'"/>
-  <p style="color:var(--text3);font-size:13px;text-align:center">Results images go here (replace example1.jpg / example2.jpg)</p>
+  <div style="font-size:16px;font-weight:800;color:var(--gold);margin-bottom:14px;">⚽ GoalRush 14</div>
+
+  <!-- Round selector -->
+  <div style="margin-bottom:16px;">
+    <select id="results-round-sel" class="modal-input" onchange="renderSelectedRound()" style="background:#111827;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;width:100%;cursor:pointer;">
+      <option value="">[ Select a Round to view results ]</option>
+    </select>
+  </div>
+
+  <!-- Results content -->
+  <div id="results-display">
+    <div style="text-align:center;color:var(--text3);padding:30px;font-size:13px;">
+      Select a round above to view results.
+    </div>
+  </div>
 </div>
 
 <!-- ── HOW TO SECTION ── -->
@@ -564,9 +545,14 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
     <input class="modal-input" id="ca-name" placeholder="Full Name"/>
     <input class="modal-input" id="ca-email" placeholder="Email Address" type="email"/>
     <input class="modal-input" id="ca-phone" placeholder="Phone (+2348012345678)" type="tel"/>
+    <input class="modal-input" id="ca-age" placeholder="Your Age (must be 18 or above)" type="number" min="1" max="120"/>
     <div class="pw-wrap">
       <input class="modal-input" id="ca-pw" placeholder="Password (min 6 chars)" type="password"/>
       <span class="pw-toggle" onclick="togglePw('ca-pw',this)">👁️</span>
+    </div>
+    <div class="pw-wrap">
+      <input class="modal-input" id="ca-pw2" placeholder="Confirm Password" type="password"/>
+      <span class="pw-toggle" onclick="togglePw('ca-pw2',this)">👁️</span>
     </div>
     <button class="modal-btn mb-green" onclick="doSignup()">Create Account</button>
     <button class="modal-btn mb-gray" onclick="closeModal('create-modal')">Cancel</button>
@@ -761,11 +747,26 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
 
 <script>
 // ════════════════════════════════════════════════════════
-//  🔥 FIREBASE — LIVE CONFIG (injected via module script above)
-//  window._FB, window._db, window._fbDoc etc. are available.
-//  Data functions below use localStorage as primary store.
-//  To migrate fully to Firestore, swap the getXxx/saveXxx
-//  wrappers to use window._db Firestore calls.
+//  🔥 FIREBASE SPACE
+//  Paste your Firebase config here and uncomment.
+//  All data functions are wrappers — swap localStorage
+//  for Firebase by replacing the functions below.
+// ════════════════════════════════════════════════════════
+//
+// import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+// import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs }
+//   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+//
+// const firebaseConfig = {
+//   apiKey:            "YOUR_API_KEY",
+//   authDomain:        "YOUR_PROJECT.firebaseapp.com",
+//   projectId:         "YOUR_PROJECT_ID",
+//   storageBucket:     "YOUR_PROJECT.appspot.com",
+//   messagingSenderId: "YOUR_SENDER_ID",
+//   appId:             "YOUR_APP_ID"
+// };
+// const app = initializeApp(firebaseConfig);
+// const db  = getFirestore(app);
 // ════════════════════════════════════════════════════════
 
 // ── DATA LAYER (localStorage wrappers — swap for Firebase later) ──
@@ -845,7 +846,138 @@ document.addEventListener('DOMContentLoaded',function(){
   updateHeaderBalance();
   updateSlipBadge();
   startCountdown();
+  loadCoverPrize();
+  loadResultsRounds();
 });
+
+// ── PRIZE DISPLAY (reads from admin storage) ──
+function loadCoverPrize(){
+  try{
+    var p=JSON.parse(localStorage.getItem('grj_prizes')||'null');
+    var el=document.getElementById('cover-prize-amount');
+    if(el){
+      if(p && p.jackpot && Number(p.jackpot)>0){
+        el.textContent='NGN '+Number(p.jackpot).toLocaleString();
+      }else{
+        el.textContent='NGN 200,000,000';
+      }
+    }
+  }catch(e){}
+}
+
+// ── RESULTS ROUNDS ──
+function getPublishedRounds(){
+  try{return JSON.parse(localStorage.getItem('grj_published_rounds')||'[]');}catch(e){return[];}
+}
+
+function loadResultsRounds(){
+  var rounds=getPublishedRounds();
+  var sel=document.getElementById('results-round-sel');
+  if(!sel)return;
+  sel.innerHTML='<option value="">[ Select a Round to view results ]</option>';
+  rounds.slice().reverse().forEach(function(r){
+    var opt=document.createElement('option');
+    opt.value=r.id;
+    opt.textContent='Round '+r.id+' (GoalRush 14) — '+r.savedAt;
+    sel.appendChild(opt);
+  });
+  // Auto-select latest if available
+  if(rounds.length>0){
+    sel.value=rounds[rounds.length-1].id;
+    renderSelectedRound();
+  }
+}
+
+function renderSelectedRound(){
+  var sel=document.getElementById('results-round-sel');
+  var roundId=sel?sel.value:'';
+  var display=document.getElementById('results-display');
+  if(!display)return;
+  if(!roundId){
+    display.innerHTML='<div style="text-align:center;color:var(--text3);padding:30px;font-size:13px;">Select a round above to view results.</div>';
+    return;
+  }
+  var rounds=getPublishedRounds();
+  var round=rounds.find(function(r){return r.id===roundId;});
+  if(!round){
+    display.innerHTML='<div style="text-align:center;color:var(--text3);padding:30px;">Round not found.</div>';
+    return;
+  }
+
+  // Winners table
+  var winnersRows='';
+  var tiers=[
+    {key:'14',label:'14 out of 14',color:'#ffd700'},
+    {key:'13',label:'13 out of 14',color:'#ffd700'},
+    {key:'12',label:'12 out of 14',color:'#ffd700'},
+    {key:'11',label:'11 out of 14',color:'#ffd700'},
+  ];
+  var hasWinners=false;
+  tiers.forEach(function(t){
+    var entry=round.winners&&round.winners[t.key];
+    if(!entry||!entry.tickets) return; // skip if admin left it empty
+    hasWinners=true;
+    var perTicket=(entry.tickets>0&&entry.prize)?'₦'+Number(entry.prize).toLocaleString():'—';
+    winnersRows+=
+      '<tr>'
+      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);vertical-align:middle">'
+        +'<span style="display:inline-block;width:4px;height:32px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px"></span>'
+        +'<span style="font-size:13px;font-weight:600;color:var(--text)">'+t.label+'</span>'
+      +'</td>'
+      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--green);font-size:14px">'+Number(entry.tickets).toLocaleString()+'</td>'
+      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--gold);font-size:13px;font-family:monospace">'+perTicket+'</td>'
+      +'</tr>';
+  });
+
+  var winnersTable=hasWinners
+    ?'<table style="width:100%;border-collapse:collapse;margin-bottom:20px;">'
+      +'<thead><tr>'
+        +'<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">Correct Events</th>'
+        +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">No. Tickets</th>'
+        +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">Winning per Ticket</th>'
+      +'</tr></thead>'
+      +'<tbody>'+winnersRows+'</tbody>'
+    +'</table>'
+    :'';
+
+  // Match results table
+  var matchRows='';
+  var matches=round.matches||[];
+  var results=round.results||[];
+  matches.forEach(function(m,i){
+    var res=results[i]||'';
+    var isVoid=res.toUpperCase()==='VOID';
+    var resDisplay=isVoid?'<span style="color:var(--text3)">void</span>':'<strong style="color:var(--gold)">'+esc(res)+'</strong>';
+    var scoreDisplay=m.scoreHome!==undefined&&m.scoreAway!==undefined
+      ?m.scoreHome+' - '+m.scoreAway:'';
+    matchRows+=
+      '<div style="border-bottom:1px solid var(--border);padding:12px 0;">'
+        +'<div style="font-size:11px;color:var(--text3);margin-bottom:6px">'+(i+1)+'. '+esc(m.time||'')+'</div>'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+          +'<div style="flex:1;">'
+            +'<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">'+esc(m.home||'—')+'</div>'
+            +'<div style="font-size:13px;font-weight:600;color:var(--text)">'+esc(m.away||'—')+'</div>'
+          +'</div>'
+          +'<div style="text-align:center;min-width:60px;">'
+            +(scoreDisplay?'<div style="font-size:14px;font-weight:700;color:var(--text)">'+esc(scoreDisplay)+'</div>':'')
+          +'</div>'
+          +'<div style="text-align:right;min-width:40px;font-size:14px;font-weight:900;">'+resDisplay+'</div>'
+        +'</div>'
+      +'</div>';
+  });
+
+  display.innerHTML=
+    '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 14px;">'
+      +winnersTable
+      +'<div style="font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Results</div>'
+      +'<div style="display:flex;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">'
+        +'<span style="flex:1">Correct Events</span>'
+        +'<span style="min-width:60px;text-align:center">Score</span>'
+        +'<span style="min-width:40px;text-align:right">Result</span>'
+      +'</div>'
+      +matchRows
+    +'</div>';
+}
 
 // ── MENU ──
 function openMenu(){
@@ -1116,18 +1248,23 @@ function updateLockState(){
 // ── AUTH FUNCTIONS ──
 async function doSignup(){
   var name=gv('ca-name').trim(),email=gv('ca-email').trim().toLowerCase(),
-      phone=gv('ca-phone').trim(),pw=gv('ca-pw');
+      phone=gv('ca-phone').trim(),pw=gv('ca-pw'),pw2=gv('ca-pw2'),
+      age=parseInt(gv('ca-age')||'0');
   var msg=document.getElementById('ca-msg');msg.textContent='';
-  if(!name||!email||!phone||!pw){setMsg(msg,'All fields are required','err');return;}
+  if(!name||!email||!phone||!pw||!pw2||!age){setMsg(msg,'All fields are required','err');return;}
   if(!/\S+@\S+\.\S+/.test(email)){setMsg(msg,'Enter a valid email address','err');return;}
   if(!/^\+\d{7,15}$/.test(phone)){setMsg(msg,'Phone must start with + e.g. +2348012345678','err');return;}
+  if(isNaN(age)||age<1||age>120){setMsg(msg,'Enter a valid age','err');return;}
+  if(age<18){setMsg(msg,'⛔ You must be 18 or older to create an account','err');return;}
   if(pw.length<6){setMsg(msg,'Password must be at least 6 characters','err');return;}
+  if(pw!==pw2){setMsg(msg,'❌ Passwords do not match. Please try again','err');return;}
   var users=getUsers();
   if(users[phone]){setMsg(msg,'Phone number already registered','err');return;}
   var hash=await hashPw(pw);
-  users[phone]={name,email,phone,passwordHash:hash,last3:pw.slice(-3),balance:0,disabled:false,created:new Date().toISOString()};
+  users[phone]={name,email,phone,age,passwordHash:hash,last3:pw.slice(-3),balance:0,disabled:false,archived:false,created:new Date().toISOString()};
   saveUsers(users);setCurrentUser(phone);
   closeModal('create-modal');
+  ['ca-name','ca-email','ca-phone','ca-age','ca-pw','ca-pw2'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
   updateMenuItems();updateHeaderBalance();updateSlipBadge();
   showSuccess('🎉','Welcome, '+name+'!','Your account has been created. You can now deposit and place bets!');
   addLog('Account created',phone);
