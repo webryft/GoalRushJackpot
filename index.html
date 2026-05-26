@@ -415,7 +415,7 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
   <button id="hamburger" onclick="openMenu()" aria-label="Menu">
     <span></span><span></span><span></span>
   </button>
-  <div class="header-logo">GoalRush Jackpot</div>
+  <div class="header-logo">⚽ GoalRush Jackpot</div>
   <div class="header-right">
     <div id="header-balance" onclick="openDeposit()">₦ <span id="hdr-bal">0.00</span></div>
     <button id="slip-counter-btn" onclick="openSlip()">
@@ -797,9 +797,23 @@ async function getNGNperUSDT(){
 
 // ── AUTH ──
 async function hashPw(pw){
-  if(!crypto||!crypto.subtle) return pw;
-  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  // Must be consistent — same input always gives same output
+  // crypto.subtle only works on HTTPS. On HTTP we use a simple
+  // deterministic fallback so signup and login always match.
+  try{
+    if(window.crypto&&window.crypto.subtle){
+      var enc=new TextEncoder();
+      var buf=await window.crypto.subtle.digest('SHA-256',enc.encode(pw));
+      return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+    }
+  }catch(e){}
+  // Fallback: simple deterministic hash (HTTP environments)
+  var hash=0;
+  for(var i=0;i<pw.length;i++){
+    hash=((hash<<5)-hash)+pw.charCodeAt(i);
+    hash=hash&hash;
+  }
+  return 'fb_'+Math.abs(hash).toString(16)+'_'+pw.length;
 }
 function currentUser(){ return localStorage.getItem('grj_cu')||null; }
 function setCurrentUser(phone){ localStorage.setItem('grj_cu',phone); }
@@ -892,89 +906,115 @@ function renderSelectedRound(){
   var sel=document.getElementById('results-round-sel');
   var roundId=sel?sel.value:'';
   var display=document.getElementById('results-display');
-  if(!display)return;
+  if(!display) return;
   if(!roundId){
     display.innerHTML='<div style="text-align:center;color:var(--text3);padding:30px;font-size:13px;">Select a round above to view results.</div>';
     return;
   }
   var rounds=getPublishedRounds();
-  var round=rounds.find(function(r){return r.id===roundId;});
+  var round=rounds.find(function(r){ return r.id===roundId; });
   if(!round){
     display.innerHTML='<div style="text-align:center;color:var(--text3);padding:30px;">Round not found.</div>';
     return;
   }
 
-  // Winners table
-  var winnersRows='';
+  /* ── Winners table ── */
   var tiers=[
-    {key:'14',label:'14 out of 14',color:'#ffd700'},
-    {key:'13',label:'13 out of 14',color:'#ffd700'},
-    {key:'12',label:'12 out of 14',color:'#ffd700'},
-    {key:'11',label:'11 out of 14',color:'#ffd700'},
+    {key:'14',label:'14 out of 14'},
+    {key:'13',label:'13 out of 14'},
+    {key:'12',label:'12 out of 14'},
+    {key:'11',label:'11 out of 14'},
   ];
+  var winnersRows='';
   var hasWinners=false;
   tiers.forEach(function(t){
     var entry=round.winners&&round.winners[t.key];
-    if(!entry||!entry.tickets) return; // skip if admin left it empty
+    if(!entry||!entry.tickets||Number(entry.tickets)===0) return;
     hasWinners=true;
-    var perTicket=(entry.tickets>0&&entry.prize)?'₦'+Number(entry.prize).toLocaleString():'—';
+    var perTicket=entry.prize?'₦'+Number(entry.prize).toLocaleString():'—';
     winnersRows+=
       '<tr>'
-      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);vertical-align:middle">'
-        +'<span style="display:inline-block;width:4px;height:32px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px"></span>'
+      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);vertical-align:middle;">'
+        +'<span style="display:inline-block;width:4px;height:32px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px;"></span>'
         +'<span style="font-size:13px;font-weight:600;color:var(--text)">'+t.label+'</span>'
       +'</td>'
-      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--green);font-size:14px">'+Number(entry.tickets).toLocaleString()+'</td>'
-      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--gold);font-size:13px;font-family:monospace">'+perTicket+'</td>'
+      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--green);font-size:15px;">'+Number(entry.tickets).toLocaleString()+'</td>'
+      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--gold);font-size:13px;font-family:monospace;">'+perTicket+'</td>'
       +'</tr>';
   });
-
   var winnersTable=hasWinners
-    ?'<table style="width:100%;border-collapse:collapse;margin-bottom:20px;">'
-      +'<thead><tr>'
-        +'<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">Correct Events</th>'
-        +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">No. Tickets</th>'
-        +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">Winning per Ticket</th>'
-      +'</tr></thead>'
-      +'<tbody>'+winnersRows+'</tbody>'
-    +'</table>'
+    ?'<table style="width:100%;border-collapse:collapse;margin-bottom:22px;">'
+        +'<thead><tr>'
+          +'<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Correct Events</th>'
+          +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">No. Tickets</th>'
+          +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Winning per Ticket</th>'
+        +'</tr></thead>'
+        +'<tbody>'+winnersRows+'</tbody>'
+      +'</table>'
     :'';
 
-  // Match results table
+  /* ── Match results rows ──
+     Each entry in round.matches is {home, away, time, result, scoreHome, scoreAway}
+     round.results mirrors this but renderSelectedRound ONLY uses round.matches
+     because publishResults() already merged result + score into matchList.        */
   var matchRows='';
   var matches=round.matches||[];
-  var results=round.results||[];
-  matches.forEach(function(m,i){
-    var res=results[i]||'';
-    var isVoid=res.toUpperCase()==='VOID';
-    var resDisplay=isVoid?'<span style="color:var(--text3)">void</span>':'<strong style="color:var(--gold)">'+esc(res)+'</strong>';
-    var scoreDisplay=m.scoreHome!==undefined&&m.scoreAway!==undefined
-      ?m.scoreHome+' - '+m.scoreAway:'';
-    matchRows+=
-      '<div style="border-bottom:1px solid var(--border);padding:12px 0;">'
-        +'<div style="font-size:11px;color:var(--text3);margin-bottom:6px">'+(i+1)+'. '+esc(m.time||'')+'</div>'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
-          +'<div style="flex:1;">'
-            +'<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">'+esc(m.home||'—')+'</div>'
-            +'<div style="font-size:13px;font-weight:600;color:var(--text)">'+esc(m.away||'—')+'</div>'
+
+  if(matches.length===0){
+    matchRows='<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">No match data found in this round.</div>';
+  } else {
+    matches.forEach(function(m,i){
+      /* m.result is a plain string: '1','X','2','VOID' */
+      var resVal=(m.result||'').toString().trim().toUpperCase();
+      var isVoid=resVal==='VOID';
+
+      var resDisplay=isVoid
+        ?'<span style="color:var(--text3);font-size:12px;">void</span>'
+        :resVal
+          ?'<strong style="color:var(--gold);font-size:15px;">'+esc(resVal)+'</strong>'
+          :'<span style="color:var(--text3);">—</span>';
+
+      /* Score: only show if both exist and are not empty strings */
+      var sh=m.scoreHome!==undefined&&m.scoreHome!==null&&m.scoreHome!==''?String(m.scoreHome):'';
+      var sa=m.scoreAway!==undefined&&m.scoreAway!==null&&m.scoreAway!==''?String(m.scoreAway):'';
+      var scoreHtml=(sh!==''&&sa!==''&&!isVoid)
+        ?'<span style="font-size:15px;font-weight:700;color:var(--text);">'+esc(sh)+'</span>'
+          +'<span style="color:var(--text3);margin:0 3px;">-</span>'
+          +'<span style="font-size:15px;font-weight:700;color:var(--text);">'+esc(sa)+'</span>'
+        :isVoid
+          ?'<span style="color:var(--text3);font-size:12px;">void</span>'
+          :'<span style="color:var(--text3);">—</span>';
+
+      matchRows+=
+        '<div style="border-bottom:1px solid var(--border);padding:12px 0;">'
+          +'<div style="font-size:10px;color:var(--text3);margin-bottom:6px;letter-spacing:.3px;">'
+            +(i+1)+'.&nbsp;&nbsp;'+esc(m.time||'')
           +'</div>'
-          +'<div style="text-align:center;min-width:60px;">'
-            +(scoreDisplay?'<div style="font-size:14px;font-weight:700;color:var(--text)">'+esc(scoreDisplay)+'</div>':'')
+          +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+            +'<div style="flex:1;min-width:0;">'
+              +'<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(m.home||'—')+'</div>'
+              +'<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(m.away||'—')+'</div>'
+            +'</div>'
+            +'<div style="text-align:center;min-width:58px;flex-shrink:0;">'+scoreHtml+'</div>'
+            +'<div style="text-align:right;min-width:36px;flex-shrink:0;">'+resDisplay+'</div>'
           +'</div>'
-          +'<div style="text-align:right;min-width:40px;font-size:14px;font-weight:900;">'+resDisplay+'</div>'
-        +'</div>'
-      +'</div>';
-  });
+        +'</div>';
+    });
+  }
+
+  /* ── Column headers for match results ── */
+  var colHeaders=
+    '<div style="display:flex;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--border);">'
+      +'<span style="flex:1;">Match</span>'
+      +'<span style="min-width:58px;text-align:center;flex-shrink:0;">Score</span>'
+      +'<span style="min-width:36px;text-align:right;flex-shrink:0;">Result</span>'
+    +'</div>';
 
   display.innerHTML=
     '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 14px;">'
       +winnersTable
-      +'<div style="font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">Results</div>'
-      +'<div style="display:flex;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">'
-        +'<span style="flex:1">Correct Events</span>'
-        +'<span style="min-width:60px;text-align:center">Score</span>'
-        +'<span style="min-width:40px;text-align:right">Result</span>'
-      +'</div>'
+      +'<div style="font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">Results</div>'
+      +colHeaders
       +matchRows
     +'</div>';
 }
@@ -1201,21 +1241,24 @@ function updateHeaderBalance(){
   document.getElementById('hdr-bal').textContent=bal.toLocaleString('en',{minimumFractionDigits:2});
 }
 
-// ── COUNTDOWN ──
+// ── COUNTDOWN (real-time accurate across sessions) ──
 function startCountdown(){
   if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
   var cfg=getCountdown();
-  if(!cfg){renderCD(0);return;}
-  if(cfg.days!==undefined){
-    _cdSecs=(Number(cfg.days||0)*86400)+(Number(cfg.hours||0)*3600)+(Number(cfg.minutes||0)*60)+(Number(cfg.seconds||0));
-  }else if(cfg.totalSeconds){_cdSecs=Number(cfg.totalSeconds);}
-  else{_cdSecs=0;}
+  if(!cfg){renderCD(0);updateLockState();return;}
+  // Calculate how much time has already passed since admin set it
+  var elapsed=Math.floor((Date.now()-(cfg.setAt||Date.now()))/1000);
+  _cdSecs=Math.max(0,(cfg.totalSeconds||0)-elapsed);
   renderCD(_cdSecs);
-  _cdInterval=setInterval(function(){
-    if(_cdSecs>0){_cdSecs--;renderCD(_cdSecs);updateLockState();}
-    else{clearInterval(_cdInterval);_cdInterval=null;updateLockState();}
-  },1000);
   updateLockState();
+  if(_cdSecs<=0) return;
+  _cdInterval=setInterval(function(){
+    _cdSecs--;
+    if(_cdSecs<0) _cdSecs=0;
+    renderCD(_cdSecs);
+    updateLockState();
+    if(_cdSecs<=0){clearInterval(_cdInterval);_cdInterval=null;}
+  },1000);
 }
 
 function renderCD(s){
@@ -1271,16 +1314,31 @@ async function doSignup(){
 }
 
 async function doLogin(){
-  var phone=gv('li-phone').trim(),pw=gv('li-pw');
-  var msg=document.getElementById('li-msg');msg.textContent='';
+  var phone=gv('li-phone').trim();
+  var pw=gv('li-pw');
+  var msg=document.getElementById('li-msg');
+  msg.textContent='';
   if(!phone||!pw){setMsg(msg,'Phone and password required','err');return;}
-  var users=getUsers();var u=users[phone];
+  var users=getUsers();
+  var u=users[phone];
   if(!u){setMsg(msg,'No account found with this phone number','err');return;}
+  if(u.archived){setMsg(msg,'This account has been suspended. Contact support.','err');return;}
   if(u.disabled){setMsg(msg,'This account has been disabled. Contact support.','err');return;}
   var hash=await hashPw(pw);
-  if(hash!==u.passwordHash){setMsg(msg,'Incorrect password','err');return;}
-  setCurrentUser(phone);closeModal('login-modal');
-  updateMenuItems();updateHeaderBalance();updateSlipBadge();
+  if(hash!==u.passwordHash){
+    setMsg(msg,'Incorrect password. Please try again.','err');
+    document.getElementById('li-pw').value='';
+    return;
+  }
+  // Success — clear inputs then proceed
+  document.getElementById('li-phone').value='';
+  document.getElementById('li-pw').value='';
+  setCurrentUser(phone);
+  closeModal('login-modal');
+  updateMenuItems();
+  updateHeaderBalance();
+  updateSlipBadge();
+  loadResultsRounds();
   showNotif('Welcome back, '+u.name+'! ⚽');
 }
 
