@@ -6,10 +6,7 @@
 <title>GoalRush Jackpot</title>
 <style>
 /* ═══════════════════════════════════════
-   FIREBASE SPACE — paste config below
-   ═══════════════════════════════════════
-   import { initializeApp } from "firebase/app";
-   const firebaseConfig = { apiKey:"", ... };
+   🔥 FIREBASE LIVE CONFIG — see script tag
    ═══════════════════════════════════════ */
 
 :root{
@@ -407,6 +404,40 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
   .cover-amount{font-size:24px;}
 }
 </style>
+
+<!-- 🔥 FIREBASE SDK -->
+<script type="module">
+  import { initializeApp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, collection, getDocs,
+           getDoc, setDoc, updateDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDDgcOPxwXS8P5kAvmcqaRd8nTCl2a3Q4E",
+    authDomain:        "goalrushjackpot.firebaseapp.com",
+    projectId:         "goalrushjackpot",
+    storageBucket:     "goalrushjackpot.firebasestorage.app",
+    messagingSenderId: "996412041306",
+    appId:             "1:996412041306:web:99bb7a5092c958b0055063",
+    measurementId:     "G-FDNDS7FDCD"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+  window._db          = db;
+  window._fbDoc       = doc;
+  window._fbCollection= collection;
+  window._fbGetDocs   = getDocs;
+  window._fbGetDoc    = getDoc;
+  window._fbSetDoc    = setDoc;
+  window._fbUpdateDoc = updateDoc;
+  window._FB          = true;
+  document.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<!-- 💳 PAYSTACK SDK -->
+<script src="https://js.paystack.co/v1/inline.js"></script>
 </head>
 <body>
 
@@ -415,7 +446,7 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
   <button id="hamburger" onclick="openMenu()" aria-label="Menu">
     <span></span><span></span><span></span>
   </button>
-  <div class="header-logo">⚽ GoalRush Jackpot</div>
+  <div class="header-logo">GoalRush Jackpot</div>
   <div class="header-right">
     <div id="header-balance" onclick="openDeposit()">₦ <span id="hdr-bal">0.00</span></div>
     <button id="slip-counter-btn" onclick="openSlip()">
@@ -446,8 +477,8 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
     <div class="cover-amount">NGN 200,000,000</div>
     <div class="cover-sub">🏆 Consolation prizes for 13 &amp; 12 correct!</div>
     <div class="cover-actions">
-      <button class="cov-btn cov-deposit" onclick="openDeposit()">💰 Deposit</button>
-      <button class="cov-btn cov-withdraw" onclick="openWithdraw()">💸 Withdraw</button>
+      <button class="cov-btn cov-deposit" onclick="openDeposit()">Deposit</button>
+      <button class="cov-btn cov-withdraw" onclick="openWithdraw()">Withdraw</button>
     </div>
   </div>
 </div>
@@ -477,8 +508,8 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
 
 <!-- ── TABS ── -->
 <div id="tabs-bar">
-  <button class="tab-btn active" onclick="switchTab('goalrush')">⚽ GoalRush 14</button>
-  <button class="tab-btn" onclick="switchTab('results')">📊 Results</button>
+  <button class="tab-btn active" onclick="switchTab('goalrush')">GoalRush 14</button>
+  <button class="tab-btn" onclick="switchTab('results')">Previous Results</button>
   <button class="tab-btn" onclick="switchTab('howto')">❓ How to Play</button>
 </div>
 
@@ -626,12 +657,12 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
         <div class="pay-sub">Bank Transfer</div>
       </div>
       <div class="pay-card" onclick="selectPayMethod('kuda')">
-        <div class="pay-icon">🟢</div>
+        <img src="icon.png" width="30">
         <div class="pay-name">Kuda</div>
         <div class="pay-sub">Kuda Bank</div>
       </div>
       <div class="pay-card" onclick="selectPayMethod('opay')">
-        <div class="pay-icon">🔴</div>
+        <img src="icon1.png" width="30">
         <div class="pay-name">Opay</div>
         <div class="pay-sub">Opay Wallet</div>
       </div>
@@ -1190,23 +1221,112 @@ function picksToCode(picks){
 
 // ── BET SLIP ──
 function openSlip(){
-  var tickets=getTickets();
   var cu=currentUser();
+  var tickets=getTickets();
   var myTickets=cu?tickets.filter(function(t){return t.user===cu;}):[];
+
+  // Load the most recent published round results for matching
+  var publishedRounds=getPublishedRounds();
+
   var html=myTickets.length===0
     ?'<p style="text-align:center;color:var(--text3);padding:20px">No bets placed yet. Make your selections and place a bet!</p>'
     :myTickets.map(function(t,i){
       var date=new Date(t.created).toLocaleString();
-      var rows=t.selections.map(function(s){
-        return '<div class="tc-row"><span class="tc-idx">'+s.matchIndex+'</span><span class="tc-teams">'+esc(s.home)+' v '+esc(s.away)+'</span><span class="tc-code">'+s.code+'</span></div>';
+
+      // Try to find a published round that matches this ticket's created time range
+      // We use the most recently published round as the active round
+      var activeRound=publishedRounds.length>0?publishedRounds[publishedRounds.length-1]:null;
+      var roundResults=activeRound?activeRound.matches:null;
+
+      // Count correct if results available
+      var totalCorrect=0;
+      var totalVoid=0;
+
+      var rows=t.selections.map(function(s,idx){
+        var pick=s.code||'';
+        var matchResult=roundResults?roundResults[idx]:null;
+        var resVal=matchResult?(matchResult.result||'').toString().trim().toUpperCase():'';
+        var isVoid=resVal==='VOID';
+        var hasResult=resVal!=='';
+
+        // Determine win/loss
+        var userPickVals=(s.picks||[]).map(function(p){
+          p=(p||'').toLowerCase();
+          if(p==='home'||p==='1') return '1';
+          if(p==='draw'||p==='x') return 'X';
+          if(p==='away'||p==='2') return '2';
+          return '';
+        });
+        var isWin=hasResult&&!isVoid&&userPickVals.indexOf(resVal)!==-1;
+        var isLost=hasResult&&!isVoid&&!isWin;
+
+        if(isVoid) totalVoid++;
+        if(isWin)  totalCorrect++;
+
+        // Result indicator
+        var indicator='';
+        if(!hasResult){
+          indicator='<span style="color:var(--text3);font-size:12px;font-weight:600;min-width:32px;text-align:right">—</span>';
+        }else if(isVoid){
+          indicator='<span style="color:var(--text3);font-size:11px;min-width:32px;text-align:right">void</span>';
+        }else if(isWin){
+          indicator='<span style="color:var(--green);font-size:13px;font-weight:800;min-width:32px;text-align:right">✅</span>';
+        }else{
+          indicator='<span style="color:var(--red);font-size:13px;font-weight:700;min-width:32px;text-align:right">❌</span>';
+        }
+
+        // Score
+        var scoreStr='';
+        if(matchResult&&matchResult.scoreHome!==''&&matchResult.scoreAway!==''&&!isVoid){
+          scoreStr='<span style="font-size:10px;color:var(--text3);margin-left:4px;">('+matchResult.scoreHome+'-'+matchResult.scoreAway+')</span>';
+        }
+
+        return '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #1e293b;">'
+          +'<span style="color:var(--text3);width:22px;flex-shrink:0;font-size:11px;font-weight:700">'+s.matchIndex+'</span>'
+          +'<span style="flex:1;font-size:12px;color:var(--text2)">'+esc(s.home)+' v '+esc(s.away)+'</span>'
+          +'<span style="font-weight:700;color:var(--green);font-size:12px;min-width:30px;text-align:center">'+esc(pick)+'</span>'
+          +scoreStr
+          +indicator
+          +'</div>';
       }).join('');
+
+      // Overall ticket status
+      var overallStatus='';
+      if(roundResults){
+        var effective=14-totalVoid;
+        var pct=effective>0?Math.round((totalCorrect/effective)*100):0;
+        var statusColor=totalCorrect===14?'var(--green)':totalCorrect>=13?'var(--blue)':totalCorrect>=12?'var(--yellow)':'var(--red)';
+        overallStatus='<div style="margin-top:8px;padding:8px 10px;background:#111827;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'
+          +'<span style="font-size:11px;color:var(--text3)">Result</span>'
+          +'<span style="font-size:13px;font-weight:800;color:'+statusColor+'">'+totalCorrect+' correct'+(totalVoid>0?' ('+totalVoid+' void)':'')+'</span>'
+          +'</div>';
+      }else{
+        overallStatus='<div style="margin-top:8px;padding:8px 10px;background:#111827;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'
+          +'<span style="font-size:11px;color:var(--text3)">Result</span>'
+          +'<span style="font-size:13px;font-weight:700;color:var(--text3)">— Awaiting results</span>'
+          +'</div>';
+      }
+
       return '<div class="ticket-card">'
-        +'<div class="tc-header"><span class="tc-title">Ticket '+(i+1)+' &mdash; '+date+'</span>'
-        +'<button class="tc-delete" onclick="deleteTicket(\''+t.id+'\')">Delete</button></div>'
+        +'<div class="tc-header">'
+          +'<div>'
+            +'<span class="tc-title">Ticket '+(i+1)+' &mdash; '+date+'</span>'
+            +'<div style="font-size:10px;color:var(--text3);margin-top:2px;">ID: <span style="font-family:monospace;color:var(--gold)">'+esc(t.id)+'</span></div>'
+          +'</div>'
+          +'<button class="tc-delete" onclick="deleteTicket(\''+t.id+'\')">Delete</button>'
+        +'</div>'
+        +'<div style="display:flex;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);margin-bottom:2px;">'
+          +'<span style="color:var(--text3);width:22px;font-size:10px;">#</span>'
+          +'<span style="flex:1;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Match</span>'
+          +'<span style="font-size:10px;color:var(--text3);min-width:30px;text-align:center;">Pick</span>'
+          +'<span style="font-size:10px;color:var(--text3);min-width:32px;text-align:right;">Result</span>'
+        +'</div>'
         +rows
-        +'<div class="tc-footer">Combos: <strong>'+t.combination+'</strong> &nbsp;|&nbsp; Stake: <strong>₦'+t.stake.toLocaleString()+'</strong></div>'
+        +overallStatus
+        +'<div class="tc-footer" style="margin-top:8px;">Combos: <strong>'+t.combination+'</strong> &nbsp;|&nbsp; Stake: <strong>₦'+t.stake.toLocaleString()+'</strong></div>'
         +'</div>';
     }).join('');
+
   document.getElementById('slip-content').innerHTML=html;
   openModal('slip-modal');
 }
@@ -1366,6 +1486,8 @@ function switchToLogin(){closeModal('create-modal');openModal('login-modal');}
 function switchToSignup(){closeModal('login-modal');openModal('create-modal');}
 
 // ── DEPOSIT ──
+var PAYSTACK_KEY = 'pk_live_4ff37d15381d1d12c78fd66f7bc86beb64c59415';
+
 function openDeposit(){
   if(!currentUser()){openModal('auth-gate-modal');return;}
   _payMethod=null;
@@ -1392,42 +1514,200 @@ function showComingSoon(){
 }
 
 async function proceedDeposit(){
-  var msg=document.getElementById('dep-msg');msg.textContent='';
+  var msg=document.getElementById('dep-msg');
+  msg.textContent='';
   var amt=Number(document.getElementById('dep-amount').value);
   if(!_payMethod){setMsg(msg,'Please select a payment method','err');return;}
   if(!amt||amt<100||amt>100000000){setMsg(msg,'Enter amount between ₦100 and ₦100,000,000','err');return;}
   _depAmount=amt;
   closeModal('deposit-method-modal');
-  // Build payment detail
-  var title='', detailHtml='', amtDisplay='';
+
+  // ── CRYPTO stays manual ──
   if(_payMethod==='crypto'){
     var rate=await getNGNperUSDT();
     var usdtAmt=(amt/rate).toFixed(4);
-    amtDisplay=usdtAmt+' USDT';
-    title='₿ Send USDT (BEP20)';
-    detailHtml=
+    document.getElementById('pay-modal-title').textContent='₿ Send USDT (BEP20)';
+    document.getElementById('pay-amount-display').textContent=usdtAmt+' USDT ≈ ₦'+amt.toLocaleString();
+    document.getElementById('pay-detail-box').innerHTML=
       pdRow('Network',CRYPTO_NET)+
       pdRow('Wallet Address','<span style="font-size:11px;word-break:break-all">'+CRYPTO_ADDR+'</span>','copy',CRYPTO_ADDR)+
       pdRow('Amount',usdtAmt+' USDT');
-    document.getElementById('pay-amount-display').textContent=usdtAmt+' USDT ≈ ₦'+amt.toLocaleString();
-  }else{
-    var acct=(_payMethod==='opay')?OPAY_ACCT:KUDA_ACCT;
-    var bank={transfer:'Bank Transfer',kuda:'Kuda Bank',opay:'Opay'}[_payMethod];
-    var icon={transfer:'🏦',kuda:'🟢',opay:'🔴'}[_payMethod];
-    title=icon+' '+bank+' Transfer';
-    amtDisplay='₦'+amt.toLocaleString();
-    detailHtml=
-      pdRow('Account Number','<strong style="font-size:15px;color:var(--gold)">'+acct+'</strong>','copy',acct)+
-      pdRow('Bank Name',bank)+
-      pdRow('Account Name',KUDA_NAME)+
-      pdRow('Amount','₦'+amt.toLocaleString());
-    document.getElementById('pay-amount-display').textContent='₦'+amt.toLocaleString();
+    document.getElementById('pay-confirm-btn').textContent='✅ I Have Paid — Confirm';
+    document.getElementById('pay-confirm-btn').onclick=confirmCryptoPayment;
+    startPayTimer();
+    openModal('deposit-pay-modal');
+    return;
   }
-  document.getElementById('pay-modal-title').textContent=title;
-  document.getElementById('pay-detail-box').innerHTML=detailHtml;
-  // Start pay timer
-  startPayTimer();
-  openModal('deposit-pay-modal');
+
+  // ── ALL OTHER METHODS → Paystack ──
+  var cu=currentUser();
+  var users=getUsers();
+  var u=users[cu]||{};
+  var email=u.email||cu+'@goalrush.com';
+
+  var methodLabel={
+    transfer:'Bank Transfer',
+    kuda:    'Kuda Bank',
+    opay:    'Opay',
+    card:    'Card Payment'
+  }[_payMethod]||_payMethod;
+
+  var ref='GRJ-'+Date.now()+'-'+Math.random().toString(36).slice(2,7).toUpperCase();
+
+  showLoading('Opening payment gateway...');
+
+  setTimeout(function(){
+    hideLoading();
+
+    var handler=PaystackPop.setup({
+      key:       PAYSTACK_KEY,
+      email:     email,
+      amount:    amt*100, // Paystack uses kobo
+      currency:  'NGN',
+      ref:       ref,
+      metadata:{
+        custom_fields:[
+          {display_name:'Phone',    variable_name:'phone',    value:cu},
+          {display_name:'Method',   variable_name:'method',   value:methodLabel},
+          {display_name:'Platform', variable_name:'platform', value:'GoalRush Jackpot'}
+        ]
+      },
+      channels: _payMethod==='card'
+        ?['card']
+        :_payMethod==='kuda'
+          ?['bank_transfer']
+          :_payMethod==='opay'
+            ?['bank_transfer']
+            :['bank_transfer','card'],
+
+      callback: function(response){
+        // Payment completed — verify then credit
+        verifyAndCreditPaystack(response.reference, amt, methodLabel, cu);
+      },
+      onClose: function(){
+        showNotif('Payment window closed. Your account was not charged.','err');
+      }
+    });
+
+    handler.openIframe();
+  }, 600);
+}
+
+function verifyAndCreditPaystack(reference, amt, method, phone){
+  showLoading('Verifying payment...');
+
+  // Verify via Paystack API
+  // NOTE: In production move this to Firebase Functions for security
+  fetch('https://api.paystack.co/transaction/verify/'+encodeURIComponent(reference),{
+    method:'GET',
+    headers:{
+      'Authorization':'Bearer '+PAYSTACK_KEY,
+      'Content-Type':'application/json'
+    }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    hideLoading();
+    if(data.status && data.data && data.data.status==='success'){
+      // ── PAYMENT VERIFIED — credit wallet ──
+      var users=getUsers();
+      var u=users[phone]||{};
+      u.balance=Number(u.balance||0)+amt;
+      users[phone]=u;
+      saveUsers(users);
+      updateHeaderBalance();
+
+      // Save deposit record
+      var deps=getDepositRequests();
+      deps.push({
+        id:       reference,
+        user:     phone,
+        amount:   amt,
+        method:   method,
+        time:     new Date().toISOString(),
+        status:   'approved',
+        verified: true,
+        ref:      reference
+      });
+      saveDepositRequests(deps);
+
+      // Save to Firebase Firestore
+      if(window._FB && window._db){
+        try{
+          window._fbSetDoc(
+            window._fbDoc(window._db,'transactions',reference),
+            {
+              userId:    phone,
+              amount:    amt,
+              reference: reference,
+              method:    method,
+              status:    'success',
+              time:      new Date().toISOString()
+            }
+          );
+          // Update Firestore user balance
+          var uid=phone.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+          window._fbSetDoc(
+            window._fbDoc(window._db,'users',uid),
+            {balance: u.balance, lastDeposit: new Date().toISOString()},
+            {merge:true}
+          );
+        }catch(e){ console.warn('Firebase sync error:',e); }
+      }
+
+      addLog('Deposit verified ₦'+amt.toLocaleString()+' via '+method+' ref:'+reference, phone);
+      showSuccess('✅','Payment Successful!','₦'+amt.toLocaleString()+' has been credited to your account. Your new balance is ₦'+Number(u.balance).toLocaleString()+'.');
+
+    } else {
+      // Payment failed or not verified
+      showNotif('⚠️ Payment could not be verified. If you were charged contact support with ref: '+reference,'err');
+      addLog('Deposit FAILED verify — ref:'+reference+' status:'+(data.data&&data.data.status||'unknown'), phone);
+    }
+  })
+  .catch(function(err){
+    hideLoading();
+    // Network error during verify — save as pending for admin to approve manually
+    var deps=getDepositRequests();
+    deps.push({
+      id:       reference,
+      user:     phone,
+      amount:   amt,
+      method:   method,
+      time:     new Date().toISOString(),
+      status:   'pending',
+      verified: false,
+      ref:      reference,
+      note:     'Paystack verify failed — check manually'
+    });
+    saveDepositRequests(deps);
+    addLog('Deposit verify network error — ref:'+reference+' pending manual review', phone);
+    showNotif('Payment received but verification had a network error. Admin will credit your account shortly. Ref: '+reference,'err');
+  });
+}
+
+// ── CRYPTO manual confirm (stays as WhatsApp flow) ──
+function confirmCryptoPayment(){
+  if(_payTimerInterval){clearInterval(_payTimerInterval);}
+  var cu=currentUser();
+  var usdtAmt=(_depAmount/1550).toFixed(4);
+  var msg=encodeURIComponent(
+    'Hello GoalRush Support! 👋\n\n'
+    +'I have made a crypto deposit.\n\n'
+    +'📱 Phone: '+cu+'\n'
+    +'💰 Amount: '+usdtAmt+' USDT (≈ ₦'+_depAmount.toLocaleString()+')\n'
+    +'🔗 Network: BEP20\n'
+    +'📍 Wallet: '+CRYPTO_ADDR+'\n'
+    +'⏰ Time: '+new Date().toLocaleString()+'\n\n'
+    +'Please credit my account. Screenshot attached. Thank you!'
+  );
+  var deps=getDepositRequests();
+  var ref=genRef();
+  deps.push({id:ref,user:cu,amount:_depAmount,method:'USDT BEP20',time:new Date().toISOString(),status:'pending'});
+  saveDepositRequests(deps);
+  addLog('Crypto deposit request ₦'+_depAmount,cu);
+  window.open('https://wa.me/'+SUPPORT_WA+'?text='+msg,'_blank');
+  closeModal('deposit-pay-modal');
+  openModal('deposit-review-modal');
 }
 
 function pdRow(label,val,action,copyVal){
@@ -1442,7 +1722,7 @@ function startPayTimer(){
   function render(){
     var m=Math.floor(secs/60),s=secs%60;
     el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-    if(secs<=60)el.style.color='var(--red)';
+    if(secs<=60) el.style.color='var(--red)';
     if(secs<=0){clearInterval(_payTimerInterval);el.textContent='EXPIRED';el.style.color='var(--red)';}
   }
   render();
@@ -1453,32 +1733,6 @@ function cancelDepositPay(){
   if(_payTimerInterval){clearInterval(_payTimerInterval);}
   closeModal('deposit-pay-modal');
   openModal('deposit-method-modal');
-}
-
-function confirmDepositPayment(){
-  if(_payTimerInterval){clearInterval(_payTimerInterval);}
-  var cu=currentUser();
-  var method={transfer:'Bank Transfer',kuda:'Kuda Bank',opay:'Opay',crypto:'USDT BEP20'}[_payMethod]||_payMethod;
-  var amtTxt=_payMethod==='crypto'
-    ?(_depAmount/1550).toFixed(4)+' USDT (≈ ₦'+_depAmount.toLocaleString()+')'
-    :'₦'+_depAmount.toLocaleString();
-  var msg=encodeURIComponent(
-    'Hello GoalRush Support! 👋\n\n'
-    +'I have made a deposit payment.\n\n'
-    +'📱 Phone: '+cu+'\n'
-    +'💰 Amount: '+amtTxt+'\n'
-    +'🏦 Method: '+method+'\n'
-    +'⏰ Time: '+new Date().toLocaleString()+'\n\n'
-    +'Please credit my account. Receipt/screenshot attached. Thank you!'
-  );
-  // Save deposit request
-  var deps=getDepositRequests();
-  deps.push({id:genRef(),user:cu,amount:_depAmount,method:method,time:new Date().toISOString(),status:'pending'});
-  saveDepositRequests(deps);
-  addLog('Deposit request ₦'+_depAmount+' via '+method,cu);
-  window.open('https://wa.me/'+SUPPORT_WA+'?text='+msg,'_blank');
-  closeModal('deposit-pay-modal');
-  openModal('deposit-review-modal');
 }
 
 // ── WITHDRAW ──
