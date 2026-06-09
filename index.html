@@ -798,7 +798,11 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
 //  🔥 FIREBASE AUTH + FIRESTORE
 // ════════════════════════════════════════════════════════
 
-// ── 🔧 PASTE YOUR FIREBASE CONFIG HERE ──
+// ══════════════════════════════════════════════════════════════
+//  🔧 PASTE YOUR FIREBASE CONFIG BELOW (same in both files)
+//  Get it from: Firebase Console → Project Settings → Your Apps
+//  If this still says YOUR_API_KEY, registration WILL fail.
+// ══════════════════════════════════════════════════════════════
 var _FIREBASE_CONFIG = {
   apiKey:            "YOUR_API_KEY",
   authDomain:        "YOUR_PROJECT.firebaseapp.com",
@@ -936,10 +940,10 @@ var _cdSecs=0;
 //  BOOT
 // ════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',function(){
-  /* Initialize round ID if not set yet */
   if(!localStorage.getItem('grj_current_round_id')){
     localStorage.setItem('grj_current_round_id','round_'+Date.now());
   }
+  // Render immediately from localStorage so UI appears fast
   renderMatches();
   updateMenuItems();
   updateHeaderBalance();
@@ -950,9 +954,60 @@ document.addEventListener('DOMContentLoaded',function(){
   checkBroadcast();
   setInterval(checkBroadcast,30000);
   document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible') checkBroadcast();
+    if(document.visibilityState==='visible'){ checkBroadcast(); loadSharedDataFromFirebase(); }
   });
+  // Pull all admin-controlled data from Firestore so every device stays in sync
+  loadSharedDataFromFirebase();
 });
+
+// ── Load all admin-controlled shared data from Firestore ──
+async function loadSharedDataFromFirebase(){
+  var fbOk = await window._fbReady;
+  if(!fbOk || !window._db) return;
+  try{
+    // Matches / Teams
+    var mSnap = await window._fbGetDoc(window._fbDoc(window._db,'app_settings','matches'));
+    if(mSnap.exists()){
+      var mData = mSnap.data();
+      if(mData.matches && mData.matches.length){
+        localStorage.setItem('grj_matches', JSON.stringify(mData.matches));
+        renderMatches();
+      }
+    }
+    // Prize settings
+    var pSnap = await window._fbGetDoc(window._fbDoc(window._db,'app_settings','prizes'));
+    if(pSnap.exists()){
+      localStorage.setItem('grj_prizes', JSON.stringify(pSnap.data()));
+      loadCoverPrize();
+    }
+    // Countdown
+    var cdSnap = await window._fbGetDoc(window._fbDoc(window._db,'app_settings','countdown'));
+    if(cdSnap.exists()){
+      var cd = cdSnap.data();
+      if(cd.target) localStorage.setItem('grj_countdown', JSON.stringify(cd));
+    }
+    // Broadcast
+    var bcSnap = await window._fbGetDoc(window._fbDoc(window._db,'app_settings','broadcast'));
+    if(bcSnap.exists()){
+      var bc = bcSnap.data();
+      if(bc.message) localStorage.setItem('grj_broadcast_obj', JSON.stringify(bc));
+      checkBroadcast();
+    }
+    // Published rounds
+    var rSnap = await window._fbGetDocs(window._fbCollection(window._db,'published_rounds'));
+    if(!rSnap.empty){
+      var local = getPublishedRounds();
+      rSnap.forEach(function(d){
+        var fr = d.data();
+        var idx = local.findIndex(function(r){return r.id===fr.id;});
+        if(idx>=0) local[idx]=fr; else local.push(fr);
+      });
+      local.sort(function(a,b){return (a.savedAt||'').localeCompare(b.savedAt||'');});
+      localStorage.setItem('grj_published_rounds',JSON.stringify(local));
+      _renderRoundsDropdown(local);
+    }
+  }catch(e){ console.warn('loadSharedDataFromFirebase:',e); }
+}
 
 // ── PRIZE DISPLAY (reads from admin storage) ──
 function loadCoverPrize(){
@@ -1002,30 +1057,9 @@ function getPublishedRounds(){
 }
 
 async function loadResultsRounds(){
-  /* First render from localStorage immediately */
+  // Render from localStorage immediately
   _renderRoundsDropdown(getPublishedRounds());
-
-  /* Then pull from Firebase to get rounds published from any device */
-  if(window._FB && window._db){
-    try{
-      var snap=await window._fbGetDocs(window._fbCollection(window._db,'published_rounds'));
-      var fbRounds=[];
-      snap.forEach(function(d){ fbRounds.push(d.data()); });
-      if(fbRounds.length>0){
-        /* Merge firebase rounds with local */
-        var local=getPublishedRounds();
-        fbRounds.forEach(function(fr){
-          var exists=local.findIndex(function(r){return r.id===fr.id;});
-          if(exists>=0) local[exists]=fr;
-          else local.push(fr);
-        });
-        /* Sort by savedAt */
-        local.sort(function(a,b){return (a.savedAt||'').localeCompare(b.savedAt||'');});
-        localStorage.setItem('grj_published_rounds',JSON.stringify(local));
-        _renderRoundsDropdown(local);
-      }
-    }catch(e){ console.warn('Firebase rounds load:',e); }
-  }
+  // Full sync is handled by loadSharedDataFromFirebase() called on boot
 }
 
 function _renderRoundsDropdown(rounds){

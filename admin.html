@@ -928,7 +928,10 @@ tbody tr:hover td{background:#0a1a0a40;}
 //  🔥 FIREBASE FIRESTORE — Admin reads users from Firestore
 // ════════════════════════════════════════════════════════
 
-// ── 🔧 SAME CONFIG AS index.html ──
+// ══════════════════════════════════════════════════════════════
+//  🔧 PASTE YOUR FIREBASE CONFIG HERE (exact same as index.html)
+//  Get it from: Firebase Console → Project Settings → Your Apps
+// ══════════════════════════════════════════════════════════════
 var _FIREBASE_CONFIG = {
   apiKey:            "YOUR_API_KEY",
   authDomain:        "YOUR_PROJECT.firebaseapp.com",
@@ -1913,7 +1916,7 @@ function loadPrizesForm(){
   if(f13&&p.second)  f13.value=p.second;
   if(f12&&p.third)   f12.value=p.third;
 }
-function savePrizes(){
+async function savePrizes(){
   var j=Number(document.getElementById('prize-14').value);
   var s=Number(document.getElementById('prize-13').value);
   var t=Number(document.getElementById('prize-12').value);
@@ -1921,11 +1924,20 @@ function savePrizes(){
     document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--red)">Enter the Super Jackpot (14 correct) amount.</span>';
     return;
   }
-  savePrizesData({jackpot:j,second:s,third:t});
+  var prizeData={jackpot:j,second:s,third:t};
+  savePrizesData(prizeData);
   addLog('Prize settings updated — Jackpot: ₦'+j.toLocaleString(),'admin');
-  document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--green)">✅ Prize settings saved! The game page now shows ₦'+j.toLocaleString()+'</span>';
+  // Sync to Firestore
+  var fbOk = await window._fbReady;
+  if(fbOk && window._db){
+    try{
+      await window._fbSetDoc(window._fbDoc(window._db,'app_settings','prizes'),
+        Object.assign({},prizeData,{updatedAt:new Date().toISOString()}),{merge:true});
+    }catch(e){ console.warn('Prize sync:',e); }
+  }
+  document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--green)">✅ Prize settings saved on all devices! Game page now shows ₦'+j.toLocaleString()+'</span>';
   setTimeout(function(){document.getElementById('prizes-save-msg').textContent='';},5000);
-  toast('🏆 Prize settings saved');
+  toast('🏆 Prize settings saved on all devices');
 }
 
 /* ════════════════════════════════════════
@@ -1946,7 +1958,7 @@ function renderMatchesEditor(){
   document.getElementById('matches-editor').innerHTML=html;
 }
 
-function saveMatches(){
+async function saveMatches(){
   var matches=[];
   for(var i=0;i<14;i++){
     var h=document.getElementById('mh-'+i);
@@ -1962,26 +1974,45 @@ function saveMatches(){
   }
   saveMatchData(matches);
   addLog('Matches updated','admin');
-  document.getElementById('matches-save-msg').innerHTML='<span style="color:var(--green)">✅ All 14 matches saved — live on game page now.</span>';
+  // Save to Firestore so ALL devices instantly get updated teams
+  var fbOk = await window._fbReady;
+  if(fbOk && window._db){
+    try{
+      await window._fbSetDoc(window._fbDoc(window._db,'app_settings','matches'),
+        {matches:matches, updatedAt:new Date().toISOString()}, {merge:true});
+      document.getElementById('matches-save-msg').innerHTML='<span style="color:var(--green)">✅ All 14 matches saved — live on ALL devices now.</span>';
+    }catch(e){
+      document.getElementById('matches-save-msg').innerHTML='<span style="color:var(--gold)">✅ Saved locally. Firebase sync failed: '+e.message+'</span>';
+    }
+  } else {
+    document.getElementById('matches-save-msg').innerHTML='<span style="color:var(--green)">✅ All 14 matches saved — live on game page now.</span>';
+  }
   setTimeout(function(){document.getElementById('matches-save-msg').textContent='';},4000);
-  toast('⚽ Matches updated');
+  toast('⚽ Matches updated on all devices');
 }
 
 /* ════════════════════════════════════════
    COUNTDOWN (real-time accurate)
 ════════════════════════════════════════ */
-function startCountdown(){
+async function startCountdown(){
   var d=Number(document.getElementById('cd-days').value)||0;
   var h=Number(document.getElementById('cd-hours').value)||0;
   var m=Number(document.getElementById('cd-mins').value)||0;
   var s=Number(document.getElementById('cd-secs').value)||0;
   var total=d*86400+h*3600+m*60+s;
   if(total<=0){toast('Enter a duration first.','t-err');return;}
-  var cfg={days:d,hours:h,minutes:m,seconds:s,totalSeconds:total,setAt:Date.now()};
+  var cfg={days:d,hours:h,minutes:m,seconds:s,totalSeconds:total,setAt:Date.now(),target:Date.now()+total*1000};
   saveCountdown(cfg);
   loadCurrentCountdown();
   addLog('Countdown set: '+d+'d '+h+'h '+m+'m '+s+'s','admin');
-  toast('⏱ Countdown started — '+d+'d '+h+'h '+m+'m '+s+'s. All users will see accurate timer.');
+  // Sync to Firestore so all devices show same countdown
+  var fbOk = await window._fbReady;
+  if(fbOk && window._db){
+    try{
+      await window._fbSetDoc(window._fbDoc(window._db,'app_settings','countdown'),cfg,{merge:true});
+    }catch(e){ console.warn('Countdown sync:',e); }
+  }
+  toast('⏱ Countdown started on all devices — '+d+'d '+h+'h '+m+'m '+s+'s');
 }
 
 function resetCountdown(){
@@ -2137,18 +2168,30 @@ function loadBroadcast(){
     if(saved&&saved.message) document.getElementById('bc-msg').value=saved.message;
   }catch(e){}
 }
-function sendBroadcast(){
+async function sendBroadcast(){
   var msg=document.getElementById('bc-msg').value.trim();
   if(!msg){toast('Enter a message first.','t-err');return;}
-  /* Save as object with timestamp — index.html compares timestamp to detect new ones */
   var obj={message:msg, sentAt:Date.now(), sentAtStr:new Date().toLocaleString()};
   localStorage.setItem('grj_broadcast_obj', JSON.stringify(obj));
-  /* Also keep legacy key for compatibility */
   localStorage.setItem('grj_broadcast', msg);
   addLog('Broadcast sent: '+msg.slice(0,60),'admin');
-  document.getElementById('bc-status').innerHTML=
-    '✅ Broadcast sent at '+new Date().toLocaleTimeString()+
-    ' — all users will see it as a notification banner on the game page.';
+  // Push to Firestore so ALL devices receive it instantly
+  var fbOk = await window._fbReady;
+  if(fbOk && window._db){
+    try{
+      await window._fbSetDoc(window._fbDoc(window._db,'app_settings','broadcast'),obj,{merge:true});
+      document.getElementById('bc-status').innerHTML=
+        '✅ Broadcast sent at '+new Date().toLocaleTimeString()+
+        ' — pushed to ALL devices via Firebase.';
+    }catch(e){
+      document.getElementById('bc-status').innerHTML=
+        '✅ Broadcast saved. Firebase push failed: '+e.message;
+    }
+  } else {
+    document.getElementById('bc-status').innerHTML=
+      '✅ Broadcast sent at '+new Date().toLocaleTimeString()+
+      ' — users on same device will see it.';
+  }
   setTimeout(function(){document.getElementById('bc-status').textContent='';},6000);
   toast('📢 Broadcast sent to all users!');
 }
