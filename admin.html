@@ -925,21 +925,43 @@ tbody tr:hover td{background:#0a1a0a40;}
 <script>
 'use strict';
 // ════════════════════════════════════════════════════════
-//  🔥 FIREBASE SPACE — paste your config here
-//  All data functions below use localStorage as wrappers.
-//  Swap internals for Firebase calls when you're ready.
+//  🔥 FIREBASE FIRESTORE — Admin reads users from Firestore
 // ════════════════════════════════════════════════════════
-//
-// import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-// import { getFirestore, doc, setDoc, getDoc, updateDoc,
-//          collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-// const firebaseConfig = {
-//   apiKey: "YOUR_KEY", authDomain: "YOUR_PROJECT.firebaseapp.com",
-//   projectId: "YOUR_PROJECT_ID", storageBucket: "YOUR_PROJECT.appspot.com",
-//   messagingSenderId: "YOUR_SENDER_ID", appId: "YOUR_APP_ID"
-// };
-// const app = initializeApp(firebaseConfig);
-// const db  = getFirestore(app);
+(async function(){
+  try{
+    const { initializeApp }  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+    const { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs, serverTimestamp }
+                             = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    // ── 🔧 SAME CONFIG AS index.html ──
+    const firebaseConfig = {
+      apiKey:            "YOUR_API_KEY",
+      authDomain:        "YOUR_PROJECT.firebaseapp.com",
+      projectId:         "YOUR_PROJECT_ID",
+      storageBucket:     "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId:             "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    window._FB          = true;
+    window._db          = db;
+    window._fbDoc       = doc;
+    window._fbSetDoc    = setDoc;
+    window._fbGetDoc    = getDoc;
+    window._fbUpdateDoc = updateDoc;
+    window._fbCollection= collection;
+    window._fbGetDocs   = getDocs;
+    window._fbServerTS  = serverTimestamp;
+
+    console.log('✅ Admin Firebase Firestore ready');
+  }catch(e){
+    console.warn('Admin Firebase init failed:',e);
+    window._FB = false;
+  }
+})();
 // ════════════════════════════════════════════════════════
 
 /* ── DATA WRAPPERS ── */
@@ -1076,7 +1098,9 @@ function openTab(name){
 ════════════════════════════════════════ */
 function updateStats(){
   var users=getUsers();
-  var active=Object.values(users).filter(function(u){return !u.archived && !u.disabled;}).length;
+  var allArr=Object.values(users);
+  var total=allArr.filter(function(u){return !u.archived;}).length;
+  var active=allArr.filter(function(u){return !u.archived && !u.disabled && u.status!=='banned';}).length;
   var deps=getDeposits().filter(function(d){return d.status==='pending';}).length;
   var wds=getWithdrawals().filter(function(w){return w.status==='pending';}).length;
   var tickets=getTickets().length;
@@ -1084,30 +1108,34 @@ function updateStats(){
   setText('st-deposits', deps);
   setText('st-withdrawals',wds);
   setText('st-tickets',  tickets);
+  // Show total in sub-label if element exists
+  var lbl=document.getElementById('st-total-users-label');
+  if(lbl) lbl.textContent='Total: '+total+' · Active: '+active;
 }
 
 /* ════════════════════════════════════════
    USERS
 ════════════════════════════════════════ */
 async function loadUsers(){
-  /* Step 1 — load from localStorage immediately so UI appears fast */
+  // Show local data immediately
   var localUsers=getUsers();
   _allUsers=Object.values(localUsers).filter(function(u){return !u.archived;});
   renderUsersTable(_allUsers);
   updateStats();
 
-  /* Step 2 — pull from Firebase to get users registered on other devices */
+  // Pull from Firestore (primary source — all Firebase Auth users land here)
   if(window._FB && window._db){
     try{
-      var snap=await window._fbGetDocs(window._fbCollection(window._db,'users'));
+      var snap = await window._fbGetDocs(window._fbCollection(window._db,'users'));
       snap.forEach(function(d){
-        var data=d.data();
-        if(!data.phone) return;
-        /* Merge: Firebase wins for balance and account info */
-        localUsers[data.phone]=Object.assign(localUsers[data.phone]||{},data);
+        var data = d.data();
+        var key  = data.phone || d.id;   // prefer phone as local key
+        // Normalise field names: fullName → name
+        if(data.fullName && !data.name) data.name = data.fullName;
+        localUsers[key] = Object.assign(localUsers[key]||{}, data, {uid: d.id});
       });
       saveUsers(localUsers);
-      _allUsers=Object.values(localUsers).filter(function(u){return !u.archived;});
+      _allUsers = Object.values(localUsers).filter(function(u){return !u.archived;});
       filterUsers();
       updateStats();
     }catch(e){
@@ -1125,40 +1153,53 @@ function filterUsers(){
 }
 
 function renderUsersTable(users){
+  // Sort newest first
+  users = users.slice().sort(function(a,b){
+    return new Date(b.createdAt||b.created||0) - new Date(a.createdAt||a.created||0);
+  });
+  var totalUsers  = users.length;
+  var activeUsers = users.filter(function(u){return !u.disabled && !u.archived && (u.status!=='banned');}).length;
+  setText('st-users', activeUsers);
+  document.getElementById('st-total-users-label') && setText('st-total-users-label', 'Total: '+totalUsers+' · Active: '+activeUsers);
+
   if(!users.length){
     document.getElementById('users-tbl-wrap').innerHTML='<div class="tbl-empty">No users found.</div>';
     return;
   }
   var rows=users.map(function(u){
     var bal=Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2});
-    var status=u.disabled
+    var status = (u.disabled||u.status==='banned')
       ?'<span class="sbadge sb-dis">Disabled</span>'
       :'<span class="sbadge sb-ok">Active</span>';
+    var phone  = esc(u.phone||'—');
+    var email  = esc(u.email||'—');
+    var name   = esc(u.name||u.fullName||'—');
+    var regDate= esc(fmtDate(u.createdAt||u.created));
     return '<tr>'
       +'<td>'
-        +'<div class="td-phone">'+esc(u.phone||'—')+'</div>'
-        +'<div class="td-name">'+esc(u.name||'—')+'</div>'
-        +(u.age?'<div style="font-size:10px;color:var(--text3)">Age: '+esc(String(u.age))+'</div>':'')
+        +'<div class="td-phone">'+name+'</div>'
+        +'<div style="font-size:11px;color:var(--text3)">📱 '+phone+'</div>'
+        +(u.age?'<div style="font-size:10px;color:var(--text3)">Age: '+esc(String(u.age))+(u.gender?' · '+esc(u.gender):'')+'</div>':'')
       +'</td>'
-      +'<td style="font-size:11px;color:var(--text3)">'+esc(u.email||'—')+'</td>'
+      +'<td style="font-size:11px;color:var(--text3)">'+email+'</td>'
       +'<td class="td-bal">₦'+bal+'</td>'
       +'<td>'+status+'</td>'
-      +'<td style="font-size:11px;color:var(--text3)">'+esc(fmtDate(u.created))+'</td>'
+      +'<td style="font-size:11px;color:var(--text3)">'+regDate+'</td>'
       +'<td><div class="acts">'
-        +'<button class="ab ab-fund" onclick="openFund(\''+esc(u.phone)+'\')">💰 Fund</button>'
+        +'<button class="ab ab-fund" onclick="openFund(\''+esc(u.phone||u.uid||'')+'\')">💰 Fund</button>'
         +(u.disabled
-          ?'<button class="ab ab-en" onclick="setDisabled(\''+esc(u.phone)+'\',false)">✅ Enable</button>'
-          :'<button class="ab ab-dis" onclick="setDisabled(\''+esc(u.phone)+'\',true)">⛔ Disable</button>')
-        +'<button class="ab ab-clear" onclick="openClear(\''+esc(u.phone)+'\')">🗑 Clear Bal</button>'
-        +'<button class="ab ab-view" onclick="viewUserBets(\''+esc(u.phone)+'\')">🎫 Tickets</button>'
-        +'<button class="ab ab-del" onclick="openDelete(\''+esc(u.phone)+'\')">🗂 Archive</button>'
+          ?'<button class="ab ab-en"  onclick="setDisabled(\''+esc(u.phone||u.uid||'')+'\',false)">✅ Enable</button>'
+          :'<button class="ab ab-dis" onclick="setDisabled(\''+esc(u.phone||u.uid||'')+'\',true)">⛔ Disable</button>')
+        +'<button class="ab ab-clear" onclick="openClear(\''+esc(u.phone||u.uid||'')+'\')">🗑 Clear Bal</button>'
+        +'<button class="ab ab-view"  onclick="viewUserBets(\''+esc(u.phone||u.uid||'')+'\')">🎫 Tickets</button>'
+        +'<button class="ab ab-del"   onclick="openDelete(\''+esc(u.phone||u.uid||'')+'\')">🗂 Archive</button>'
       +'</div></td>'
       +'</tr>';
   }).join('');
   document.getElementById('users-tbl-wrap').innerHTML=
     '<table><thead><tr>'
-      +'<th>Phone / Name</th><th>Email</th><th>Balance</th>'
-      +'<th>Status</th><th>Created</th><th>Actions</th>'
+      +'<th>Name / Phone</th><th>Email</th><th>Balance</th>'
+      +'<th>Status</th><th>Registered</th><th>Actions</th>'
     +'</tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
@@ -1178,11 +1219,18 @@ function confirmFund(){
   if(!amt||amt<=0){setText('fund-err','Enter a valid amount.');return;}
   if(amt>100000000){setText('fund-err','Amount too large.');return;}
   showLoad('Adding funds...');
-  setTimeout(function(){
+  setTimeout(async function(){
     var users=getUsers(); var u=users[_pendingUser]; if(!u){hideLoad();return;}
     u.balance=Number(u.balance||0)+amt;
     users[_pendingUser]=u; saveUsers(users);
     addLog('Funded ₦'+amt.toLocaleString(),_pendingUser);
+    // Sync to Firestore
+    if(window._FB&&window._db&&u.uid){
+      try{
+        await window._fbSetDoc(window._fbDoc(window._db,'users',u.uid),
+          {balance:u.balance,lastFundedAt:new Date().toISOString()},{merge:true});
+      }catch(e){ console.warn('Fund sync:',e); }
+    }
     loadUsers(); updateStats(); hideLoad(); closeMo('mo-fund');
     toast('✅ ₦'+amt.toLocaleString()+' added to '+_pendingUser);
   },700);

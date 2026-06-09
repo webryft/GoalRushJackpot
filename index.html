@@ -592,6 +592,12 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
     <input class="modal-input" id="ca-email" placeholder="Email Address" type="email"/>
     <input class="modal-input" id="ca-phone" placeholder="Phone (+2348012345678)" type="tel"/>
     <input class="modal-input" id="ca-age" placeholder="Your Age (must be 18 or above)" type="number" min="1" max="120"/>
+    <select class="modal-input" id="ca-gender" style="background:#050d1a;color:var(--text);">
+      <option value="" disabled selected>Gender</option>
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+      <option value="other">Other / Prefer not to say</option>
+    </select>
     <div class="pw-wrap">
       <input class="modal-input" id="ca-pw" placeholder="Password (min 6 chars)" type="password"/>
       <span class="pw-toggle" onclick="togglePw('ca-pw',this)">👁️</span>
@@ -614,7 +620,7 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
   <div class="modal-sheet">
     <div class="sheet-handle"></div>
     <div class="modal-title">🔐 Login</div>
-    <input class="modal-input" id="li-phone" placeholder="Phone Number" type="tel"/>
+    <input class="modal-input" id="li-email" placeholder="Email Address" type="email"/>
     <div class="pw-wrap">
       <input class="modal-input" id="li-pw" placeholder="Password" type="password"/>
       <span class="pw-toggle" onclick="togglePw('li-pw',this)">👁️</span>
@@ -634,13 +640,9 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
   <div class="modal-sheet">
     <div class="sheet-handle"></div>
     <div class="modal-title">🔑 Reset Password</div>
-    <input class="modal-input" id="fp-phone" placeholder="Phone Number" type="tel"/>
-    <input class="modal-input" id="fp-hint" placeholder="Username OR last 3 chars of old password"/>
-    <div class="pw-wrap">
-      <input class="modal-input" id="fp-newpw" placeholder="New Password" type="password"/>
-      <span class="pw-toggle" onclick="togglePw('fp-newpw',this)">👁️</span>
-    </div>
-    <button class="modal-btn mb-gold" onclick="doResetPw()">Reset Password</button>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;text-align:center;line-height:1.6">Enter your registered email address. We'll send you a password reset link.</p>
+    <input class="modal-input" id="fp-email" placeholder="Email Address" type="email"/>
+    <button class="modal-btn mb-gold" onclick="doResetPw()">Send Reset Email</button>
     <button class="modal-btn mb-gray" onclick="closeModal('forgot-modal')">Cancel</button>
     <div class="modal-msg" id="fp-msg"></div>
   </div>
@@ -793,26 +795,81 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
 
 <script>
 // ════════════════════════════════════════════════════════
-//  🔥 FIREBASE SPACE
-//  Paste your Firebase config here and uncomment.
-//  All data functions are wrappers — swap localStorage
-//  for Firebase by replacing the functions below.
+//  🔥 FIREBASE AUTH + FIRESTORE
 // ════════════════════════════════════════════════════════
-//
-// import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-// import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs }
-//   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-//
-// const firebaseConfig = {
-//   apiKey:            "YOUR_API_KEY",
-//   authDomain:        "YOUR_PROJECT.firebaseapp.com",
-//   projectId:         "YOUR_PROJECT_ID",
-//   storageBucket:     "YOUR_PROJECT.appspot.com",
-//   messagingSenderId: "YOUR_SENDER_ID",
-//   appId:             "YOUR_APP_ID"
-// };
-// const app = initializeApp(firebaseConfig);
-// const db  = getFirestore(app);
+(async function(){
+  try{
+    const { initializeApp }              = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+    const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+            signOut, onAuthStateChanged, sendPasswordResetEmail }
+                                         = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+    const { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs, serverTimestamp }
+                                         = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+    // ── 🔧 PASTE YOUR FIREBASE CONFIG HERE ──
+    const firebaseConfig = {
+      apiKey:            "YOUR_API_KEY",
+      authDomain:        "YOUR_PROJECT.firebaseapp.com",
+      projectId:         "YOUR_PROJECT_ID",
+      storageBucket:     "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId:             "YOUR_APP_ID"
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    // Expose globals used throughout the file
+    window._FB          = true;
+    window._auth        = auth;
+    window._db          = db;
+    window._fbDoc       = doc;
+    window._fbSetDoc    = setDoc;
+    window._fbGetDoc    = getDoc;
+    window._fbUpdateDoc = updateDoc;
+    window._fbCollection= collection;
+    window._fbGetDocs   = getDocs;
+    window._fbServerTS  = serverTimestamp;
+    window._fbCreateUser= createUserWithEmailAndPassword;
+    window._fbSignIn    = signInWithEmailAndPassword;
+    window._fbSignOut   = signOut;
+    window._fbResetPw   = sendPasswordResetEmail;
+    window._fbOnAuth    = onAuthStateChanged;
+
+    // ── Auth state listener — keeps session valid across reloads ──
+    onAuthStateChanged(auth, async function(fbUser){
+      if(fbUser){
+        // Load Firestore profile and sync to localStorage so rest of app works
+        try{
+          var snap = await getDoc(doc(db,'users',fbUser.uid));
+          if(snap.exists()){
+            var data = snap.data();
+            var users = getUsers();
+            var key = data.phone || fbUser.uid;
+            users[key] = Object.assign(users[key]||{}, data);
+            saveUsers(users);
+            if(!localStorage.getItem('grj_cu')) setCurrentUser(key);
+          }
+        }catch(e){ console.warn('Auth state profile load:',e); }
+        updateMenuItems();
+        updateHeaderBalance();
+        updateSlipBadge();
+      } else {
+        // Firebase says no user — clear local session
+        localStorage.removeItem('grj_cu');
+        updateMenuItems();
+        updateHeaderBalance();
+        updateSlipBadge();
+      }
+    });
+
+    console.log('✅ Firebase Auth + Firestore ready');
+  }catch(e){
+    console.warn('Firebase init failed:',e);
+    window._FB = false;
+  }
+})();
 // ════════════════════════════════════════════════════════
 
 // ── DATA LAYER (localStorage wrappers — swap for Firebase later) ──
@@ -841,28 +898,9 @@ async function getNGNperUSDT(){
   return 1550;
 }
 
-// ── AUTH ──
-async function hashPw(pw){
-  // Must be consistent — same input always gives same output
-  // crypto.subtle only works on HTTPS. On HTTP we use a simple
-  // deterministic fallback so signup and login always match.
-  try{
-    if(window.crypto&&window.crypto.subtle){
-      var enc=new TextEncoder();
-      var buf=await window.crypto.subtle.digest('SHA-256',enc.encode(pw));
-      return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
-    }
-  }catch(e){}
-  // Fallback: simple deterministic hash (HTTP environments)
-  var hash=0;
-  for(var i=0;i<pw.length;i++){
-    hash=((hash<<5)-hash)+pw.charCodeAt(i);
-    hash=hash&hash;
-  }
-  return 'fb_'+Math.abs(hash).toString(16)+'_'+pw.length;
-}
+// ── AUTH (Firebase) ──
 function currentUser(){ return localStorage.getItem('grj_cu')||null; }
-function setCurrentUser(phone){ localStorage.setItem('grj_cu',phone); }
+function setCurrentUser(key){ localStorage.setItem('grj_cu',key); }
 function logoutUser(){ localStorage.removeItem('grj_cu'); }
 
 // ── CONSTANTS ──
@@ -1498,96 +1536,165 @@ function updateLockState(){
 async function doSignup(){
   var name=gv('ca-name').trim(),email=gv('ca-email').trim().toLowerCase(),
       phone=gv('ca-phone').trim(),pw=gv('ca-pw'),pw2=gv('ca-pw2'),
-      age=parseInt(gv('ca-age')||'0');
+      age=parseInt(gv('ca-age')||'0'),
+      gender=gv('ca-gender').trim();
   var msg=document.getElementById('ca-msg');msg.textContent='';
-  if(!name||!email||!phone||!pw||!pw2||!age){setMsg(msg,'All fields are required','err');return;}
+  if(!name||!email||!phone||!pw||!pw2||!age||!gender){setMsg(msg,'All fields are required','err');return;}
   if(!/\S+@\S+\.\S+/.test(email)){setMsg(msg,'Enter a valid email address','err');return;}
   if(!/^\+\d{7,15}$/.test(phone)){setMsg(msg,'Phone must start with + e.g. +2348012345678','err');return;}
   if(isNaN(age)||age<1||age>120){setMsg(msg,'Enter a valid age','err');return;}
   if(age<18){setMsg(msg,'⛔ You must be 18 or older to create an account','err');return;}
   if(pw.length<6){setMsg(msg,'Password must be at least 6 characters','err');return;}
   if(pw!==pw2){setMsg(msg,'❌ Passwords do not match. Please try again','err');return;}
-  var users=getUsers();
-  if(users[phone]){setMsg(msg,'Phone number already registered','err');return;}
-  var hash=await hashPw(pw);
-  var newUser={
-    name:name,email:email,phone:phone,age:age,
-    passwordHash:hash,last3:pw.slice(-3),
-    balance:0,disabled:false,archived:false,
-    created:new Date().toISOString()
-  };
-  users[phone]=newUser;
-  saveUsers(users);
-  // ── Sync to Firebase so admin sees this user from any device ──
-  syncUserToFirebase(phone,newUser);
-  setCurrentUser(phone);
-  closeModal('create-modal');
-  ['ca-name','ca-email','ca-phone','ca-age','ca-pw','ca-pw2'].forEach(function(id){
-    var e=document.getElementById(id);if(e)e.value='';
-  });
-  updateMenuItems();updateHeaderBalance();updateSlipBadge();
-  showSuccess('🎉','Welcome, '+name+'!','Your account has been created. You can now deposit and place bets!');
-  addLog('Account created',phone);
+
+  if(!window._FB||!window._auth||!window._db){
+    setMsg(msg,'Firebase not ready. Please refresh and try again.','err');return;
+  }
+
+  setMsg(msg,'Creating your account...','ok');
+  try{
+    var userCredential = await window._fbCreateUser(window._auth, email, pw);
+    var uid = userCredential.user.uid;
+
+    // Save profile to Firestore (no password stored)
+    var profile = {
+      uid:       uid,
+      fullName:  name,
+      email:     email,
+      phone:     phone,
+      age:       age,
+      gender:    gender,
+      balance:   0,
+      role:      'user',
+      status:    'active',
+      disabled:  false,
+      archived:  false,
+      createdAt: window._fbServerTS()
+    };
+    await window._fbSetDoc(window._fbDoc(window._db,'users',uid), profile);
+
+    // Mirror to localStorage so rest of app works immediately
+    var users=getUsers();
+    var localProfile = Object.assign({},profile,{name:name,created:new Date().toISOString(),createdAt:new Date().toISOString()});
+    users[phone] = localProfile;
+    saveUsers(users);
+    setCurrentUser(phone);
+
+    closeModal('create-modal');
+    ['ca-name','ca-email','ca-phone','ca-age','ca-pw','ca-pw2'].forEach(function(id){
+      var e=document.getElementById(id);if(e)e.value='';
+    });
+    updateMenuItems();updateHeaderBalance();updateSlipBadge();
+    showSuccess('🎉','Welcome, '+name+'!','Your account has been created. You can now deposit and place bets!');
+    addLog('Account created (Firebase Auth)',phone);
+  }catch(e){
+    var errMsg = 'Registration failed. Please try again.';
+    if(e.code==='auth/email-already-in-use') errMsg='This email is already registered. Please login instead.';
+    else if(e.code==='auth/invalid-email')   errMsg='Invalid email address format.';
+    else if(e.code==='auth/weak-password')   errMsg='Password is too weak. Use at least 6 characters.';
+    setMsg(msg,errMsg,'err');
+  }
 }
 
 async function doLogin(){
-  var phone=gv('li-phone').trim();
+  var email=gv('li-email').trim().toLowerCase();
   var pw=gv('li-pw');
   var msg=document.getElementById('li-msg');
   msg.textContent='';
-  if(!phone||!pw){setMsg(msg,'Phone and password required','err');return;}
-  var users=getUsers();
-  var u=users[phone];
-  if(!u){setMsg(msg,'No account found with this phone number','err');return;}
-  if(u.archived){setMsg(msg,'This account has been suspended. Contact support.','err');return;}
-  if(u.disabled){setMsg(msg,'This account has been disabled. Contact support.','err');return;}
-  var hash=await hashPw(pw);
-  if(hash!==u.passwordHash){
-    setMsg(msg,'Incorrect password. Please try again.','err');
-    document.getElementById('li-pw').value='';
-    return;
+  if(!email||!pw){setMsg(msg,'Email and password required','err');return;}
+
+  if(!window._FB||!window._auth||!window._db){
+    setMsg(msg,'Firebase not ready. Please refresh.','err');return;
   }
-  // Success — clear inputs then proceed
-  document.getElementById('li-phone').value='';
-  document.getElementById('li-pw').value='';
-  setCurrentUser(phone);
-  closeModal('login-modal');
-  updateMenuItems();
-  updateHeaderBalance();
-  updateSlipBadge();
-  loadResultsRounds();
-  showNotif('Welcome back, '+u.name+'! ⚽');
+
+  setMsg(msg,'Signing in...','ok');
+  try{
+    var userCredential = await window._fbSignIn(window._auth, email, pw);
+    var uid = userCredential.user.uid;
+
+    // Load Firestore profile
+    var snap = await window._fbGetDoc(window._fbDoc(window._db,'users',uid));
+    if(!snap.exists()){setMsg(msg,'Account profile not found. Contact support.','err');return;}
+    var data = snap.data();
+
+    if(data.archived || data.status==='banned'){
+      setMsg(msg,'This account has been suspended. Contact support.','err');
+      await window._fbSignOut(window._auth);
+      return;
+    }
+    if(data.disabled){
+      setMsg(msg,'This account has been disabled. Contact support.','err');
+      await window._fbSignOut(window._auth);
+      return;
+    }
+
+    // Mirror to localStorage
+    var users=getUsers();
+    var key = data.phone || uid;
+    users[key] = Object.assign(users[key]||{}, data, {name: data.fullName||data.name||'', created: data.createdAt||new Date().toISOString()});
+    saveUsers(users);
+
+    document.getElementById('li-email').value='';
+    document.getElementById('li-pw').value='';
+    setCurrentUser(key);
+    closeModal('login-modal');
+    updateMenuItems();
+    updateHeaderBalance();
+    updateSlipBadge();
+    loadResultsRounds();
+    showNotif('Welcome back, '+(data.fullName||data.name||email)+'! ⚽');
+    addLog('Login (Firebase Auth)', key);
+  }catch(e){
+    var errMsg = 'Login failed. Please try again.';
+    if(e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential')
+      errMsg='Incorrect email or password. Please try again.';
+    else if(e.code==='auth/invalid-email') errMsg='Invalid email address.';
+    else if(e.code==='auth/too-many-requests') errMsg='Too many attempts. Please wait and try again.';
+    setMsg(msg,errMsg,'err');
+    document.getElementById('li-pw').value='';
+  }
 }
 
-function doLogout(){
+async function doLogout(){
+  if(window._FB&&window._auth){
+    try{ await window._fbSignOut(window._auth); }catch(e){}
+  }
   logoutUser();updateMenuItems();updateHeaderBalance();updateSlipBadge();
   showNotif('Logged out successfully.');
 }
 
 async function doResetPw(){
-  var phone=gv('fp-phone').trim(),hint=gv('fp-hint').trim(),newpw=gv('fp-newpw');
+  var email=gv('fp-email').trim().toLowerCase();
   var msg=document.getElementById('fp-msg');msg.textContent='';
-  var users=getUsers();var u=users[phone];
-  if(!u){setMsg(msg,'No account found','err');return;}
-  var ok=(u.username&&hint.toLowerCase()===u.username.toLowerCase())||(u.last3&&hint===u.last3);
-  if(!ok){setMsg(msg,'Hint does not match username or old password ending','err');return;}
-  if(newpw.length<6){setMsg(msg,'New password too short','err');return;}
-  var hash=await hashPw(newpw);
-  u.passwordHash=hash;u.last3=newpw.slice(-3);users[phone]=u;saveUsers(users);
-  setMsg(msg,'Password reset! Please login.','ok');
-  setTimeout(function(){closeModal('forgot-modal');openModal('login-modal');},1500);
+  if(!email){setMsg(msg,'Enter your email address','err');return;}
+  if(!window._FB||!window._auth){setMsg(msg,'Firebase not ready. Please refresh.','err');return;}
+  try{
+    await window._fbResetPw(window._auth, email);
+    setMsg(msg,'✅ Password reset email sent! Check your inbox.','ok');
+    setTimeout(function(){closeModal('forgot-modal');},3000);
+  }catch(e){
+    var errMsg='Could not send reset email. Please try again.';
+    if(e.code==='auth/user-not-found') errMsg='No account found with this email.';
+    else if(e.code==='auth/invalid-email') errMsg='Invalid email address.';
+    setMsg(msg,errMsg,'err');
+  }
 }
 
 function openForgot(){closeModal('login-modal');openModal('forgot-modal');}
 function switchToLogin(){closeModal('create-modal');openModal('login-modal');}
 function switchToSignup(){closeModal('login-modal');openModal('create-modal');}
 
-// ── FIREBASE SYNC HELPER ──
-function syncUserToFirebase(phone, userData){
+// ── FIREBASE SYNC HELPER (balance/profile updates after registration) ──
+async function syncUserToFirebase(phone, userData){
   if(!window._FB||!window._db) return;
   try{
-    var uid=phone.replace(/[^a-z0-9]/gi,'_').toLowerCase();
-    window._fbSetDoc(window._fbDoc(window._db,'users',uid),
+    // Find the uid for this phone number from Firestore
+    var snap = await window._fbGetDocs(window._fbCollection(window._db,'users'));
+    var uid = null;
+    snap.forEach(function(d){ if(d.data().phone===phone) uid=d.id; });
+    if(!uid) return;
+    await window._fbSetDoc(
+      window._fbDoc(window._db,'users',uid),
       Object.assign({},userData,{phone:phone,lastSeen:new Date().toISOString()}),
       {merge:true}
     );
