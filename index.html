@@ -794,17 +794,10 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
 <div id="notif"></div>
 
 <script>
-// ════════════════════════════════════════════════════════
-//  🔥 FIREBASE AUTH + FIRESTORE
-// ════════════════════════════════════════════════════════
-
 // ══════════════════════════════════════════════════════════════
-//  🔧 PASTE YOUR FIREBASE CONFIG BELOW (same in both files)
-//  Get it from: Firebase Console → Project Settings → Your Apps
-//  If this still says YOUR_API_KEY, registration WILL fail.
+//  🔥 FIREBASE CONFIG — same in both index.html and admin.html
 // ══════════════════════════════════════════════════════════════
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
+var _FIREBASE_CONFIG = {
   apiKey: "AIzaSyDDgcOPxwXS8P5kAvmcqaRd8nTCl2a3Q4E",
   authDomain: "goalrushjackpot.firebaseapp.com",
   projectId: "goalrushjackpot",
@@ -814,53 +807,62 @@ const firebaseConfig = {
   measurementId: "G-FDNDS7FDCD"
 };
 
-// _fbReady resolves when Firebase is fully initialized — auth functions AWAIT this
+// ════════════════════════════════════════════════════════
+//  FIREBASE INIT — _fbReady is a Promise every fn awaits
+// ════════════════════════════════════════════════════════
 window._fbReady = (async function(){
   try{
-    const { initializeApp }              = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
     const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
             signOut, onAuthStateChanged, sendPasswordResetEmail }
-                                         = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
-    const { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs, serverTimestamp }
-                                         = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+    const { getFirestore, doc, setDoc, getDoc, updateDoc,
+            collection, getDocs, addDoc, serverTimestamp, query, where }
+      = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
     const app  = initializeApp(_FIREBASE_CONFIG);
     const auth = getAuth(app);
     const db   = getFirestore(app);
 
-    window._FB          = true;
-    window._auth        = auth;
-    window._db          = db;
-    window._fbDoc       = doc;
-    window._fbSetDoc    = setDoc;
-    window._fbGetDoc    = getDoc;
-    window._fbUpdateDoc = updateDoc;
-    window._fbCollection= collection;
-    window._fbGetDocs   = getDocs;
-    window._fbServerTS  = serverTimestamp;
-    window._fbCreateUser= createUserWithEmailAndPassword;
-    window._fbSignIn    = signInWithEmailAndPassword;
-    window._fbSignOut   = signOut;
-    window._fbResetPw   = sendPasswordResetEmail;
+    window._FB            = true;
+    window._auth          = auth;
+    window._db            = db;
+    window._fbDoc         = doc;
+    window._fbSetDoc      = setDoc;
+    window._fbGetDoc      = getDoc;
+    window._fbUpdateDoc   = updateDoc;
+    window._fbCollection  = collection;
+    window._fbGetDocs     = getDocs;
+    window._fbAddDoc      = addDoc;
+    window._fbServerTS    = serverTimestamp;
+    window._fbQuery       = query;
+    window._fbWhere       = where;
+    window._fbCreateUser  = createUserWithEmailAndPassword;
+    window._fbSignIn      = signInWithEmailAndPassword;
+    window._fbSignOut     = signOut;
+    window._fbResetPw     = sendPasswordResetEmail;
 
-    // ── Auth state listener — restores session on page reload ──
+    // ── Restore session on reload ──
     onAuthStateChanged(auth, async function(fbUser){
       if(fbUser){
         try{
           var snap = await getDoc(doc(db,'users',fbUser.uid));
           if(snap.exists()){
             var data = snap.data();
-            var users = getUsers();
-            var key = data.phone || fbUser.uid;
             data.name = data.fullName || data.name || '';
-            users[key] = Object.assign(users[key]||{}, data);
-            saveUsers(users);
-            if(!localStorage.getItem('grj_cu')) setCurrentUser(key);
+            data.uid  = fbUser.uid;
+            // Always use phone as local key if available
+            var key = data.phone || fbUser.uid;
+            _localSet('grj_cu', key);
+            _mergeLocalUser(key, data);
           }
-        }catch(e){ console.warn('Auth state profile load:',e); }
+        }catch(e){ console.warn('onAuthStateChanged profile load:',e); }
+        // Re-load tickets/withdrawals/deposits from Firestore for this user
+        var cu = _localGet('grj_cu');
+        if(cu){ await _loadUserDataFromFirestore(cu); }
         updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
       } else {
-        localStorage.removeItem('grj_cu');
+        _localRemove('grj_cu');
         updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
       }
     });
@@ -868,43 +870,166 @@ window._fbReady = (async function(){
     console.log('✅ Firebase Auth + Firestore ready');
     return true;
   }catch(e){
-    console.warn('Firebase init failed:',e);
+    console.warn('Firebase init failed:', e);
     window._FB = false;
     return false;
   }
 })();
+
+// ════════════════════════════════════════════════════════
+//  LOCAL HELPERS (localStorage + Firestore dual-write)
+// ════════════════════════════════════════════════════════
+function _localGet(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
+function _localSet(k,v){ try{localStorage.setItem(k,v);}catch(e){} }
+function _localRemove(k){ try{localStorage.removeItem(k);}catch(e){} }
+function _localGetJSON(k,def){ try{return JSON.parse(localStorage.getItem(k)||'null')||def;}catch(e){return def;} }
+function _localSetJSON(k,v){ try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} }
+
+// ── Merge a Firebase user doc into localStorage ──
+function _mergeLocalUser(key, data){
+  var users = _localGetJSON('grj_users',{});
+  users[key] = Object.assign(users[key]||{}, data);
+  _localSetJSON('grj_users', users);
+}
+
+// ════════════════════════════════════════════════════════
+//  DATA LAYER — every read/write goes to BOTH localStorage
+//  AND Firestore so all devices stay in sync
 // ════════════════════════════════════════════════════════
 
-// ── DATA LAYER (localStorage wrappers — swap for Firebase later) ──
-function getUsers(){ try{return JSON.parse(localStorage.getItem('grj_users')||'{}')}catch(e){return{}} }
-function saveUsers(u){ localStorage.setItem('grj_users',JSON.stringify(u)); }
-function getTickets(){ try{return JSON.parse(localStorage.getItem('grj_tickets')||'[]')}catch(e){return[]} }
-function saveTickets(t){ localStorage.setItem('grj_tickets',JSON.stringify(t)); }
-function getWithdrawals(){ try{return JSON.parse(localStorage.getItem('grj_withdrawals')||'[]')}catch(e){return[]} }
-function saveWithdrawals(w){ localStorage.setItem('grj_withdrawals',JSON.stringify(w)); }
-function getDepositRequests(){ try{return JSON.parse(localStorage.getItem('grj_deposits')||'[]')}catch(e){return[]} }
-function saveDepositRequests(d){ localStorage.setItem('grj_deposits',JSON.stringify(d)); }
-function getLogs(){ try{return JSON.parse(localStorage.getItem('grj_logs')||'[]')}catch(e){return[]} }
-function saveLogs(l){ localStorage.setItem('grj_logs',JSON.stringify(l)); }
-function addLog(action,user){ var l=getLogs(); l.push({time:new Date().toLocaleString(),action,user}); saveLogs(l); }
-function getCountdown(){ try{return JSON.parse(localStorage.getItem('grj_countdown')||'null')}catch(e){return null} }
-function getMatches(){
+// ── Users ──
+function getUsers(){ return _localGetJSON('grj_users',{}); }
+function saveUsers(u){ _localSetJSON('grj_users',u); }
+
+// ── Current session user key ──
+function currentUser(){ return _localGet('grj_cu')||null; }
+function setCurrentUser(key){ _localSet('grj_cu',key); }
+function logoutUser(){ _localRemove('grj_cu'); }
+
+// ── Tickets (local + Firestore) ──
+function getTickets(){ return _localGetJSON('grj_tickets',[]); }
+function saveTickets(arr){ _localSetJSON('grj_tickets',arr); }
+
+async function _saveTicketToFirestore(ticket){
+  var fbOk = await window._fbReady;
+  if(!fbOk||!window._db) return;
   try{
-    var m=JSON.parse(localStorage.getItem('grj_matches')||'null');
-    return m||DEFAULT_MATCHES;
-  }catch(e){return DEFAULT_MATCHES;}
+    await window._fbSetDoc(window._fbDoc(window._db,'tickets',ticket.id), ticket);
+  }catch(e){ console.warn('Ticket Firestore save:',e); }
+}
+
+async function _loadUserDataFromFirestore(userKey){
+  var fbOk = await window._fbReady;
+  if(!fbOk||!window._db) return;
+  try{
+    // Load tickets
+    var tSnap = await window._fbGetDocs(
+      window._fbQuery(window._fbCollection(window._db,'tickets'), window._fbWhere('user','==',userKey))
+    );
+    var fbTickets = [];
+    tSnap.forEach(function(d){ fbTickets.push(d.data()); });
+    if(fbTickets.length){
+      // Merge with local
+      var local = getTickets();
+      var localIds = new Set(local.map(function(t){return t.id;}));
+      fbTickets.forEach(function(ft){
+        if(!localIds.has(ft.id)) local.push(ft);
+      });
+      saveTickets(local);
+    }
+
+    // Load withdrawals for this user
+    var wSnap = await window._fbGetDocs(
+      window._fbQuery(window._fbCollection(window._db,'withdrawals'), window._fbWhere('user','==',userKey))
+    );
+    var fbWd = [];
+    wSnap.forEach(function(d){ fbWd.push(d.data()); });
+    if(fbWd.length){
+      var localWd = getWithdrawals();
+      var localWdIds = new Set(localWd.map(function(w){return w.id;}));
+      fbWd.forEach(function(w){ if(!localWdIds.has(w.id)) localWd.push(w); });
+      saveWithdrawals(localWd);
+    }
+
+    // Load deposits for this user
+    var dSnap = await window._fbGetDocs(
+      window._fbQuery(window._fbCollection(window._db,'deposits'), window._fbWhere('user','==',userKey))
+    );
+    var fbDep = [];
+    dSnap.forEach(function(d){ fbDep.push(d.data()); });
+    if(fbDep.length){
+      var localDep = getDepositRequests();
+      var localDepIds = new Set(localDep.map(function(d){return d.id;}));
+      fbDep.forEach(function(d){ if(!localDepIds.has(d.id)) localDep.push(d); });
+      saveDepositRequests(localDep);
+    }
+  }catch(e){ console.warn('_loadUserDataFromFirestore:',e); }
+}
+
+// ── Withdrawals (local + Firestore) ──
+function getWithdrawals(){ return _localGetJSON('grj_withdrawals',[]); }
+function saveWithdrawals(w){ _localSetJSON('grj_withdrawals',w); }
+
+async function _saveWithdrawalToFirestore(wd){
+  var fbOk = await window._fbReady;
+  if(!fbOk||!window._db) return;
+  try{
+    await window._fbSetDoc(window._fbDoc(window._db,'withdrawals',wd.id), wd);
+  }catch(e){ console.warn('Withdrawal Firestore save:',e); }
+}
+
+// ── Deposits (local + Firestore) ──
+function getDepositRequests(){ return _localGetJSON('grj_deposits',[]); }
+function saveDepositRequests(d){ _localSetJSON('grj_deposits',d); }
+
+async function _saveDepositToFirestore(dep){
+  var fbOk = await window._fbReady;
+  if(!fbOk||!window._db) return;
+  try{
+    await window._fbSetDoc(window._fbDoc(window._db,'deposits',dep.id), dep);
+  }catch(e){ console.warn('Deposit Firestore save:',e); }
+}
+
+// ── Logs ──
+function getLogs(){ return _localGetJSON('grj_logs',[]); }
+function saveLogs(l){ _localSetJSON('grj_logs',l); }
+function addLog(action,user){
+  var l=getLogs();
+  l.push({time:new Date().toLocaleString(),action:action,user:user});
+  saveLogs(l);
+}
+
+// ── Countdown ──
+function getCountdown(){ return _localGetJSON('grj_countdown',null); }
+
+// ── Matches ──
+function getMatches(){
+  var m = _localGetJSON('grj_matches',null);
+  return m || DEFAULT_MATCHES;
+}
+
+// ── Published rounds ──
+function getPublishedRounds(){ return _localGetJSON('grj_published_rounds',[]); }
+
+// ── Update user balance in Firestore ──
+async function _syncUserBalanceToFirestore(userKey, balance){
+  var fbOk = await window._fbReady;
+  if(!fbOk||!window._db) return;
+  try{
+    // Find user doc by phone
+    var snap = await window._fbGetDocs(
+      window._fbQuery(window._fbCollection(window._db,'users'), window._fbWhere('phone','==',userKey))
+    );
+    if(!snap.empty){
+      var uid = snap.docs[0].id;
+      await window._fbSetDoc(window._fbDoc(window._db,'users',uid),
+        {balance:balance, lastUpdated:new Date().toISOString()},{merge:true});
+    }
+  }catch(e){ console.warn('Balance sync:',e); }
 }
 
 // ── CRYPTO RATE ──
-async function getNGNperUSDT(){
-  // Simple fallback rate — replace with live API if desired
-  return 1550;
-}
-
-// ── AUTH (Firebase) ──
-function currentUser(){ return localStorage.getItem('grj_cu')||null; }
-function setCurrentUser(key){ localStorage.setItem('grj_cu',key); }
-function logoutUser(){ localStorage.removeItem('grj_cu'); }
+async function getNGNperUSDT(){ return 1550; }
 
 // ── CONSTANTS ──
 var SUPPORT_WA = '17404061406';
@@ -913,6 +1038,7 @@ var KUDA_NAME  = 'Victor Mmeri';
 var OPAY_ACCT  = '7031935351';
 var CRYPTO_ADDR= '0x8DA564f9F125aa5E7C5DaC070cbF4B0bad756c0e';
 var CRYPTO_NET = 'BEP20 (Binance Smart Chain)';
+var PAYSTACK_KEY='pk_live_4ff37d15381d1d12c78fd66f7bc86beb64c59415';
 
 var DEFAULT_MATCHES = [
   {time:'2025-09-03 06:34',home:'Bournemouth',away:'Brighton'},
@@ -932,20 +1058,15 @@ var DEFAULT_MATCHES = [
 ];
 
 // ── STATE ──
-var _combo=0, _stake=0, _allSel=false;
-var _payMethod=null, _depAmount=0;
+var _combo=0,_stake=0,_allSel=false;
+var _payMethod=null,_depAmount=0;
 var _payTimerInterval=null;
-var _cdInterval=null;
-var _cdSecs=0;
+var _cdInterval=null,_cdSecs=0;
 
 // ════════════════════════════════════════════════════════
 //  BOOT
 // ════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',function(){
-  if(!localStorage.getItem('grj_current_round_id')){
-    localStorage.setItem('grj_current_round_id','round_'+Date.now());
-  }
-  // Render immediately from localStorage so UI appears fast
   renderMatches();
   updateMenuItems();
   updateHeaderBalance();
@@ -955,115 +1076,104 @@ document.addEventListener('DOMContentLoaded',function(){
   loadResultsRounds();
   checkBroadcast();
   setInterval(checkBroadcast,30000);
+  setInterval(function(){ loadSharedDataFromFirebase(); },60000); // refresh every 60s
   document.addEventListener('visibilitychange',function(){
     if(document.visibilityState==='visible'){ checkBroadcast(); loadSharedDataFromFirebase(); }
   });
-  // Pull all admin-controlled data from Firestore so every device stays in sync
   loadSharedDataFromFirebase();
 });
 
-// ── Load all admin-controlled shared data from Firestore ──
+// ── Pull all admin-controlled shared data from Firestore ──
 async function loadSharedDataFromFirebase(){
   var fbOk = await window._fbReady;
-  if(!fbOk || !window._db) return;
+  if(!fbOk||!window._db) return;
   try{
-    // Matches / Teams
+    // Matches
     var mSnap = await window._fbGetDoc(window._fbDoc(window._db,'app_settings','matches'));
     if(mSnap.exists()){
-      var mData = mSnap.data();
-      if(mData.matches && mData.matches.length){
-        localStorage.setItem('grj_matches', JSON.stringify(mData.matches));
-        renderMatches();
-      }
+      var md = mSnap.data();
+      if(md.matches&&md.matches.length){ _localSetJSON('grj_matches',md.matches); renderMatches(); }
     }
-    // Prize settings
+    // Prizes
     var pSnap = await window._fbGetDoc(window._fbDoc(window._db,'app_settings','prizes'));
-    if(pSnap.exists()){
-      localStorage.setItem('grj_prizes', JSON.stringify(pSnap.data()));
-      loadCoverPrize();
-    }
+    if(pSnap.exists()){ _localSetJSON('grj_prizes',pSnap.data()); loadCoverPrize(); }
     // Countdown
     var cdSnap = await window._fbGetDoc(window._fbDoc(window._db,'app_settings','countdown'));
     if(cdSnap.exists()){
       var cd = cdSnap.data();
-      if(cd.target) localStorage.setItem('grj_countdown', JSON.stringify(cd));
+      if(cd.target){ _localSetJSON('grj_countdown',cd); startCountdown(); }
     }
     // Broadcast
     var bcSnap = await window._fbGetDoc(window._fbDoc(window._db,'app_settings','broadcast'));
     if(bcSnap.exists()){
       var bc = bcSnap.data();
-      if(bc.message) localStorage.setItem('grj_broadcast_obj', JSON.stringify(bc));
-      checkBroadcast();
+      if(bc.message){ _localSetJSON('grj_broadcast_obj',bc); checkBroadcast(); }
     }
     // Published rounds
     var rSnap = await window._fbGetDocs(window._fbCollection(window._db,'published_rounds'));
     if(!rSnap.empty){
       var local = getPublishedRounds();
       rSnap.forEach(function(d){
-        var fr = d.data();
-        var idx = local.findIndex(function(r){return r.id===fr.id;});
+        var fr=d.data();
+        var idx=local.findIndex(function(r){return r.id===fr.id;});
         if(idx>=0) local[idx]=fr; else local.push(fr);
       });
       local.sort(function(a,b){return (a.savedAt||'').localeCompare(b.savedAt||'');});
-      localStorage.setItem('grj_published_rounds',JSON.stringify(local));
+      _localSetJSON('grj_published_rounds',local);
       _renderRoundsDropdown(local);
+    }
+    // Also sync current user balance from Firestore
+    var cu = currentUser();
+    if(cu){
+      var uSnap = await window._fbGetDocs(
+        window._fbQuery(window._fbCollection(window._db,'users'), window._fbWhere('phone','==',cu))
+      );
+      if(!uSnap.empty){
+        var uData = uSnap.docs[0].data();
+        _mergeLocalUser(cu, uData);
+        updateHeaderBalance();
+      }
     }
   }catch(e){ console.warn('loadSharedDataFromFirebase:',e); }
 }
 
-// ── PRIZE DISPLAY (reads from admin storage) ──
+// ── PRIZE DISPLAY ──
 function loadCoverPrize(){
-  try{
-    var p=JSON.parse(localStorage.getItem('grj_prizes')||'null');
-    var el=document.getElementById('cover-prize-amount');
-    if(el){
-      if(p && p.jackpot && Number(p.jackpot)>0){
-        el.textContent='NGN '+Number(p.jackpot).toLocaleString();
-      }else{
-        el.textContent='NGN 200,000,000';
-      }
-    }
-  }catch(e){}
+  var p = _localGetJSON('grj_prizes',null);
+  var el = document.getElementById('cover-prize-amount');
+  if(el){
+    el.textContent = (p&&p.jackpot&&Number(p.jackpot)>0)
+      ? 'NGN '+Number(p.jackpot).toLocaleString()
+      : 'NGN 200,000,000';
+  }
 }
 
 // ── BROADCAST ──
 var _lastBroadcastSeen=0;
 function checkBroadcast(){
-  try{
-    var obj=JSON.parse(localStorage.getItem('grj_broadcast_obj')||'null');
-    if(!obj||!obj.message||!obj.sentAt) return;
-    // Only show if this is newer than what we last showed
-    if(obj.sentAt<=_lastBroadcastSeen) return;
-    _lastBroadcastSeen=obj.sentAt;
-    showBroadcastBanner(obj.message);
-  }catch(e){}
+  var obj = _localGetJSON('grj_broadcast_obj',null);
+  if(!obj||!obj.message||!obj.sentAt) return;
+  if(obj.sentAt<=_lastBroadcastSeen) return;
+  _lastBroadcastSeen=obj.sentAt;
+  showBroadcastBanner(obj.message);
 }
-
 function showBroadcastBanner(msg){
   var banner=document.getElementById('broadcast-banner');
   if(!banner) return;
   document.getElementById('broadcast-banner-text').textContent=msg;
   banner.style.display='flex';
-  // Auto-hide after 12 seconds
-  setTimeout(function(){ closeBroadcastBanner(); },12000);
+  setTimeout(function(){closeBroadcastBanner();},12000);
 }
-
 function closeBroadcastBanner(){
-  var banner=document.getElementById('broadcast-banner');
-  if(banner) banner.style.display='none';
+  var b=document.getElementById('broadcast-banner');
+  if(b) b.style.display='none';
 }
 
 // ── RESULTS ROUNDS ──
-function getPublishedRounds(){
-  try{return JSON.parse(localStorage.getItem('grj_published_rounds')||'[]');}catch(e){return[];}
-}
-
 async function loadResultsRounds(){
-  // Render from localStorage immediately
   _renderRoundsDropdown(getPublishedRounds());
-  // Full sync is handled by loadSharedDataFromFirebase() called on boot
+  // Full sync handled by loadSharedDataFromFirebase
 }
-
 function _renderRoundsDropdown(rounds){
   var sel=document.getElementById('results-round-sel');
   if(!sel) return;
@@ -1075,9 +1185,8 @@ function _renderRoundsDropdown(rounds){
     opt.textContent='Round '+r.id+' (GoalRush 14) — '+r.savedAt;
     sel.appendChild(opt);
   });
-  /* Restore previous selection if still available */
   if(prev) sel.value=prev;
-  if(rounds.length>0 && !sel.value){
+  if(rounds.length>0&&!sel.value){
     sel.value=rounds[rounds.length-1].id;
     renderSelectedRound();
   }
@@ -1093,133 +1202,72 @@ function renderSelectedRound(){
     return;
   }
   var rounds=getPublishedRounds();
-  var round=rounds.find(function(r){ return r.id===roundId; });
+  var round=rounds.find(function(r){return r.id===roundId;});
   if(!round){
     display.innerHTML='<div style="text-align:center;color:var(--text3);padding:30px;">Round not found.</div>';
     return;
   }
-
-  /* ── Winners table ── */
-  var tiers=[
-    {key:'14',label:'14 out of 14'},
-    {key:'13',label:'13 out of 14'},
-    {key:'12',label:'12 out of 14'},
-    {key:'11',label:'11 out of 14'},
-  ];
-  var winnersRows='';
-  var hasWinners=false;
+  var tiers=[{key:'14',label:'14 out of 14'},{key:'13',label:'13 out of 14'},{key:'12',label:'12 out of 14'},{key:'11',label:'11 out of 14'}];
+  var winnersRows='',hasWinners=false;
   tiers.forEach(function(t){
     var entry=round.winners&&round.winners[t.key];
     if(!entry||!entry.tickets||Number(entry.tickets)===0) return;
     hasWinners=true;
-    /* FIX: use Number() comparison so 0 prize shows dash but valid prize shows correctly */
     var prizeNum=Number(entry.prize||0);
     var perTicket=prizeNum>0?'<strong style="color:var(--gold);font-size:14px;">₦'+prizeNum.toLocaleString()+'</strong>':'<span style="color:var(--text3)">—</span>';
-    winnersRows+=
-      '<tr>'
-      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);vertical-align:middle;">'
-        +'<span style="display:inline-block;width:4px;height:32px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px;"></span>'
-        +'<span style="font-size:13px;font-weight:600;color:var(--text)">'+t.label+'</span>'
-      +'</td>'
+    winnersRows+='<tr>'
+      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);"><span style="display:inline-block;width:4px;height:32px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px;"></span><span style="font-size:13px;font-weight:600;color:var(--text)">'+t.label+'</span></td>'
       +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--green);font-size:15px;">'+Number(entry.tickets).toLocaleString()+'</td>'
-      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--gold);font-size:13px;font-family:monospace;">'+perTicket+'</td>'
+      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;">'+perTicket+'</td>'
       +'</tr>';
   });
   var winnersTable=hasWinners
-    ?'<table style="width:100%;border-collapse:collapse;margin-bottom:22px;">'
-        +'<thead><tr>'
-          +'<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Correct Events</th>'
-          +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">No. Tickets</th>'
-          +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Winning per Ticket</th>'
-        +'</tr></thead>'
-        +'<tbody>'+winnersRows+'</tbody>'
-      +'</table>'
+    ?'<table style="width:100%;border-collapse:collapse;margin-bottom:22px;"><thead><tr>'
+        +'<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Correct Events</th>'
+        +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">No. Tickets</th>'
+        +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Winning per Ticket</th>'
+        +'</tr></thead><tbody>'+winnersRows+'</tbody></table>'
     :'';
-
-  /* ── Match results rows ──
-     Each entry in round.matches is {home, away, time, result, scoreHome, scoreAway}
-     round.results mirrors this but renderSelectedRound ONLY uses round.matches
-     because publishResults() already merged result + score into matchList.        */
-  var matchRows='';
-  var matches=round.matches||[];
-
-  if(matches.length===0){
-    matchRows='<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">No match data found in this round.</div>';
-  } else {
+  var matchRows='',matches=round.matches||[];
+  if(!matches.length){
+    matchRows='<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">No match data found.</div>';
+  }else{
     matches.forEach(function(m,i){
-      /* m.result is a plain string: '1','X','2','VOID' */
       var resVal=(m.result||'').toString().trim().toUpperCase();
       var isVoid=resVal==='VOID';
-
-      var resDisplay=isVoid
-        ?'<span style="color:var(--text3);font-size:12px;">void</span>'
-        :resVal
-          ?'<strong style="color:var(--gold);font-size:15px;">'+esc(resVal)+'</strong>'
-          :'<span style="color:var(--text3);">—</span>';
-
-      /* Score: only show if both exist and are not empty strings */
+      var resDisplay=isVoid?'<span style="color:var(--text3);font-size:12px;">void</span>':resVal?'<strong style="color:var(--gold);font-size:15px;">'+esc(resVal)+'</strong>':'<span style="color:var(--text3);">—</span>';
       var sh=m.scoreHome!==undefined&&m.scoreHome!==null&&m.scoreHome!==''?String(m.scoreHome):'';
       var sa=m.scoreAway!==undefined&&m.scoreAway!==null&&m.scoreAway!==''?String(m.scoreAway):'';
       var scoreHtml=(sh!==''&&sa!==''&&!isVoid)
-        ?'<span style="font-size:15px;font-weight:700;color:var(--text);">'+esc(sh)+'</span>'
-          +'<span style="color:var(--text3);margin:0 3px;">-</span>'
-          +'<span style="font-size:15px;font-weight:700;color:var(--text);">'+esc(sa)+'</span>'
-        :isVoid
-          ?'<span style="color:var(--text3);font-size:12px;">void</span>'
-          :'<span style="color:var(--text3);">—</span>';
-
-      matchRows+=
-        '<div style="border-bottom:1px solid var(--border);padding:12px 0;">'
-          +'<div style="font-size:10px;color:var(--text3);margin-bottom:6px;letter-spacing:.3px;">'
-            +(i+1)+'.&nbsp;&nbsp;'+esc(m.time||'')
-          +'</div>'
-          +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
-            +'<div style="flex:1;min-width:0;">'
-              +'<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(m.home||'—')+'</div>'
-              +'<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(m.away||'—')+'</div>'
-            +'</div>'
-            +'<div style="text-align:center;min-width:58px;flex-shrink:0;">'+scoreHtml+'</div>'
-            +'<div style="text-align:right;min-width:36px;flex-shrink:0;">'+resDisplay+'</div>'
-          +'</div>'
-        +'</div>';
+        ?'<span style="font-size:15px;font-weight:700;color:var(--text);">'+esc(sh)+'</span><span style="color:var(--text3);margin:0 3px;">-</span><span style="font-size:15px;font-weight:700;color:var(--text);">'+esc(sa)+'</span>'
+        :isVoid?'<span style="color:var(--text3);font-size:12px;">void</span>':'<span style="color:var(--text3);">—</span>';
+      matchRows+='<div style="border-bottom:1px solid var(--border);padding:12px 0;">'
+        +'<div style="font-size:10px;color:var(--text3);margin-bottom:6px;">'+(i+1)+'.&nbsp;&nbsp;'+esc(m.time||'')+'</div>'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+          +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(m.home||'—')+'</div><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(m.away||'—')+'</div></div>'
+          +'<div style="text-align:center;min-width:58px;flex-shrink:0;">'+scoreHtml+'</div>'
+          +'<div style="text-align:right;min-width:36px;flex-shrink:0;">'+resDisplay+'</div>'
+        +'</div></div>';
     });
   }
-
-  /* ── Column headers for match results ── */
-  var colHeaders=
-    '<div style="display:flex;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--border);">'
-      +'<span style="flex:1;">Match</span>'
-      +'<span style="min-width:58px;text-align:center;flex-shrink:0;">Score</span>'
-      +'<span style="min-width:36px;text-align:right;flex-shrink:0;">Result</span>'
-    +'</div>';
-
-  display.innerHTML=
-    '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 14px;">'
-      +winnersTable
-      +'<div style="font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">Results</div>'
-      +colHeaders
-      +matchRows
-    +'</div>';
+  display.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 14px;">'
+    +winnersTable
+    +'<div style="font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">Results</div>'
+    +'<div style="display:flex;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--border);"><span style="flex:1;">Match</span><span style="min-width:58px;text-align:center;flex-shrink:0;">Score</span><span style="min-width:36px;text-align:right;flex-shrink:0;">Result</span></div>'
+    +matchRows+'</div>';
 }
 
 // ── MENU ──
-function openMenu(){
-  document.getElementById('menu-overlay').classList.add('open');
-  document.getElementById('menu-panel').classList.add('open');
-}
-function closeMenu(){
-  document.getElementById('menu-overlay').classList.remove('open');
-  document.getElementById('menu-panel').classList.remove('open');
-}
+function openMenu(){document.getElementById('menu-overlay').classList.add('open');document.getElementById('menu-panel').classList.add('open');}
+function closeMenu(){document.getElementById('menu-overlay').classList.remove('open');document.getElementById('menu-panel').classList.remove('open');}
 function updateMenuItems(){
   var cu=currentUser();
   var ub=document.getElementById('menu-user-block');
   var mi=document.getElementById('menu-items');
   if(cu){
-    var users=getUsers();
-    var u=users[cu]||{};
+    var u=(getUsers()[cu]||{});
     ub.style.display='block';
-    document.getElementById('menu-user-name').textContent=(u.name||cu);
+    document.getElementById('menu-user-name').textContent=(u.name||u.fullName||cu);
     mi.innerHTML=
       menuItem('💰','Deposit',function(){closeMenu();openDeposit();})+
       menuItem('💸','Withdraw',function(){closeMenu();openWithdraw();})+
@@ -1239,19 +1287,14 @@ function updateMenuItems(){
 }
 function menuItem(ico,label,fn){
   var id='mi_'+Math.random().toString(36).slice(2);
-  setTimeout(function(){ var el=document.getElementById(id); if(el)el.onclick=fn; },0);
+  setTimeout(function(){var el=document.getElementById(id);if(el)el.onclick=fn;},0);
   return '<div class="menu-item" id="'+id+'"><span class="ico">'+ico+'</span>'+label+'</div>';
 }
 
 // ── TABS ──
 function switchTab(name){
-  document.querySelectorAll('.tab-btn').forEach(function(b,i){
-    b.classList.toggle('active',['goalrush','results','howto'][i]===name);
-  });
-  document.querySelectorAll('.section').forEach(function(s){
-    s.classList.toggle('active',s.id===name);
-  });
-  // stake bar only visible on goalrush tab
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',['goalrush','results','howto'][i]===name);});
+  document.querySelectorAll('.section').forEach(function(s){s.classList.toggle('active',s.id===name);});
   document.getElementById('stake-bar').style.display=name==='goalrush'?'flex':'none';
 }
 
@@ -1273,29 +1316,24 @@ function renderMatches(){
   document.getElementById('matches-list').innerHTML=html;
   updateStake();
 }
-
 function toggleOpt(btn){
   if(isBettingLocked()){showNotif('Betting is closed for this round','err');return;}
   btn.classList.toggle('active');
   updateStake();
 }
-
 function updateStake(){
   var matches=document.querySelectorAll('.match-card');
   var combo=1,allSel=true;
   matches.forEach(function(mc){
     var cnt=mc.querySelectorAll('.opt-btn.active').length;
-    if(cnt===0){allSel=false;combo=0;}
-    else combo*=cnt;
+    if(cnt===0){allSel=false;combo=0;}else combo*=cnt;
   });
   _combo=combo;_stake=combo*100;_allSel=allSel;
   document.getElementById('combo-count').textContent=combo||0;
   document.getElementById('stake-amt').textContent='₦'+(combo*100).toLocaleString();
   var pb=document.getElementById('place-btn');
-  if(allSel&&combo>0){pb.classList.add('ready');}
-  else{pb.classList.remove('ready');}
+  if(allSel&&combo>0)pb.classList.add('ready');else pb.classList.remove('ready');
 }
-
 function goalRushPick(){
   if(isBettingLocked()){showNotif('Betting is closed','err');return;}
   clearAll();
@@ -1303,14 +1341,9 @@ function goalRushPick(){
     var btns=mc.querySelectorAll('.opt-btn');
     if(btns.length){btns[Math.floor(Math.random()*btns.length)].classList.add('active');}
   });
-  updateStake();
-  showNotif('🎲 Random picks selected!');
+  updateStake();showNotif('🎲 Random picks selected!');
 }
-
-function clearAll(){
-  document.querySelectorAll('.opt-btn').forEach(function(b){b.classList.remove('active');});
-  updateStake();
-}
+function clearAll(){document.querySelectorAll('.opt-btn').forEach(function(b){b.classList.remove('active');});updateStake();}
 
 // ── PLACE BET ──
 function placeBet(){
@@ -1318,15 +1351,9 @@ function placeBet(){
   if(!_allSel||_combo===0){showNotif('Select at least one option for each of the 14 matches','err');return;}
   var cu=currentUser();
   if(!cu){openModal('auth-gate-modal');return;}
-  var users=getUsers();
-  var u=users[cu]||{};
+  var u=(getUsers()[cu]||{});
   var bal=Number(u.balance||0);
-  if(bal<_stake){
-    showNotif('Insufficient balance. Please deposit first.','err');
-    setTimeout(function(){openDeposit();},1000);
-    return;
-  }
-  // show confirm modal
+  if(bal<_stake){showNotif('Insufficient balance. Please deposit first.','err');setTimeout(function(){openDeposit();},1000);return;}
   document.getElementById('cb-combo').textContent=_combo;
   document.getElementById('cb-stake').textContent='₦'+_stake.toLocaleString();
   document.getElementById('cb-balance').textContent='₦'+bal.toLocaleString('en',{minimumFractionDigits:2});
@@ -1334,50 +1361,49 @@ function placeBet(){
   openModal('confirm-bet-modal');
 }
 
-function doPlaceBet(){
+async function doPlaceBet(){
   closeModal('confirm-bet-modal');
   showLoading('Placing your bet...');
-  setTimeout(function(){
-    var cu=currentUser();
-    var users=getUsers();
-    var u=users[cu]||{};
-    var bal=Number(u.balance||0);
-    if(bal<_stake){hideLoading();showNotif('Insufficient balance','err');return;}
-    var matches=getMatches();
-    var sels=[];
-    document.querySelectorAll('.match-card').forEach(function(mc,i){
-      var picks=Array.from(mc.querySelectorAll('.opt-btn.active')).map(function(b){return b.dataset.val;});
-      sels.push({matchIndex:i+1,home:matches[i].home,away:matches[i].away,picks:picks,code:picksToCode(picks)});
-    });
+  var cu=currentUser();
+  var users=getUsers();
+  var u=users[cu]||{};
+  var bal=Number(u.balance||0);
+  if(bal<_stake){hideLoading();showNotif('Insufficient balance','err');return;}
+  var matches=getMatches();
+  var sels=[];
+  document.querySelectorAll('.match-card').forEach(function(mc,i){
+    var picks=Array.from(mc.querySelectorAll('.opt-btn.active')).map(function(b){return b.dataset.val;});
+    sels.push({matchIndex:i+1,home:matches[i].home,away:matches[i].away,picks:picks,code:picksToCode(picks)});
+  });
 
-    // ── Stamp ticket with current round ID so old results don't bleed in ──
-    var currentRoundId=localStorage.getItem('grj_current_round_id')||'round_1';
+  var ticket={
+    id:          genRef(),
+    created:     new Date().toISOString(),
+    user:        cu,
+    roundId:     _localGet('grj_current_round_id')||('round_'+Date.now()),
+    selections:  sels,
+    combination: _combo,
+    stake:       _stake
+  };
 
-    var tickets=getTickets();
-    tickets.push({
-      id:          genRef(),
-      created:     new Date().toISOString(),
-      user:        cu,
-      roundId:     currentRoundId,
-      selections:  sels,
-      combination: _combo,
-      stake:       _stake
-    });
-    saveTickets(tickets);
-    u.balance=bal-_stake;
-    users[cu]=u;
-    saveUsers(users);
+  // Deduct balance locally and in Firestore
+  u.balance = bal - _stake;
+  users[cu] = u;
+  saveUsers(users);
+  _syncUserBalanceToFirestore(cu, u.balance);
 
-    // Sync balance to Firebase
-    syncUserToFirebase(cu, users[cu]);
+  // Save ticket locally and to Firestore
+  var tickets = getTickets();
+  tickets.push(ticket);
+  saveTickets(tickets);
+  _saveTicketToFirestore(ticket);
 
-    updateHeaderBalance();
-    updateSlipBadge();
-    clearAll();
-    hideLoading();
-    showSuccess('✅','Bet Placed!','Your bet of ₦'+_stake.toLocaleString()+' has been placed. Good luck!');
-    addLog('Placed bet ₦'+_stake,cu);
-  },900);
+  addLog('Placed bet ₦'+_stake, cu);
+  updateHeaderBalance();
+  updateSlipBadge();
+  clearAll();
+  hideLoading();
+  showSuccess('✅','Bet Placed!','Your bet of ₦'+_stake.toLocaleString()+' has been placed. Good luck!');
 }
 
 function picksToCode(picks){
@@ -1393,97 +1419,62 @@ function openSlip(){
   var tickets=getTickets();
   var myTickets=cu?tickets.filter(function(t){return t.user===cu;}):[];
   var publishedRounds=getPublishedRounds();
-
   var html=myTickets.length===0
     ?'<p style="text-align:center;color:var(--text3);padding:20px">No bets placed yet. Make your selections and place a bet!</p>'
     :myTickets.map(function(t,i){
       var date=new Date(t.created).toLocaleString();
-
-      // ── Find the round whose match lineup matches this ticket's selections ──
-      // Primary: match by roundId. Fallback: match by comparing team names.
-      var matchedRound = null;
-
-      // 1) Try roundId match first
+      var matchedRound=null;
       if(t.roundId){
-        matchedRound = publishedRounds.find(function(r){
-          return r.roundId===t.roundId || r.id===t.roundId;
-        }) || null;
+        matchedRound=publishedRounds.find(function(r){return r.roundId===t.roundId||r.id===t.roundId;})||null;
       }
-
-      // 2) If still null, try matching by team names (for tickets placed before roundId stamping,
-      //    or when roundId format differs). Compare first 3 matches as fingerprint.
-      if(!matchedRound && t.selections && t.selections.length >= 3){
-        matchedRound = publishedRounds.find(function(r){
-          var rMatches = r.matches || [];
-          if(rMatches.length < 3) return false;
-          // Check if at least 3 of the first 4 matches share the same home/away teams
-          var hits = 0;
-          for(var x=0; x<Math.min(4, t.selections.length, rMatches.length); x++){
-            var s = t.selections[x];
-            var m = rMatches[x];
-            if(!s||!m) continue;
-            var sh = (s.home||'').toLowerCase().trim();
-            var sa = (s.away||'').toLowerCase().trim();
-            var mh = (m.home||'').toLowerCase().trim();
-            var ma = (m.away||'').toLowerCase().trim();
-            if(sh===mh && sa===ma) hits++;
+      if(!matchedRound&&t.selections&&t.selections.length>=3){
+        matchedRound=publishedRounds.find(function(r){
+          var rm=r.matches||[];if(rm.length<3)return false;
+          var hits=0;
+          for(var x=0;x<Math.min(4,t.selections.length,rm.length);x++){
+            var s=t.selections[x],m=rm[x];if(!s||!m)continue;
+            if((s.home||'').toLowerCase().trim()===(m.home||'').toLowerCase().trim()
+            &&(s.away||'').toLowerCase().trim()===(m.away||'').toLowerCase().trim()) hits++;
           }
-          return hits >= 3;
-        }) || null;
+          return hits>=3;
+        })||null;
       }
-
-      var roundResults = matchedRound ? matchedRound.matches : null;
-      // Get winners info for this round to show prize
-      var roundWinners = matchedRound ? (matchedRound.winners || {}) : {};
-
-      var totalCorrect=0, totalVoid=0;
-
+      var roundResults=matchedRound?matchedRound.matches:null;
+      var roundWinners=matchedRound?(matchedRound.winners||{}):{};
+      var totalCorrect=0,totalVoid=0;
       var rows=t.selections.map(function(s,idx){
         var pick=s.code||'';
         var matchResult=roundResults?roundResults[idx]:null;
         var resVal=matchResult?(matchResult.result||'').toString().trim().toUpperCase():'';
-        var isVoid=resVal==='VOID';
-        var hasResult=resVal!=='';
+        var isVoid=resVal==='VOID';var hasResult=resVal!=='';
         var userPickVals=(s.picks||[]).map(function(p){
           p=(p||'').toLowerCase();
-          if(p==='home'||p==='1') return '1';
-          if(p==='draw'||p==='x') return 'X';
-          if(p==='away'||p==='2') return '2';
-          return '';
+          if(p==='home'||p==='1')return '1';if(p==='draw'||p==='x')return 'X';if(p==='away'||p==='2')return '2';return '';
         });
         var isWin=hasResult&&!isVoid&&userPickVals.indexOf(resVal)!==-1;
-        if(isVoid) totalVoid++;
-        if(isWin)  totalCorrect++;
-
+        if(isVoid)totalVoid++;if(isWin)totalCorrect++;
         var score='';
         if(matchResult&&matchResult.scoreHome!==undefined&&matchResult.scoreHome!==''&&!isVoid){
           score='<span style="font-size:10px;color:var(--text3)"> ('+matchResult.scoreHome+'-'+matchResult.scoreAway+')</span>';
         }
-
         var indicator=!hasResult
           ?'<span style="color:var(--text3);font-size:13px;min-width:40px;text-align:right;font-weight:600">—</span>'
-          :isVoid
-            ?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right">void</span>'
-            :isWin
-              ?'<span style="color:var(--green);font-size:12px;font-weight:800;min-width:40px;text-align:right">✅ Won</span>'
-              :'<span style="color:var(--red);font-size:12px;font-weight:700;min-width:40px;text-align:right">❌ Lost</span>';
-
+          :isVoid?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right">void</span>'
+          :isWin?'<span style="color:var(--green);font-size:12px;font-weight:800;min-width:40px;text-align:right">✅ Won</span>'
+          :'<span style="color:var(--red);font-size:12px;font-weight:700;min-width:40px;text-align:right">❌ Lost</span>';
         return '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #1e293b;">'
           +'<span style="color:var(--text3);width:22px;flex-shrink:0;font-size:11px;font-weight:700">'+s.matchIndex+'</span>'
           +'<span style="flex:1;font-size:12px;color:var(--text2)">'+esc(s.home)+' v '+esc(s.away)+score+'</span>'
           +'<span style="font-weight:700;color:var(--green);font-size:12px;min-width:28px;text-align:center">'+esc(pick)+'</span>'
-          +indicator
-          +'</div>';
+          +indicator+'</div>';
       }).join('');
-
       var overallStatus='';
       if(roundResults){
         var statusColor=totalCorrect===14?'var(--green)':totalCorrect>=13?'var(--blue)':totalCorrect>=12?'var(--yellow)':'var(--red)';
-        // Check if this ticket won a prize
-        var prizeEntry = roundWinners[String(totalCorrect)];
-        var prizeHtml = '';
-        if(prizeEntry && Number(prizeEntry.prize||0) > 0){
-          prizeHtml = '<div style="margin-top:6px;padding:8px 10px;background:linear-gradient(135deg,#0a2010,#071407);border:1px solid var(--green);border-radius:8px;text-align:center;">'
+        var prizeEntry=roundWinners[String(totalCorrect)];
+        var prizeHtml='';
+        if(prizeEntry&&Number(prizeEntry.prize||0)>0){
+          prizeHtml='<div style="margin-top:6px;padding:8px 10px;background:linear-gradient(135deg,#0a2010,#071407);border:1px solid var(--green);border-radius:8px;text-align:center;">'
             +'<span style="font-size:12px;color:var(--text2)">🏆 Winning per Ticket: </span>'
             +'<span style="font-size:15px;font-weight:900;color:var(--gold)">₦'+Number(prizeEntry.prize).toLocaleString()+'</span>'
             +'</div>';
@@ -1491,35 +1482,23 @@ function openSlip(){
         overallStatus='<div style="margin-top:8px;padding:8px 10px;background:#111827;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'
           +'<span style="font-size:11px;color:var(--text3)">Result</span>'
           +'<span style="font-size:13px;font-weight:800;color:'+statusColor+'">'+totalCorrect+' correct'+(totalVoid>0?' ('+totalVoid+' void)':'')+'</span>'
-          +'</div>'
-          +prizeHtml;
+          +'</div>'+prizeHtml;
       }else{
         overallStatus='<div style="margin-top:8px;padding:8px 10px;background:#111827;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'
           +'<span style="font-size:11px;color:var(--text3)">Result</span>'
           +'<span style="font-size:13px;font-weight:700;color:var(--text3)">⏳ Awaiting results</span>'
           +'</div>';
       }
-
       return '<div class="ticket-card">'
-        +'<div class="tc-header">'
-          +'<div>'
-            +'<span class="tc-title">Ticket '+(i+1)+' — '+date+'</span>'
-            +'<div style="font-size:10px;color:var(--text3);margin-top:2px">ID: <span style="font-family:monospace;color:var(--gold)">'+esc(t.id)+'</span></div>'
-          +'</div>'
-          +'<button class="tc-delete" onclick="deleteTicket(\''+t.id+'\')">Delete</button>'
-        +'</div>'
+        +'<div class="tc-header"><div><span class="tc-title">Ticket '+(i+1)+' — '+date+'</span>'
+        +'<div style="font-size:10px;color:var(--text3);margin-top:2px">ID: <span style="font-family:monospace;color:var(--gold)">'+esc(t.id)+'</span></div></div>'
+        +'<button class="tc-delete" onclick="deleteTicket(\''+t.id+'\')">Delete</button></div>'
         +'<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);margin-bottom:2px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">'
-          +'<span style="width:22px">#</span>'
-          +'<span style="flex:1">Match</span>'
-          +'<span style="min-width:28px;text-align:center">Pick</span>'
-          +'<span style="min-width:40px;text-align:right">Result</span>'
-        +'</div>'
-        +rows
-        +overallStatus
+        +'<span style="width:22px">#</span><span style="flex:1">Match</span><span style="min-width:28px;text-align:center">Pick</span><span style="min-width:40px;text-align:right">Result</span></div>'
+        +rows+overallStatus
         +'<div class="tc-footer" style="margin-top:8px">Combos: <strong>'+t.combination+'</strong> &nbsp;|&nbsp; Stake: <strong>₦'+t.stake.toLocaleString()+'</strong></div>'
         +'</div>';
     }).join('');
-
   document.getElementById('slip-content').innerHTML=html;
   openModal('slip-modal');
 }
@@ -1529,21 +1508,15 @@ function deleteTicket(id){
   var idx=tickets.findIndex(function(t){return t.id===id;});
   if(idx<0)return;
   tickets.splice(idx,1);saveTickets(tickets);
-  updateSlipBadge();
-  openSlip();
+  updateSlipBadge();openSlip();
 }
-
 function updateSlipBadge(){
   var cu=currentUser();
   var count=cu?getTickets().filter(function(t){return t.user===cu;}).length:0;
   var badge=document.getElementById('slip-badge');
   var txt=document.getElementById('slip-count-txt');
-  if(count>0){
-    badge.textContent=count;badge.classList.add('show');
-    txt.textContent='Bets ('+count+')';
-  }else{
-    badge.classList.remove('show');txt.textContent='Bets';
-  }
+  if(count>0){badge.textContent=count;badge.classList.add('show');txt.textContent='Bets ('+count+')';}
+  else{badge.classList.remove('show');txt.textContent='Bets';}
 }
 
 // ── HEADER BALANCE ──
@@ -1554,26 +1527,21 @@ function updateHeaderBalance(){
   document.getElementById('hdr-bal').textContent=bal.toLocaleString('en',{minimumFractionDigits:2});
 }
 
-// ── COUNTDOWN (real-time accurate across sessions) ──
+// ── COUNTDOWN ──
 function startCountdown(){
   if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
   var cfg=getCountdown();
   if(!cfg){renderCD(0);updateLockState();return;}
-  // Calculate how much time has already passed since admin set it
   var elapsed=Math.floor((Date.now()-(cfg.setAt||Date.now()))/1000);
   _cdSecs=Math.max(0,(cfg.totalSeconds||0)-elapsed);
-  renderCD(_cdSecs);
-  updateLockState();
-  if(_cdSecs<=0) return;
+  renderCD(_cdSecs);updateLockState();
+  if(_cdSecs<=0)return;
   _cdInterval=setInterval(function(){
-    _cdSecs--;
-    if(_cdSecs<0) _cdSecs=0;
-    renderCD(_cdSecs);
-    updateLockState();
+    _cdSecs--;if(_cdSecs<0)_cdSecs=0;
+    renderCD(_cdSecs);updateLockState();
     if(_cdSecs<=0){clearInterval(_cdInterval);_cdInterval=null;}
   },1000);
 }
-
 function renderCD(s){
   var d=Math.floor(s/86400);var rem=s%86400;
   var h=Math.floor(rem/3600);rem%=3600;
@@ -1584,29 +1552,20 @@ function renderCD(s){
   document.getElementById('cd-m').textContent=p(m);
   document.getElementById('cd-s').textContent=p(sec);
 }
-
 function isBettingLocked(){return _cdSecs<=0&&getCountdown()!==null;}
-
 function updateLockState(){
   var locked=isBettingLocked();
   var banner=document.getElementById('betting-closed-banner');
   var lockOv=document.getElementById('lock-overlay');
-  if(locked){
-    banner.style.display='block';
-    lockOv.classList.add('show');
-    setTimeout(function(){lockOv.classList.remove('show');},4000);
-  }else{
-    banner.style.display='none';
-    lockOv.classList.remove('show');
-  }
+  if(locked){banner.style.display='block';lockOv.classList.add('show');setTimeout(function(){lockOv.classList.remove('show');},4000);}
+  else{banner.style.display='none';lockOv.classList.remove('show');}
 }
 
 // ── AUTH FUNCTIONS ──
 async function doSignup(){
   var name=gv('ca-name').trim(),email=gv('ca-email').trim().toLowerCase(),
       phone=gv('ca-phone').trim(),pw=gv('ca-pw'),pw2=gv('ca-pw2'),
-      age=parseInt(gv('ca-age')||'0'),
-      gender=gv('ca-gender').trim();
+      age=parseInt(gv('ca-age')||'0'),gender=gv('ca-gender').trim();
   var msg=document.getElementById('ca-msg');msg.textContent='';
   if(!name||!email||!phone||!pw||!pw2||!age||!gender){setMsg(msg,'All fields are required','err');return;}
   if(!/\S+@\S+\.\S+/.test(email)){setMsg(msg,'Enter a valid email address','err');return;}
@@ -1614,53 +1573,32 @@ async function doSignup(){
   if(isNaN(age)||age<1||age>120){setMsg(msg,'Enter a valid age','err');return;}
   if(age<18){setMsg(msg,'⛔ You must be 18 or older to create an account','err');return;}
   if(pw.length<6){setMsg(msg,'Password must be at least 6 characters','err');return;}
-  if(pw!==pw2){setMsg(msg,'❌ Passwords do not match. Please try again','err');return;}
-
-  setMsg(msg,'Connecting to server...','ok');
-  // Wait for Firebase to finish initializing (fixes "Firebase not ready" error)
-  var fbOk = await window._fbReady;
-  if(!fbOk || !window._auth || !window._db){
-    setMsg(msg,'Server connection failed. Check your internet and try again.','err');return;
-  }
-
+  if(pw!==pw2){setMsg(msg,'❌ Passwords do not match','err');return;}
+  setMsg(msg,'Connecting...','ok');
+  var fbOk=await window._fbReady;
+  if(!fbOk||!window._auth||!window._db){setMsg(msg,'Server connection failed. Check your internet and try again.','err');return;}
   setMsg(msg,'Creating your account...','ok');
   try{
-    var userCredential = await window._fbCreateUser(window._auth, email, pw);
-    var uid = userCredential.user.uid;
-
-    // Save profile to Firestore — NO password stored here
-    var profile = {
-      uid:       uid,
-      fullName:  name,
-      name:      name,
-      email:     email,
-      phone:     phone,
-      age:       age,
-      gender:    gender,
-      balance:   0,
-      role:      'user',
-      status:    'active',
-      disabled:  false,
-      archived:  false,
-      createdAt: window._fbServerTS()
+    var uc=await window._fbCreateUser(window._auth,email,pw);
+    var uid=uc.user.uid;
+    var profile={
+      uid:uid,fullName:name,name:name,email:email,phone:phone,
+      age:age,gender:gender,balance:0,role:'user',status:'active',
+      disabled:false,archived:false,createdAt:window._fbServerTS()
     };
-    await window._fbSetDoc(window._fbDoc(window._db,'users',uid), profile);
-
-    // Mirror to localStorage so rest of app works immediately
-    var users=getUsers();
-    users[phone] = Object.assign({}, profile, {createdAt: new Date().toISOString(), created: new Date().toISOString()});
-    saveUsers(users);
+    await window._fbSetDoc(window._fbDoc(window._db,'users',uid),profile);
+    // Set current round ID for new user
+    _localSet('grj_current_round_id','round_'+Date.now());
+    var profileLocal=Object.assign({},profile,{createdAt:new Date().toISOString(),created:new Date().toISOString()});
+    _mergeLocalUser(phone,profileLocal);
     setCurrentUser(phone);
-
     closeModal('create-modal');
-    ['ca-name','ca-email','ca-phone','ca-age','ca-pw','ca-pw2'].forEach(function(id){
-      var e=document.getElementById(id);if(e)e.value='';
-    });
+    ['ca-name','ca-email','ca-phone','ca-age','ca-pw','ca-pw2'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
     updateMenuItems();updateHeaderBalance();updateSlipBadge();
     showSuccess('🎉','Welcome, '+name+'!','Your account has been created. You can now deposit and place bets!');
     addLog('Account created (Firebase Auth)',phone);
   }catch(e){
-    var errMsg = 'Registration failed. Please try again.';
+    var errMsg='Registration failed. Please try again.';
     if(e.code==='auth/email-already-in-use') errMsg='This email is already registered. Please login instead.';
     else if(e.code==='auth/invalid-email')   errMsg='Invalid email address format.';
     else if(e.code==='auth/weak-password')   errMsg='Password is too weak. Use at least 6 characters.';
@@ -1670,53 +1608,36 @@ async function doSignup(){
 }
 
 async function doLogin(){
-  var email=gv('li-email').trim().toLowerCase();
-  var pw=gv('li-pw');
-  var msg=document.getElementById('li-msg');
-  msg.textContent='';
+  var email=gv('li-email').trim().toLowerCase(),pw=gv('li-pw');
+  var msg=document.getElementById('li-msg');msg.textContent='';
   if(!email||!pw){setMsg(msg,'Email and password required','err');return;}
-
   setMsg(msg,'Connecting...','ok');
-  var fbOk = await window._fbReady;
-  if(!fbOk || !window._auth || !window._db){
-    setMsg(msg,'Server connection failed. Check your internet and try again.','err');return;
-  }
-
+  var fbOk=await window._fbReady;
+  if(!fbOk||!window._auth||!window._db){setMsg(msg,'Server connection failed. Check your internet and try again.','err');return;}
   setMsg(msg,'Signing in...','ok');
   try{
-    var userCredential = await window._fbSignIn(window._auth, email, pw);
-    var uid = userCredential.user.uid;
-
-    var snap = await window._fbGetDoc(window._fbDoc(window._db,'users',uid));
+    var uc=await window._fbSignIn(window._auth,email,pw);
+    var uid=uc.user.uid;
+    var snap=await window._fbGetDoc(window._fbDoc(window._db,'users',uid));
     if(!snap.exists()){setMsg(msg,'Account profile not found. Contact support.','err');return;}
-    var data = snap.data();
-
-    if(data.archived || data.status==='banned'){
-      setMsg(msg,'This account has been suspended. Contact support.','err');
-      await window._fbSignOut(window._auth); return;
-    }
-    if(data.disabled){
-      setMsg(msg,'This account has been disabled. Contact support.','err');
-      await window._fbSignOut(window._auth); return;
-    }
-
-    var users=getUsers();
-    var key = data.phone || uid;
-    users[key] = Object.assign(users[key]||{}, data, {
-      name: data.fullName||data.name||'',
-      created: data.createdAt||new Date().toISOString()
-    });
-    saveUsers(users);
-
+    var data=snap.data();
+    if(data.archived||data.status==='banned'){setMsg(msg,'This account has been suspended. Contact support.','err');await window._fbSignOut(window._auth);return;}
+    if(data.disabled){setMsg(msg,'This account has been disabled. Contact support.','err');await window._fbSignOut(window._auth);return;}
+    var key=data.phone||uid;
+    data.name=data.fullName||data.name||'';
+    data.uid=uid;
+    _mergeLocalUser(key,data);
     document.getElementById('li-email').value='';
     document.getElementById('li-pw').value='';
     setCurrentUser(key);
+    // Load this user's Firestore data (tickets, deposits, withdrawals)
+    await _loadUserDataFromFirestore(key);
     closeModal('login-modal');
-    updateMenuItems(); updateHeaderBalance(); updateSlipBadge(); loadResultsRounds();
+    updateMenuItems();updateHeaderBalance();updateSlipBadge();loadResultsRounds();
     showNotif('Welcome back, '+(data.fullName||data.name||email)+'! ⚽');
-    addLog('Login (Firebase Auth)', key);
+    addLog('Login (Firebase Auth)',key);
   }catch(e){
-    var errMsg = 'Login failed. Please try again.';
+    var errMsg='Login failed. Please try again.';
     if(e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential')
       errMsg='Incorrect email or password. Please try again.';
     else if(e.code==='auth/invalid-email')   errMsg='Invalid email address.';
@@ -1728,11 +1649,9 @@ async function doLogin(){
 }
 
 async function doLogout(){
-  var fbOk = await window._fbReady;
-  if(fbOk && window._auth){
-    try{ await window._fbSignOut(window._auth); }catch(e){}
-  }
-  logoutUser(); updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._auth){try{await window._fbSignOut(window._auth);}catch(e){}}
+  logoutUser();updateMenuItems();updateHeaderBalance();updateSlipBadge();
   showNotif('Logged out successfully.');
 }
 
@@ -1741,10 +1660,10 @@ async function doResetPw(){
   var msg=document.getElementById('fp-msg');msg.textContent='';
   if(!email){setMsg(msg,'Enter your email address','err');return;}
   setMsg(msg,'Connecting...','ok');
-  var fbOk = await window._fbReady;
+  var fbOk=await window._fbReady;
   if(!fbOk||!window._auth){setMsg(msg,'Server connection failed. Check your internet and try again.','err');return;}
   try{
-    await window._fbResetPw(window._auth, email);
+    await window._fbResetPw(window._auth,email);
     setMsg(msg,'✅ Password reset email sent! Check your inbox.','ok');
     setTimeout(function(){closeModal('forgot-modal');},3000);
   }catch(e){
@@ -1760,76 +1679,29 @@ function openForgot(){closeModal('login-modal');openModal('forgot-modal');}
 function switchToLogin(){closeModal('create-modal');openModal('login-modal');}
 function switchToSignup(){closeModal('login-modal');openModal('create-modal');}
 
-// ── FIREBASE SYNC HELPER (balance/profile updates after registration) ──
-async function syncUserToFirebase(phone, userData){
-  var fbOk = await window._fbReady;
-  if(!fbOk || !window._db) return;
-  try{
-    var snap = await window._fbGetDocs(window._fbCollection(window._db,'users'));
-    var uid = null;
-    snap.forEach(function(d){ if(d.data().phone===phone) uid=d.id; });
-    if(!uid) return;
-    await window._fbSetDoc(
-      window._fbDoc(window._db,'users',uid),
-      Object.assign({},userData,{phone:phone,lastSeen:new Date().toISOString()}),
-      {merge:true}
-    );
-  }catch(e){ console.warn('Firebase sync:',e); }
-}
-
-async function loadUsersFromFirebase(){
-  if(!window._FB||!window._db) return;
-  try{
-    var snap=await window._fbGetDocs(window._fbCollection(window._db,'users'));
-    var localUsers=getUsers();
-    snap.forEach(function(d){
-      var data=d.data();
-      if(data.phone){
-        // Merge firebase user into local — firebase wins for balance
-        localUsers[data.phone]=Object.assign(localUsers[data.phone]||{},data);
-      }
-    });
-    saveUsers(localUsers);
-  }catch(e){ console.warn('Firebase load users:',e); }
-}
-
-// ── PAYSTACK — credit directly in callback (CORS blocks verify from browser) ──
-var PAYSTACK_KEY='pk_live_4ff37d15381d1d12c78fd66f7bc86beb64c59415';
-
+// ── DEPOSIT ──
 function openDeposit(){
   if(!currentUser()){openModal('auth-gate-modal');return;}
-  _payMethod=null;
-  clearPayMethodSelect();
+  _payMethod=null;clearPayMethodSelect();
   document.getElementById('dep-msg').textContent='';
   document.getElementById('dep-amount').value='';
   openModal('deposit-method-modal');
 }
-
 function selectPayMethod(m){
-  _payMethod=m;
-  clearPayMethodSelect();
+  _payMethod=m;clearPayMethodSelect();
   document.querySelectorAll('.pay-card').forEach(function(c){
     if(c.getAttribute('onclick')==="selectPayMethod('"+m+"')") c.classList.add('selected');
   });
 }
-
-function clearPayMethodSelect(){
-  document.querySelectorAll('.pay-card').forEach(function(c){c.classList.remove('selected');});
-}
-
-function showComingSoon(){
-  showNotif('💳 Card payments coming soon!');
-}
+function clearPayMethodSelect(){document.querySelectorAll('.pay-card').forEach(function(c){c.classList.remove('selected');});}
+function showComingSoon(){showNotif('💳 Card payments coming soon!');}
 
 async function proceedDeposit(){
-  var msg=document.getElementById('dep-msg');
-  msg.textContent='';
+  var msg=document.getElementById('dep-msg');msg.textContent='';
   var amt=Number(document.getElementById('dep-amount').value);
   if(!_payMethod){setMsg(msg,'Please select a payment method','err');return;}
   if(!amt||amt<100||amt>100000000){setMsg(msg,'Enter amount between ₦100 and ₦100,000,000','err');return;}
-  _depAmount=amt;
-  closeModal('deposit-method-modal');
-
+  _depAmount=amt;closeModal('deposit-method-modal');
   if(_payMethod==='crypto'){
     var rate=await getNGNperUSDT();
     var usdtAmt=(amt/rate).toFixed(4);
@@ -1841,399 +1713,102 @@ async function proceedDeposit(){
       pdRow('Amount',usdtAmt+' USDT');
     document.getElementById('pay-confirm-btn').textContent='✅ I Have Paid — Confirm';
     document.getElementById('pay-confirm-btn').onclick=confirmCryptoPayment;
-    startPayTimer();
-    openModal('deposit-pay-modal');
-    return;
+    startPayTimer();openModal('deposit-pay-modal');return;
   }
-
-  // ALL OTHER METHODS → Paystack popup
-  var cu=currentUser();
-  var users=getUsers();
-  var u=users[cu]||{};
-  var email=u.email||(cu+'@goalrush.com');
-  var ref='GRJ-'+Date.now()+'-'+Math.random().toString(36).slice(2,7).toUpperCase();
+  var cu=currentUser();var u=(getUsers()[cu]||{});
+  var email=u.email||cu+'@goalrush.com';
   var methodLabel={transfer:'Bank Transfer',kuda:'Kuda Bank',opay:'Opay',card:'Card Payment'}[_payMethod]||_payMethod;
-
+  var ref='GRJ-'+Date.now()+'-'+Math.random().toString(36).slice(2,7).toUpperCase();
   showLoading('Opening payment gateway...');
   setTimeout(function(){
     hideLoading();
-    try{
-      var handler=PaystackPop.setup({
-        key:      PAYSTACK_KEY,
-        email:    email,
-        amount:   amt*100,
-        currency: 'NGN',
-        ref:      ref,
-        metadata:{
-          custom_fields:[
-            {display_name:'Phone',    variable_name:'phone',    value:cu},
-            {display_name:'Method',   variable_name:'method',   value:methodLabel},
-            {display_name:'Platform', variable_name:'platform', value:'GoalRush Jackpot'}
-          ]
-        },
-        channels: _payMethod==='card'
-          ?['card']
-          :['bank_transfer','card'],
-
-        callback: function(response){
-          // Paystack only fires callback on genuine success
-          // Credit immediately — verify API requires server-side secret key
-          creditUserAfterPaystack(response.reference, amt, methodLabel, cu);
-        },
-        onClose: function(){
-          showNotif('Payment window closed. Your account was not charged.','err');
-        }
-      });
-      handler.openIframe();
-    }catch(e){
-      hideLoading();
-      showNotif('Payment gateway error. Please try again.','err');
-    }
+    var handler=PaystackPop.setup({
+      key:PAYSTACK_KEY,email:email,amount:amt*100,currency:'NGN',ref:ref,
+      metadata:{custom_fields:[
+        {display_name:'Phone',variable_name:'phone',value:cu},
+        {display_name:'Method',variable_name:'method',value:methodLabel},
+        {display_name:'Platform',variable_name:'platform',value:'GoalRush Jackpot'}
+      ]},
+      channels:_payMethod==='card'?['card']:_payMethod==='kuda'||_payMethod==='opay'?['bank_transfer']:['bank_transfer','card'],
+      callback:function(response){ verifyAndCreditPaystack(response.reference,amt,methodLabel,cu); },
+      onClose:function(){ showNotif('Payment window closed. Your account was not charged.','err'); }
+    });
+    handler.openIframe();
   },600);
 }
 
-function creditUserAfterPaystack(reference, amt, method, phone){
-  showLoading('Crediting your account...');
-  setTimeout(function(){
-    var users=getUsers();
-    var u=users[phone]||{};
-    u.balance=Number(u.balance||0)+amt;
-    users[phone]=u;
-    saveUsers(users);
-    updateHeaderBalance();
-
-    // Save deposit record
-    var deps=getDepositRequests();
-    deps.push({
-      id:       reference,
-      user:     phone,
-      amount:   amt,
-      method:   method,
-      time:     new Date().toISOString(),
-      status:   'approved',
-      ref:      reference
-    });
-    saveDepositRequests(deps);
-
-    // Sync to Firebase Firestore
-    syncUserToFirebase(phone, u);
-    if(window._FB&&window._db){
-      try{
-        window._fbSetDoc(
-          window._fbDoc(window._db,'transactions',reference),
-          {userId:phone,amount:amt,reference:reference,method:method,status:'success',time:new Date().toISOString()}
-        );
-      }catch(e){}
-    }
-
-    addLog('Deposit ₦'+amt.toLocaleString()+' via '+method+' ref:'+reference, phone);
-    hideLoading();
-    showSuccess('✅','Payment Successful!',
-      '₦'+amt.toLocaleString()+' has been added to your account!\nNew balance: ₦'+Number(u.balance).toLocaleString());
-  },800);
-}
-
-function confirmCryptoPayment(){
-  if(_payTimerInterval){clearInterval(_payTimerInterval);}
-  var cu=currentUser();
-  var usdtAmt=(_depAmount/1550).toFixed(4);
-  var msg=encodeURIComponent(
-    'Hello GoalRush Support! 👋\n\n'
-    +'I have made a crypto deposit.\n\n'
-    +'📱 Phone: '+cu+'\n'
-    +'💰 Amount: '+usdtAmt+' USDT (≈ ₦'+_depAmount.toLocaleString()+')\n'
-    +'🔗 Network: BEP20\n'
-    +'📍 Wallet: '+CRYPTO_ADDR+'\n'
-    +'⏰ Time: '+new Date().toLocaleString()+'\n\n'
-    +'Please credit my account. Screenshot attached. Thank you!'
-  );
-  var deps=getDepositRequests();
-  var ref=genRef();
-  deps.push({id:ref,user:cu,amount:_depAmount,method:'USDT BEP20',time:new Date().toISOString(),status:'pending'});
-  saveDepositRequests(deps);
-  addLog('Crypto deposit request ₦'+_depAmount,cu);
-  window.open('https://wa.me/'+SUPPORT_WA+'?text='+msg,'_blank');
-  closeModal('deposit-pay-modal');
-  openModal('deposit-review-modal');
-}
-
-function pdRow(label,val,action,copyVal){
-  var copyBtn=action==='copy'?'<button class="pd-copy" onclick="copyText(\''+copyVal+'\')">Copy</button>':'';
-  return '<div class="pd-row"><span class="pd-label">'+label+'</span><span class="pd-val">'+val+copyBtn+'</span></div>';
-}
-
-function startPayTimer(){
-  if(_payTimerInterval){clearInterval(_payTimerInterval);}
-  var secs=25*60+10;
-  var el=document.getElementById('pay-timer');
-  function render(){
-    var m=Math.floor(secs/60),s=secs%60;
-    el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-    if(secs<=60) el.style.color='var(--red)';
-    if(secs<=0){clearInterval(_payTimerInterval);el.textContent='EXPIRED';}
-  }
-  render();
-  _payTimerInterval=setInterval(function(){secs--;render();},1000);
-}
-
-function cancelDepositPay(){
-  if(_payTimerInterval){clearInterval(_payTimerInterval);}
-  closeModal('deposit-pay-modal');
-  openModal('deposit-method-modal');
-}
-
-function openDeposit(){
-  if(!currentUser()){openModal('auth-gate-modal');return;}
-  _payMethod=null;
-  clearPayMethodSelect();
-  document.getElementById('dep-msg').textContent='';
-  document.getElementById('dep-amount').value='';
-  openModal('deposit-method-modal');
-}
-
-function selectPayMethod(m){
-  _payMethod=m;
-  clearPayMethodSelect();
-  document.querySelectorAll('.pay-card').forEach(function(c){
-    if(c.getAttribute('onclick')==="selectPayMethod('"+m+"')") c.classList.add('selected');
-  });
-}
-
-function clearPayMethodSelect(){
-  document.querySelectorAll('.pay-card').forEach(function(c){c.classList.remove('selected');});
-}
-
-function showComingSoon(){
-  showNotif('💳 Card payments coming soon!');
-}
-
-async function proceedDeposit(){
-  var msg=document.getElementById('dep-msg');
-  msg.textContent='';
-  var amt=Number(document.getElementById('dep-amount').value);
-  if(!_payMethod){setMsg(msg,'Please select a payment method','err');return;}
-  if(!amt||amt<100||amt>100000000){setMsg(msg,'Enter amount between ₦100 and ₦100,000,000','err');return;}
-  _depAmount=amt;
-  closeModal('deposit-method-modal');
-
-  // ── CRYPTO stays manual ──
-  if(_payMethod==='crypto'){
-    var rate=await getNGNperUSDT();
-    var usdtAmt=(amt/rate).toFixed(4);
-    document.getElementById('pay-modal-title').textContent='₿ Send USDT (BEP20)';
-    document.getElementById('pay-amount-display').textContent=usdtAmt+' USDT ≈ ₦'+amt.toLocaleString();
-    document.getElementById('pay-detail-box').innerHTML=
-      pdRow('Network',CRYPTO_NET)+
-      pdRow('Wallet Address','<span style="font-size:11px;word-break:break-all">'+CRYPTO_ADDR+'</span>','copy',CRYPTO_ADDR)+
-      pdRow('Amount',usdtAmt+' USDT');
-    document.getElementById('pay-confirm-btn').textContent='✅ I Have Paid — Confirm';
-    document.getElementById('pay-confirm-btn').onclick=confirmCryptoPayment;
-    startPayTimer();
-    openModal('deposit-pay-modal');
-    return;
-  }
-
-  // ── ALL OTHER METHODS → Paystack ──
-  var cu=currentUser();
-  var users=getUsers();
-  var u=users[cu]||{};
-  var email=u.email||cu+'@goalrush.com';
-
-  var methodLabel={
-    transfer:'Bank Transfer',
-    kuda:    'Kuda Bank',
-    opay:    'Opay',
-    card:    'Card Payment'
-  }[_payMethod]||_payMethod;
-
-  var ref='GRJ-'+Date.now()+'-'+Math.random().toString(36).slice(2,7).toUpperCase();
-
-  showLoading('Opening payment gateway...');
-
-  setTimeout(function(){
-    hideLoading();
-
-    var handler=PaystackPop.setup({
-      key:       PAYSTACK_KEY,
-      email:     email,
-      amount:    amt*100, // Paystack uses kobo
-      currency:  'NGN',
-      ref:       ref,
-      metadata:{
-        custom_fields:[
-          {display_name:'Phone',    variable_name:'phone',    value:cu},
-          {display_name:'Method',   variable_name:'method',   value:methodLabel},
-          {display_name:'Platform', variable_name:'platform', value:'GoalRush Jackpot'}
-        ]
-      },
-      channels: _payMethod==='card'
-        ?['card']
-        :_payMethod==='kuda'
-          ?['bank_transfer']
-          :_payMethod==='opay'
-            ?['bank_transfer']
-            :['bank_transfer','card'],
-
-      callback: function(response){
-        // Payment completed — verify then credit
-        verifyAndCreditPaystack(response.reference, amt, methodLabel, cu);
-      },
-      onClose: function(){
-        showNotif('Payment window closed. Your account was not charged.','err');
-      }
-    });
-
-    handler.openIframe();
-  }, 600);
-}
-
-function verifyAndCreditPaystack(reference, amt, method, phone){
+function verifyAndCreditPaystack(reference,amt,method,phone){
   showLoading('Verifying payment...');
-
-  // Verify via Paystack API
-  // NOTE: In production move this to Firebase Functions for security
   fetch('https://api.paystack.co/transaction/verify/'+encodeURIComponent(reference),{
-    method:'GET',
-    headers:{
-      'Authorization':'Bearer '+PAYSTACK_KEY,
-      'Content-Type':'application/json'
-    }
+    method:'GET',headers:{'Authorization':'Bearer '+PAYSTACK_KEY,'Content-Type':'application/json'}
   })
-  .then(function(r){ return r.json(); })
+  .then(function(r){return r.json();})
   .then(function(data){
     hideLoading();
-    if(data.status && data.data && data.data.status==='success'){
-      // ── PAYMENT VERIFIED — credit wallet ──
-      var users=getUsers();
-      var u=users[phone]||{};
-      u.balance=Number(u.balance||0)+amt;
-      users[phone]=u;
-      saveUsers(users);
-      updateHeaderBalance();
-
-      // Save deposit record
-      var deps=getDepositRequests();
-      deps.push({
-        id:       reference,
-        user:     phone,
-        amount:   amt,
-        method:   method,
-        time:     new Date().toISOString(),
-        status:   'approved',
-        verified: true,
-        ref:      reference
-      });
-      saveDepositRequests(deps);
-
-      // Save to Firebase Firestore
-      if(window._FB && window._db){
-        try{
-          window._fbSetDoc(
-            window._fbDoc(window._db,'transactions',reference),
-            {
-              userId:    phone,
-              amount:    amt,
-              reference: reference,
-              method:    method,
-              status:    'success',
-              time:      new Date().toISOString()
-            }
-          );
-          // Update Firestore user balance
-          var uid=phone.replace(/[^a-z0-9]/gi,'_').toLowerCase();
-          window._fbSetDoc(
-            window._fbDoc(window._db,'users',uid),
-            {balance: u.balance, lastDeposit: new Date().toISOString()},
-            {merge:true}
-          );
-        }catch(e){ console.warn('Firebase sync error:',e); }
-      }
-
-      addLog('Deposit verified ₦'+amt.toLocaleString()+' via '+method+' ref:'+reference, phone);
-      showSuccess('✅','Payment Successful!','₦'+amt.toLocaleString()+' has been credited to your account. Your new balance is ₦'+Number(u.balance).toLocaleString()+'.');
-
-    } else {
-      // Payment failed or not verified
-      showNotif('⚠️ Payment could not be verified. If you were charged contact support with ref: '+reference,'err');
-      addLog('Deposit FAILED verify — ref:'+reference+' status:'+(data.data&&data.data.status||'unknown'), phone);
+    if(data.status&&data.data&&data.data.status==='success'){
+      _creditUserBalance(phone,amt);
+      var dep={id:reference,user:phone,amount:amt,method:method,time:new Date().toISOString(),status:'approved',verified:true,ref:reference};
+      var deps=getDepositRequests();deps.push(dep);saveDepositRequests(deps);
+      _saveDepositToFirestore(dep);
+      addLog('Deposit verified ₦'+amt.toLocaleString()+' via '+method+' ref:'+reference,phone);
+      showSuccess('✅','Payment Successful!','₦'+amt.toLocaleString()+' has been credited. New balance: ₦'+Number(getUsers()[phone].balance||0).toLocaleString()+'.');
+    }else{
+      showNotif('⚠️ Payment could not be verified. Contact support with ref: '+reference,'err');
     }
   })
-  .catch(function(err){
+  .catch(function(){
     hideLoading();
-    // Network error during verify — save as pending for admin to approve manually
-    var deps=getDepositRequests();
-    deps.push({
-      id:       reference,
-      user:     phone,
-      amount:   amt,
-      method:   method,
-      time:     new Date().toISOString(),
-      status:   'pending',
-      verified: false,
-      ref:      reference,
-      note:     'Paystack verify failed — check manually'
-    });
-    saveDepositRequests(deps);
-    addLog('Deposit verify network error — ref:'+reference+' pending manual review', phone);
+    var dep={id:reference,user:phone,amount:amt,method:method,time:new Date().toISOString(),status:'pending',verified:false,ref:reference,note:'Verify failed — pending manual review'};
+    var deps=getDepositRequests();deps.push(dep);saveDepositRequests(deps);
+    _saveDepositToFirestore(dep);
     showNotif('Payment received but verification had a network error. Admin will credit your account shortly. Ref: '+reference,'err');
   });
 }
 
-// ── CRYPTO manual confirm (stays as WhatsApp flow) ──
+function _creditUserBalance(userKey, amt){
+  var users=getUsers();
+  var u=users[userKey]||{};
+  u.balance=Number(u.balance||0)+amt;
+  users[userKey]=u;
+  saveUsers(users);
+  updateHeaderBalance();
+  _syncUserBalanceToFirestore(userKey, u.balance);
+}
+
 function confirmCryptoPayment(){
   if(_payTimerInterval){clearInterval(_payTimerInterval);}
   var cu=currentUser();
   var usdtAmt=(_depAmount/1550).toFixed(4);
-  var msg=encodeURIComponent(
-    'Hello GoalRush Support! 👋\n\n'
-    +'I have made a crypto deposit.\n\n'
-    +'📱 Phone: '+cu+'\n'
-    +'💰 Amount: '+usdtAmt+' USDT (≈ ₦'+_depAmount.toLocaleString()+')\n'
-    +'🔗 Network: BEP20\n'
-    +'📍 Wallet: '+CRYPTO_ADDR+'\n'
-    +'⏰ Time: '+new Date().toLocaleString()+'\n\n'
-    +'Please credit my account. Screenshot attached. Thank you!'
-  );
-  var deps=getDepositRequests();
-  var ref=genRef();
-  deps.push({id:ref,user:cu,amount:_depAmount,method:'USDT BEP20',time:new Date().toISOString(),status:'pending'});
-  saveDepositRequests(deps);
+  var msg=encodeURIComponent('Hello GoalRush Support! 👋\n\nI have made a crypto deposit.\n\n📱 Phone: '+cu+'\n💰 Amount: '+usdtAmt+' USDT (≈ ₦'+_depAmount.toLocaleString()+')\n🔗 Network: BEP20\n📍 Wallet: '+CRYPTO_ADDR+'\n⏰ Time: '+new Date().toLocaleString()+'\n\nPlease credit my account. Screenshot attached. Thank you!');
+  var dep={id:genRef(),user:cu,amount:_depAmount,method:'USDT BEP20',time:new Date().toISOString(),status:'pending'};
+  var deps=getDepositRequests();deps.push(dep);saveDepositRequests(deps);
+  _saveDepositToFirestore(dep);
   addLog('Crypto deposit request ₦'+_depAmount,cu);
   window.open('https://wa.me/'+SUPPORT_WA+'?text='+msg,'_blank');
-  closeModal('deposit-pay-modal');
-  openModal('deposit-review-modal');
+  closeModal('deposit-pay-modal');openModal('deposit-review-modal');
 }
 
 function pdRow(label,val,action,copyVal){
   var copyBtn=action==='copy'?'<button class="pd-copy" onclick="copyText(\''+copyVal+'\')">Copy</button>':'';
   return '<div class="pd-row"><span class="pd-label">'+label+'</span><span class="pd-val">'+val+copyBtn+'</span></div>';
 }
-
 function startPayTimer(){
   if(_payTimerInterval){clearInterval(_payTimerInterval);}
-  var secs=25*60+10;
-  var el=document.getElementById('pay-timer');
+  var secs=25*60+10;var el=document.getElementById('pay-timer');
   function render(){
     var m=Math.floor(secs/60),s=secs%60;
     el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-    if(secs<=60) el.style.color='var(--red)';
+    if(secs<=60)el.style.color='var(--red)';
     if(secs<=0){clearInterval(_payTimerInterval);el.textContent='EXPIRED';el.style.color='var(--red)';}
   }
-  render();
-  _payTimerInterval=setInterval(function(){secs--;render();},1000);
+  render();_payTimerInterval=setInterval(function(){secs--;render();},1000);
 }
-
-function cancelDepositPay(){
-  if(_payTimerInterval){clearInterval(_payTimerInterval);}
-  closeModal('deposit-pay-modal');
-  openModal('deposit-method-modal');
-}
+function cancelDepositPay(){if(_payTimerInterval){clearInterval(_payTimerInterval);}closeModal('deposit-pay-modal');openModal('deposit-method-modal');}
 
 // ── WITHDRAW ──
 function openWithdraw(){
   if(!currentUser()){openModal('auth-gate-modal');return;}
-  var cu=currentUser();
-  var u=(getUsers()[cu]||{});
+  var cu=currentUser();var u=(getUsers()[cu]||{});
   var bal=Number(u.balance||0);
   document.getElementById('wd-balance').textContent='₦'+bal.toLocaleString('en',{minimumFractionDigits:2});
   document.getElementById('wd-msg').textContent='';
@@ -2242,12 +1817,10 @@ function openWithdraw(){
   document.getElementById('wd-amount').value='';
   openModal('withdraw-modal');
 }
-
-function doWithdraw(){
+async function doWithdraw(){
   var bank=gv('wd-bank').trim(),acct=gv('wd-account').trim(),amt=Number(gv('wd-amount'));
   var msg=document.getElementById('wd-msg');msg.textContent='';
-  var cu=currentUser();
-  var users=getUsers();var u=users[cu]||{};
+  var cu=currentUser();var users=getUsers();var u=users[cu]||{};
   var bal=Number(u.balance||0);
   if(!bank){setMsg(msg,'Enter bank name','err');return;}
   if(!acct||acct.length<6){setMsg(msg,'Enter a valid account number','err');return;}
@@ -2255,15 +1828,15 @@ function doWithdraw(){
   if(amt>100000000){setMsg(msg,'Maximum withdrawal is ₦100,000,000','err');return;}
   if(amt>bal){setMsg(msg,'Insufficient balance','err');return;}
   showLoading('Processing withdrawal...');
-  setTimeout(function(){
+  setTimeout(async function(){
     u.balance=bal-amt;users[cu]=u;saveUsers(users);
+    _syncUserBalanceToFirestore(cu,u.balance);
     var ref=genRef();
-    var ws=getWithdrawals();
-    ws.push({id:ref,user:cu,amount:amt,bank,account:acct,code:ref,time:new Date().toISOString(),status:'pending'});
-    saveWithdrawals(ws);
+    var wd={id:ref,user:cu,amount:amt,bank:bank,account:acct,code:ref,time:new Date().toISOString(),status:'pending'};
+    var ws=getWithdrawals();ws.push(wd);saveWithdrawals(ws);
+    _saveWithdrawalToFirestore(wd);
     addLog('Withdrawal ₦'+amt+' ref:'+ref,cu);
-    updateHeaderBalance();hideLoading();
-    closeModal('withdraw-modal');
+    updateHeaderBalance();hideLoading();closeModal('withdraw-modal');
     showSuccess('💸','Withdrawal Submitted!','Reference: '+ref+'\n\nAmount: ₦'+amt.toLocaleString()+'\nBank: '+bank+'\nAccount: '+acct+'\n\nYou will receive payment shortly.');
   },1200);
 }
@@ -2298,10 +1871,7 @@ function showNotif(msg,type){
 }
 
 // ── LOADING ──
-function showLoading(txt){
-  document.getElementById('loading-text').textContent=txt||'Processing...';
-  document.getElementById('loading').classList.add('show');
-}
+function showLoading(txt){document.getElementById('loading-text').textContent=txt||'Processing...';document.getElementById('loading').classList.add('show');}
 function hideLoading(){document.getElementById('loading').classList.remove('show');}
 
 // ── UTILS ──

@@ -933,7 +933,7 @@ tbody tr:hover td{background:#0a1a0a40;}
 //  Get it from: Firebase Console → Project Settings → Your Apps
 // ══════════════════════════════════════════════════════════════
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
+var _FIREBASE_CONFIG = {
   apiKey: "AIzaSyDDgcOPxwXS8P5kAvmcqaRd8nTCl2a3Q4E",
   authDomain: "goalrushjackpot.firebaseapp.com",
   projectId: "goalrushjackpot",
@@ -946,7 +946,7 @@ const firebaseConfig = {
 window._fbReady = (async function(){
   try{
     const { initializeApp }  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-    const { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs, serverTimestamp }
+    const { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs, serverTimestamp, query, where }
                              = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
     const app = initializeApp(_FIREBASE_CONFIG);
@@ -961,6 +961,8 @@ window._fbReady = (async function(){
     window._fbCollection= collection;
     window._fbGetDocs   = getDocs;
     window._fbServerTS  = serverTimestamp;
+    window._fbQuery     = query;
+    window._fbWhere     = where;
 
     console.log('✅ Admin Firebase Firestore ready');
     return true;
@@ -975,6 +977,28 @@ window._fbReady = (async function(){
 /* ── DATA WRAPPERS ── */
 function getUsers(){       try{return JSON.parse(localStorage.getItem('grj_users')||'{}')}catch(e){return{}} }
 function saveUsers(u){     localStorage.setItem('grj_users',JSON.stringify(u)); }
+
+// ── Sync a single user document to Firestore by uid ──
+async function _syncAdminUserToFirestore(userKey, updateData){
+  var fbOk = await window._fbReady;
+  if(!fbOk||!window._db) return;
+  try{
+    var users = getUsers();
+    var u = users[userKey]||{};
+    var uid = u.uid||null;
+    if(!uid){
+      // Try to find by phone in Firestore
+      if(window._fbQuery&&window._fbWhere){
+        var snap = await window._fbGetDocs(
+          window._fbQuery(window._fbCollection(window._db,'users'), window._fbWhere('phone','==',userKey))
+        );
+        if(!snap.empty){ uid = snap.docs[0].id; u.uid = uid; users[userKey]=u; saveUsers(users); }
+      }
+    }
+    if(!uid) return;
+    await window._fbSetDoc(window._fbDoc(window._db,'users',uid), updateData, {merge:true});
+  }catch(e){ console.warn('Admin user Firestore sync:',e); }
+}
 function getTickets(){     try{return JSON.parse(localStorage.getItem('grj_tickets')||'[]')}catch(e){return[]} }
 function saveTickets(t){   localStorage.setItem('grj_tickets',JSON.stringify(t)); }
 function getWithdrawals(){ try{return JSON.parse(localStorage.getItem('grj_withdrawals')||'[]')}catch(e){return[]} }
@@ -1243,11 +1267,13 @@ function confirmFund(){
 }
 
 /* ── DISABLE / ENABLE ── */
-function setDisabled(phone, disabled){
+async function setDisabled(phone, disabled){
   showLoad(disabled?'Disabling account...':'Enabling account...');
-  setTimeout(function(){
+  setTimeout(async function(){
     var users=getUsers(); var u=users[phone]; if(!u){hideLoad();return;}
-    u.disabled=disabled; users[phone]=u; saveUsers(users);
+    u.disabled=disabled; u.status=disabled?'disabled':'active';
+    users[phone]=u; saveUsers(users);
+    await _syncAdminUserToFirestore(phone,{disabled:disabled,status:disabled?'disabled':'active'});
     addLog(disabled?'Account disabled':'Account enabled', phone);
     loadUsers(); updateStats(); hideLoad();
     toast(disabled?'⛔ Account disabled':'✅ Account enabled');
@@ -1264,11 +1290,12 @@ function openClear(phone){
     +'<strong style="color:var(--red)">This cannot be undone.</strong>';
   openMo('mo-clear');
 }
-function confirmClear(){
+async function confirmClear(){
   showLoad('Clearing balance...');
-  setTimeout(function(){
+  setTimeout(async function(){
     var users=getUsers(); var u=users[_pendingUser]; if(!u){hideLoad();return;}
     u.balance=0; users[_pendingUser]=u; saveUsers(users);
+    await _syncAdminUserToFirestore(_pendingUser,{balance:0,balanceClearedAt:new Date().toISOString()});
     addLog('Balance cleared',_pendingUser);
     loadUsers(); updateStats(); hideLoad(); closeMo('mo-clear');
     toast('🗑️ Balance cleared','t-err');
@@ -1284,12 +1311,13 @@ function openDelete(phone){
     +'They will be moved to the Archive tab and will not be able to login or place bets. You can restore them at any time.';
   openMo('mo-delete');
 }
-function confirmDelete(){
+async function confirmDelete(){
   showLoad('Archiving user...');
-  setTimeout(function(){
+  setTimeout(async function(){
     var users=getUsers(); var u=users[_pendingUser]; if(!u){hideLoad();return;}
-    u.archived=true; u.archivedAt=new Date().toISOString();
+    u.archived=true; u.archivedAt=new Date().toISOString(); u.status='archived';
     users[_pendingUser]=u; saveUsers(users);
+    await _syncAdminUserToFirestore(_pendingUser,{archived:true,archivedAt:u.archivedAt,status:'archived'});
     addLog('User archived',_pendingUser);
     loadUsers(); loadArchive(); updateStats(); hideLoad(); closeMo('mo-delete');
     toast('🗂 User archived','t-gold');
@@ -1323,12 +1351,13 @@ function loadArchive(){
     +'</tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
-function restoreUser(phone){
+async function restoreUser(phone){
   showLoad('Restoring user...');
-  setTimeout(function(){
+  setTimeout(async function(){
     var users=getUsers(); var u=users[phone]; if(!u){hideLoad();return;}
-    u.archived=false; u.archivedAt=null; u.disabled=false;
+    u.archived=false; u.archivedAt=null; u.disabled=false; u.status='active';
     users[phone]=u; saveUsers(users);
+    await _syncAdminUserToFirestore(phone,{archived:false,archivedAt:null,disabled:false,status:'active'});
     addLog('User restored from archive',phone);
     loadArchive(); loadUsers(); updateStats(); hideLoad();
     toast('✅ User restored successfully');
@@ -1500,13 +1529,22 @@ function openApproveDeposit(idx){
     +'Method: '+esc(d.method||'—')+'&nbsp;·&nbsp;Ref: '+esc(d.id||'—');
   openMo('mo-approve-dep');
 }
-function confirmApproveDeposit(){
+async function confirmApproveDeposit(){
   showLoad('Crediting user...');
-  setTimeout(function(){
+  setTimeout(async function(){
     var deps=getDeposits(); var d=deps[_pendingDepIdx]; if(!d){hideLoad();return;}
     var users=getUsers(); var u=users[d.user];
-    if(u){u.balance=Number(u.balance||0)+Number(d.amount||0);users[d.user]=u;saveUsers(users);}
+    if(u){
+      u.balance=Number(u.balance||0)+Number(d.amount||0);
+      users[d.user]=u; saveUsers(users);
+      await _syncAdminUserToFirestore(d.user,{balance:u.balance,lastDeposit:new Date().toISOString()});
+    }
     d.status='approved'; deps[_pendingDepIdx]=d; saveDeposits(deps);
+    // Sync deposit status to Firestore
+    var fbOk = await window._fbReady;
+    if(fbOk&&window._db&&d.id){
+      try{ await window._fbSetDoc(window._fbDoc(window._db,'deposits',d.id),{status:'approved',approvedAt:new Date().toISOString()},{merge:true}); }catch(e){}
+    }
     addLog('Deposit approved ₦'+Number(d.amount).toLocaleString(),d.user);
     loadDeposits(); loadUsers(); hideLoad(); closeMo('mo-approve-dep');
     toast('✅ ₦'+Number(d.amount).toLocaleString()+' credited to '+d.user);
@@ -1560,12 +1598,20 @@ function loadWithdrawals(){
     +'<tbody>'+rows+'</tbody></table>';
   updateStats();
 }
-function markWdPaid(id){
+async function markWdPaid(id){
   showLoad('Marking as paid...');
-  setTimeout(function(){
+  setTimeout(async function(){
     var wds=getWithdrawals();
     var w=wds.find(function(x){return (x.id===id||x.code===id);});
-    if(w){w.status='paid';saveWithdrawals(wds);addLog('Withdrawal paid ref:'+id,w.user);}
+    if(w){
+      w.status='paid'; w.paidAt=new Date().toISOString();
+      saveWithdrawals(wds);
+      addLog('Withdrawal paid ref:'+id,w.user);
+      var fbOk = await window._fbReady;
+      if(fbOk&&window._db&&w.id){
+        try{ await window._fbSetDoc(window._fbDoc(window._db,'withdrawals',w.id),{status:'paid',paidAt:w.paidAt},{merge:true}); }catch(e){}
+      }
+    }
     loadWithdrawals();hideLoad();toast('✅ Withdrawal marked as paid');
   },600);
 }
