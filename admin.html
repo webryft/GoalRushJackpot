@@ -385,6 +385,38 @@ tbody tr:hover td{background:#0a1a0a40;}
   .tab-btn{padding:10px 10px;font-size:11px;}
 }
 </style>
+
+<!-- 🔥 FIREBASE SDK -->
+<script type="module">
+  import { initializeApp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, collection, getDocs,
+           getDoc, setDoc, updateDoc }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDDgcOPxwXS8P5kAvmcqaRd8nTCl2a3Q4E",
+    authDomain:        "goalrushjackpot.firebaseapp.com",
+    projectId:         "goalrushjackpot",
+    storageBucket:     "goalrushjackpot.firebasestorage.app",
+    messagingSenderId: "996412041306",
+    appId:             "1:996412041306:web:99bb7a5092c958b0055063",
+    measurementId:     "G-FDNDS7FDCD"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  window._db           = db;
+  window._fbDoc        = doc;
+  window._fbCollection = collection;
+  window._fbGetDocs    = getDocs;
+  window._fbGetDoc     = getDoc;
+  window._fbSetDoc     = setDoc;
+  window._fbUpdateDoc  = updateDoc;
+  window._FB           = true;
+  document.dispatchEvent(new Event('firebase-ready'));
+</script>
 </head>
 <body>
 
@@ -439,6 +471,7 @@ tbody tr:hover td{background:#0a1a0a40;}
       <button class="tab-btn" onclick="openTab('prizes')">🏆 Prizes</button>
       <button class="tab-btn" onclick="openTab('matches')">⚽ Matches</button>
       <button class="tab-btn" onclick="openTab('countdown')">⏱ Countdown</button>
+      <button class="tab-btn" onclick="openTab('betid')">🔍 Bet ID</button>
       <button class="tab-btn" onclick="openTab('broadcast')">📢 Broadcast</button>
       <button class="tab-btn" onclick="openTab('logs')">📋 Logs</button>
     </div>
@@ -730,6 +763,30 @@ tbody tr:hover td{background:#0a1a0a40;}
       </div>
     </div>
 
+    <!-- ══ BET ID SEARCH TAB ══ -->
+    <div class="tab-content" id="tab-betid">
+      <div class="section-card">
+        <div class="sc-head">
+          <div class="sc-title">🔍 Search Bet by Ticket ID</div>
+        </div>
+        <div class="sc-body">
+          <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">
+            Enter a user's Ticket ID (e.g. <span style="font-family:monospace;color:var(--gold)">GRJ-ABC123</span>) to retrieve their full bet receipt. Use this when a user loses or deletes their ticket.
+          </p>
+          <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+            <input class="search-input" id="betid-input"
+              placeholder="Enter Ticket ID e.g. GRJ-ABC123"
+              style="flex:1;min-width:220px;font-family:monospace;"
+              onkeydown="if(event.key==='Enter')searchBetId()"/>
+            <button class="refresh-btn" onclick="searchBetId()" style="background:linear-gradient(135deg,var(--green),var(--green2));color:#000;border:none;">
+              🔍 Search
+            </button>
+          </div>
+          <div id="betid-result"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ══ BROADCAST TAB ══ -->
     <div class="tab-content" id="tab-broadcast">
       <div class="section-card">
@@ -1001,15 +1058,17 @@ function startClock(){
 
 /* ── TABS ── */
 function openTab(name){
-  var names=['users','archive','deposits','withdrawals','results','prizes','matches','countdown','broadcast','logs'];
+  var names=['users','archive','deposits','withdrawals','results','prizes','matches','countdown','betid','broadcast','logs'];
   document.querySelectorAll('.tab-btn').forEach(function(b,i){
-    b.classList.toggle('active',names[i]===name);
+    b.classList.toggle('active', names[i]===name);
   });
   document.querySelectorAll('.tab-content').forEach(function(c){
-    c.classList.toggle('active',c.id==='tab-'+name);
+    c.classList.toggle('active', c.id==='tab-'+name);
   });
-  if(name==='archive') loadArchive();
-  if(name==='logs')    loadLogs();
+  if(name==='archive')  loadArchive();
+  if(name==='logs')     loadLogs();
+  if(name==='deposits') loadDeposits();
+  if(name==='withdrawals') loadWithdrawals();
 }
 
 /* ════════════════════════════════════════
@@ -1030,11 +1089,31 @@ function updateStats(){
 /* ════════════════════════════════════════
    USERS
 ════════════════════════════════════════ */
-function loadUsers(){
-  var users=getUsers();
-  _allUsers=Object.values(users).filter(function(u){return !u.archived;});
-  filterUsers();
+async function loadUsers(){
+  /* Step 1 — load from localStorage immediately so UI appears fast */
+  var localUsers=getUsers();
+  _allUsers=Object.values(localUsers).filter(function(u){return !u.archived;});
+  renderUsersTable(_allUsers);
   updateStats();
+
+  /* Step 2 — pull from Firebase to get users registered on other devices */
+  if(window._FB && window._db){
+    try{
+      var snap=await window._fbGetDocs(window._fbCollection(window._db,'users'));
+      snap.forEach(function(d){
+        var data=d.data();
+        if(!data.phone) return;
+        /* Merge: Firebase wins for balance and account info */
+        localUsers[data.phone]=Object.assign(localUsers[data.phone]||{},data);
+      });
+      saveUsers(localUsers);
+      _allUsers=Object.values(localUsers).filter(function(u){return !u.archived;});
+      filterUsers();
+      updateStats();
+    }catch(e){
+      toast('Firebase sync: '+e.message,'t-err');
+    }
+  }
 }
 
 function filterUsers(){
@@ -1616,27 +1695,23 @@ function publishResults(){
 
   var matches=getMatches();
 
-  // Build winners object — only tiers with tickets > 0
   var winners={};
   [['14','wn-14'],['13','wn-13'],['12','wn-12'],['11','wn-11']].forEach(function(p){
-    var tier=p[0], prefix=p[1];
+    var tier=p[0],prefix=p[1];
     var tEl=document.getElementById(prefix+'-tickets');
     var pEl=document.getElementById(prefix+'-prize');
     var tickets=tEl?parseInt(tEl.value||'0'):0;
     var prize=pEl?parseInt(pEl.value||'0'):0;
-    if(tickets>0){
-      winners[tier]={tickets:tickets,prize:prize};
-    }
+    if(tickets>0) winners[tier]={tickets:tickets,prize:prize};
   });
 
-  // Build match list with result objects
   var matchList=matches.map(function(m,i){
     var r=results[i]||{};
     return {
-      home:   m.home,
-      away:   m.away,
-      time:   m.time||'',
-      result: typeof r==='object'?r.result:r,
+      home:      m.home,
+      away:      m.away,
+      time:      m.time||'',
+      result:    typeof r==='object'?r.result:r,
       scoreHome: typeof r==='object'?r.scoreHome:'',
       scoreAway: typeof r==='object'?r.scoreAway:''
     };
@@ -1646,46 +1721,91 @@ function publishResults(){
   var savedAt=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
     +' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 
+  /* ── KEY FIX: include roundId field so index can match tickets ── */
   var round={
-    id: roundId,
-    savedAt: savedAt,
-    winners: winners,
-    matches: matchList,
-    results: results
+    id:       roundId,
+    roundId:  roundId,   // tickets store this to match against
+    savedAt:  savedAt,
+    winners:  winners,
+    matches:  matchList,
+    results:  results
   };
 
-  // Save to published rounds array
   var rounds=JSON.parse(localStorage.getItem('grj_published_rounds')||'[]');
-  // Replace if same id already exists
   var idx=rounds.findIndex(function(r){return r.id===roundId;});
   if(idx>=0) rounds[idx]=round;
   else rounds.push(round);
   localStorage.setItem('grj_published_rounds',JSON.stringify(rounds));
 
+  /* ── Sync to Firebase so users on ALL devices see results ── */
+  if(window._FB && window._db){
+    try{
+      window._fbSetDoc(
+        window._fbDoc(window._db,'published_rounds',roundId),
+        round
+      );
+    }catch(e){ console.warn('Firebase publish error:',e); }
+  }
+
   addLog('Results published — Round '+roundId,'admin');
   document.getElementById('publish-save-msg').innerHTML=
-    '<span style="color:var(--green)">✅ Round '+esc(roundId)+' published! Users can now see results in their Results tab.</span>';
+    '<span style="color:var(--green)">✅ Round '+esc(roundId)+' published! Users will see results in their Bets tab and Results tab immediately.</span>';
   setTimeout(function(){document.getElementById('publish-save-msg').textContent='';},6000);
   toast('📢 Results published to users!','t-gold');
 }
 
 /* ── NEW ROUND ── */
-function startNewRound(){ /* uses inline modal checkboxes inside publish-section */ }
+function startNewRound(){ /* triggered by inline button in publish-section */ }
+
 function confirmNewRound(){
-  var clearTickets=document.getElementById('nr-clear-tickets')&&document.getElementById('nr-clear-tickets').checked;
-  var clearResults=document.getElementById('nr-clear-results')&&document.getElementById('nr-clear-results').checked;
-  var resetCd=document.getElementById('nr-reset-cd')&&document.getElementById('nr-reset-cd').checked;
-  if(!clearTickets&&!clearResults&&!resetCd){ toast('Select at least one option.','t-err'); return; }
+  var clearTickets = document.getElementById('nr-clear-tickets') && document.getElementById('nr-clear-tickets').checked;
+  var clearResults = document.getElementById('nr-clear-results') && document.getElementById('nr-clear-results').checked;
+  var resetCd      = document.getElementById('nr-reset-cd')      && document.getElementById('nr-reset-cd').checked;
+  if(!clearTickets && !clearResults && !resetCd){
+    toast('Select at least one option to proceed.','t-err'); return;
+  }
   showLoad('Starting new round...');
   setTimeout(function(){
     var actions=[];
-    if(clearTickets){ saveTickets([]); actions.push('tickets cleared'); }
-    if(clearResults){ saveResults2([]); _currentResults=[]; renderResultsEditor(); actions.push('results cleared'); }
-    if(resetCd){ clearCountdown(); loadCurrentCountdown(); actions.push('countdown reset'); }
+
+    if(clearTickets){
+      saveTickets([]);
+      actions.push('tickets cleared');
+    }
+
+    if(clearResults){
+      saveResults2([]);
+      _currentResults=[];
+      renderResultsEditor();
+      actions.push('results cleared');
+    }
+
+    if(resetCd){
+      clearCountdown();
+      loadCurrentCountdown();
+      actions.push('countdown reset');
+    }
+
+    /* ── KEY FIX: Generate a fresh roundId so new tickets get stamped
+       with a new ID and don't match old published results ── */
+    var newRoundId = 'round_' + Date.now();
+    localStorage.setItem('grj_current_round_id', newRoundId);
+    actions.push('new round ID: ' + newRoundId);
+
+    /* Reset pre-fill inputs */
+    ['wn-14-tickets','wn-14-prize','wn-13-tickets','wn-13-prize',
+     'wn-12-tickets','wn-12-prize','wn-11-tickets','wn-11-prize',
+     'pub-round-id'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.value='';
+    });
+
+    /* Hide scan / publish UI */
     document.getElementById('scan-results').innerHTML='';
-    document.getElementById('scan-summary').style.display='none';
-    document.getElementById('publish-section').style.display='none';
-    document.getElementById('alarm-banner').classList.remove('show');
+    var ss=document.getElementById('scan-summary');       if(ss) ss.style.display='none';
+    var ps=document.getElementById('publish-section');    if(ps) ps.style.display='none';
+    var nrb=document.getElementById('new-round-box');     if(nrb) nrb.style.display='none';
+    var ab=document.getElementById('alarm-banner');       if(ab) ab.classList.remove('show');
+
     updateStats();
     addLog('New round started — '+actions.join(', '),'admin');
     hideLoad();
@@ -1802,20 +1922,148 @@ function loadCurrentCountdown(){
 }
 
 /* ════════════════════════════════════════
-   BROADCAST
+   BET ID SEARCH
 ════════════════════════════════════════ */
+function searchBetId(){
+  var input=document.getElementById('betid-input').value.trim().toUpperCase();
+  var resultDiv=document.getElementById('betid-result');
+  if(!input){
+    resultDiv.innerHTML='<div class="tbl-empty" style="color:var(--red);">Please enter a Ticket ID.</div>';
+    return;
+  }
+  var allTickets=getTickets();
+  var ticket=null;
+  for(var i=0;i<allTickets.length;i++){
+    if((allTickets[i].id||'').toUpperCase()===input){
+      ticket=allTickets[i];break;
+    }
+  }
+  if(!ticket){
+    resultDiv.innerHTML=
+      '<div style="background:#1a0000;border:1px solid var(--red);border-radius:12px;padding:20px;text-align:center;">'
+      +'<div style="font-size:32px;margin-bottom:10px;">❌</div>'
+      +'<div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:6px;">Ticket Not Found</div>'
+      +'<div style="font-size:13px;color:var(--text3);">No bet with ID <span style="font-family:monospace;color:var(--gold)">'+esc(input)+'</span> exists on this platform.</div>'
+      +'</div>';
+    return;
+  }
+
+  /* Found — build full receipt */
+  var users=getUsers();
+  var u=users[ticket.user]||{};
+  var results=getResults();
+  var publishedRounds=JSON.parse(localStorage.getItem('grj_published_rounds')||'[]');
+  var activeRound=publishedRounds.length>0?publishedRounds[publishedRounds.length-1]:null;
+  var roundResults=activeRound?activeRound.matches:null;
+
+  var totalCorrect=0;
+  var totalVoid=0;
+
+  var matchRows=ticket.selections.map(function(s,idx){
+    var pick=s.code||'';
+    var matchResult=roundResults?roundResults[idx]:null;
+    var resVal=matchResult?(matchResult.result||'').toString().trim().toUpperCase():'';
+    var isVoid=resVal==='VOID';
+    var hasResult=resVal!=='';
+    var userPickVals=(s.picks||[]).map(function(p){
+      p=(p||'').toLowerCase();
+      if(p==='home'||p==='1') return '1';
+      if(p==='draw'||p==='x') return 'X';
+      if(p==='away'||p==='2') return '2';
+      return '';
+    });
+    var isWin=hasResult&&!isVoid&&userPickVals.indexOf(resVal)!==-1;
+    if(isVoid) totalVoid++;
+    if(isWin)  totalCorrect++;
+    var score='';
+    if(matchResult&&matchResult.scoreHome!==undefined&&matchResult.scoreAway!==undefined&&!isVoid){
+      score=' <span style="font-size:10px;color:var(--text3)">('+matchResult.scoreHome+'-'+matchResult.scoreAway+')</span>';
+    }
+    var indicator=!hasResult
+      ?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right;">—</span>'
+      :isVoid
+        ?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right;">void</span>'
+        :isWin
+          ?'<span style="color:var(--green);font-size:13px;font-weight:800;min-width:40px;text-align:right;">✅ Won</span>'
+          :'<span style="color:var(--red);font-size:13px;font-weight:700;min-width:40px;text-align:right;">❌ Lost</span>';
+
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">'
+      +'<span style="color:var(--text3);width:24px;font-size:11px;font-weight:700;flex-shrink:0;">'+s.matchIndex+'</span>'
+      +'<span style="flex:1;font-size:12px;color:var(--text2);">'+esc(s.home||'—')+' v '+esc(s.away||'—')+score+'</span>'
+      +'<span style="color:var(--green);font-weight:700;font-size:13px;min-width:28px;text-align:center;">'+esc(pick)+'</span>'
+      +indicator
+      +'</div>';
+  }).join('');
+
+  var statusColor=!roundResults?'var(--text3)':totalCorrect===14?'var(--green)':totalCorrect>=13?'var(--blue)':totalCorrect>=12?'var(--yellow)':'var(--red)';
+  var statusLabel=!roundResults?'— Awaiting results':(totalCorrect+' correct'+(totalVoid?' ('+totalVoid+' void)':''));
+
+  resultDiv.innerHTML=
+    '<div style="background:var(--card);border:2px solid var(--green);border-radius:14px;padding:18px;">'
+
+      /* Header */
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">'
+        +'<div>'
+          +'<div style="font-size:14px;font-weight:800;color:var(--gold);">🎫 Ticket Found</div>'
+          +'<div style="font-family:monospace;font-size:12px;color:var(--green);margin-top:4px;">ID: '+esc(ticket.id||'—')+'</div>'
+        +'</div>'
+        +'<span style="font-size:10px;color:var(--text3);">'+fmtDate(ticket.created)+'</span>'
+      +'</div>'
+
+      /* User info */
+      +'<div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:14px;">'
+        +'<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Account Info</div>'
+        +'<div style="font-size:14px;font-weight:700;color:var(--green);">'+esc(u.name||ticket.user)+'</div>'
+        +'<div style="font-size:12px;color:var(--text2);margin-top:2px;">Phone: '+esc(ticket.user)+'</div>'
+        +'<div style="font-size:12px;color:var(--text2);">Email: '+esc(u.email||'—')+'</div>'
+        +'<div style="font-size:12px;color:var(--gold);margin-top:4px;">Balance: ₦'+Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2})+'</div>'
+      +'</div>'
+
+      /* Bet info */
+      +'<div style="display:flex;gap:6px;margin-bottom:10px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding-bottom:6px;border-bottom:1px solid var(--border);">'
+        +'<span style="width:24px;">#</span>'
+        +'<span style="flex:1;">Match</span>'
+        +'<span style="min-width:28px;text-align:center;">Pick</span>'
+        +'<span style="min-width:40px;text-align:right;">Result</span>'
+      +'</div>'
+      +matchRows
+
+      /* Overall result */
+      +'<div style="margin-top:12px;padding:10px 12px;background:var(--bg3);border-radius:9px;display:flex;justify-content:space-between;align-items:center;">'
+        +'<span style="font-size:12px;color:var(--text3);">Overall</span>'
+        +'<span style="font-size:14px;font-weight:800;color:'+statusColor+';">'+statusLabel+'</span>'
+      +'</div>'
+
+      /* Stake footer */
+      +'<div style="margin-top:10px;font-size:13px;color:var(--text2);padding-top:10px;border-top:1px solid var(--border);">'
+        +'Combinations: <strong style="color:var(--gold);">'+ticket.combination+'</strong>'
+        +' &nbsp;|&nbsp; Stake: <strong style="color:var(--gold);">₦'+ticket.stake.toLocaleString()+'</strong>'
+      +'</div>'
+
+    +'</div>';
+
+  addLog('Bet ID searched: '+input,'admin');
+}
 function loadBroadcast(){
-  var msg=getBroadcast();
-  if(msg) document.getElementById('bc-msg').value=msg;
+  try{
+    var saved=JSON.parse(localStorage.getItem('grj_broadcast_obj')||'null');
+    if(saved&&saved.message) document.getElementById('bc-msg').value=saved.message;
+  }catch(e){}
 }
 function sendBroadcast(){
   var msg=document.getElementById('bc-msg').value.trim();
   if(!msg){toast('Enter a message first.','t-err');return;}
-  saveBroadcast(msg);
-  addLog('Broadcast saved','admin');
-  document.getElementById('bc-status').innerHTML='✅ Message broadcast at '+new Date().toLocaleTimeString()+' — all users will see it.';
-  setTimeout(function(){document.getElementById('bc-status').textContent='';},5000);
-  toast('📢 Broadcast saved!');
+  /* Save as object with timestamp — index.html compares timestamp to detect new ones */
+  var obj={message:msg, sentAt:Date.now(), sentAtStr:new Date().toLocaleString()};
+  localStorage.setItem('grj_broadcast_obj', JSON.stringify(obj));
+  /* Also keep legacy key for compatibility */
+  localStorage.setItem('grj_broadcast', msg);
+  addLog('Broadcast sent: '+msg.slice(0,60),'admin');
+  document.getElementById('bc-status').innerHTML=
+    '✅ Broadcast sent at '+new Date().toLocaleTimeString()+
+    ' — all users will see it as a notification banner on the game page.';
+  setTimeout(function(){document.getElementById('bc-status').textContent='';},6000);
+  toast('📢 Broadcast sent to all users!');
 }
 
 /* ════════════════════════════════════════

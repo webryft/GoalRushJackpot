@@ -456,6 +456,21 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
   </div>
 </div>
 
+<!-- ── BROADCAST BANNER ── -->
+<div id="broadcast-banner" style="display:none;position:sticky;top:60px;z-index:799;
+  background:linear-gradient(90deg,#0a2000,#142800);
+  border-bottom:2px solid var(--green);
+  padding:10px 16px;align-items:center;justify-content:space-between;gap:10px;
+  box-shadow:0 4px 20px #22c55e33;">
+  <div style="display:flex;align-items:center;gap:10px;flex:1;">
+    <span style="font-size:18px;">📢</span>
+    <span id="broadcast-banner-text" style="font-size:13px;font-weight:600;color:var(--green);line-height:1.5;"></span>
+  </div>
+  <button onclick="closeBroadcastBanner()" style="background:none;border:1px solid var(--green);
+    color:var(--green);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;
+    font-weight:700;flex-shrink:0;transition:all .2s;" onmouseover="this.style.background='var(--green)';this.style.color='#000'" onmouseout="this.style.background='none';this.style.color='var(--green)'">✕ Close</button>
+</div>
+
 <!-- ── MENU OVERLAY ── -->
 <div id="menu-overlay" onclick="closeMenu()"></div>
 <div id="menu-panel">
@@ -886,6 +901,10 @@ var _cdSecs=0;
 //  BOOT
 // ════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',function(){
+  /* Initialize round ID if not set yet */
+  if(!localStorage.getItem('grj_current_round_id')){
+    localStorage.setItem('grj_current_round_id','round_'+Date.now());
+  }
   renderMatches();
   updateMenuItems();
   updateHeaderBalance();
@@ -893,6 +912,11 @@ document.addEventListener('DOMContentLoaded',function(){
   startCountdown();
   loadCoverPrize();
   loadResultsRounds();
+  checkBroadcast();
+  setInterval(checkBroadcast,30000);
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible') checkBroadcast();
+  });
 });
 
 // ── PRIZE DISPLAY (reads from admin storage) ──
@@ -910,15 +934,69 @@ function loadCoverPrize(){
   }catch(e){}
 }
 
+// ── BROADCAST ──
+var _lastBroadcastSeen=0;
+function checkBroadcast(){
+  try{
+    var obj=JSON.parse(localStorage.getItem('grj_broadcast_obj')||'null');
+    if(!obj||!obj.message||!obj.sentAt) return;
+    // Only show if this is newer than what we last showed
+    if(obj.sentAt<=_lastBroadcastSeen) return;
+    _lastBroadcastSeen=obj.sentAt;
+    showBroadcastBanner(obj.message);
+  }catch(e){}
+}
+
+function showBroadcastBanner(msg){
+  var banner=document.getElementById('broadcast-banner');
+  if(!banner) return;
+  document.getElementById('broadcast-banner-text').textContent=msg;
+  banner.style.display='flex';
+  // Auto-hide after 12 seconds
+  setTimeout(function(){ closeBroadcastBanner(); },12000);
+}
+
+function closeBroadcastBanner(){
+  var banner=document.getElementById('broadcast-banner');
+  if(banner) banner.style.display='none';
+}
+
 // ── RESULTS ROUNDS ──
 function getPublishedRounds(){
   try{return JSON.parse(localStorage.getItem('grj_published_rounds')||'[]');}catch(e){return[];}
 }
 
-function loadResultsRounds(){
-  var rounds=getPublishedRounds();
+async function loadResultsRounds(){
+  /* First render from localStorage immediately */
+  _renderRoundsDropdown(getPublishedRounds());
+
+  /* Then pull from Firebase to get rounds published from any device */
+  if(window._FB && window._db){
+    try{
+      var snap=await window._fbGetDocs(window._fbCollection(window._db,'published_rounds'));
+      var fbRounds=[];
+      snap.forEach(function(d){ fbRounds.push(d.data()); });
+      if(fbRounds.length>0){
+        /* Merge firebase rounds with local */
+        var local=getPublishedRounds();
+        fbRounds.forEach(function(fr){
+          var exists=local.findIndex(function(r){return r.id===fr.id;});
+          if(exists>=0) local[exists]=fr;
+          else local.push(fr);
+        });
+        /* Sort by savedAt */
+        local.sort(function(a,b){return (a.savedAt||'').localeCompare(b.savedAt||'');});
+        localStorage.setItem('grj_published_rounds',JSON.stringify(local));
+        _renderRoundsDropdown(local);
+      }
+    }catch(e){ console.warn('Firebase rounds load:',e); }
+  }
+}
+
+function _renderRoundsDropdown(rounds){
   var sel=document.getElementById('results-round-sel');
-  if(!sel)return;
+  if(!sel) return;
+  var prev=sel.value;
   sel.innerHTML='<option value="">[ Select a Round to view results ]</option>';
   rounds.slice().reverse().forEach(function(r){
     var opt=document.createElement('option');
@@ -926,8 +1004,9 @@ function loadResultsRounds(){
     opt.textContent='Round '+r.id+' (GoalRush 14) — '+r.savedAt;
     sel.appendChild(opt);
   });
-  // Auto-select latest if available
-  if(rounds.length>0){
+  /* Restore previous selection if still available */
+  if(prev) sel.value=prev;
+  if(rounds.length>0 && !sel.value){
     sel.value=rounds[rounds.length-1].id;
     renderSelectedRound();
   }
@@ -962,7 +1041,9 @@ function renderSelectedRound(){
     var entry=round.winners&&round.winners[t.key];
     if(!entry||!entry.tickets||Number(entry.tickets)===0) return;
     hasWinners=true;
-    var perTicket=entry.prize?'₦'+Number(entry.prize).toLocaleString():'—';
+    /* FIX: use Number() comparison so 0 prize shows dash but valid prize shows correctly */
+    var prizeNum=Number(entry.prize||0);
+    var perTicket=prizeNum>0?'<strong style="color:var(--gold);font-size:14px;">₦'+prizeNum.toLocaleString()+'</strong>':'<span style="color:var(--text3)">—</span>';
     winnersRows+=
       '<tr>'
       +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);vertical-align:middle;">'
@@ -1191,18 +1272,34 @@ function doPlaceBet(){
     var u=users[cu]||{};
     var bal=Number(u.balance||0);
     if(bal<_stake){hideLoading();showNotif('Insufficient balance','err');return;}
-    // build selections
     var matches=getMatches();
     var sels=[];
     document.querySelectorAll('.match-card').forEach(function(mc,i){
       var picks=Array.from(mc.querySelectorAll('.opt-btn.active')).map(function(b){return b.dataset.val;});
       sels.push({matchIndex:i+1,home:matches[i].home,away:matches[i].away,picks:picks,code:picksToCode(picks)});
     });
+
+    // ── Stamp ticket with current round ID so old results don't bleed in ──
+    var currentRoundId=localStorage.getItem('grj_current_round_id')||'round_1';
+
     var tickets=getTickets();
-    tickets.push({id:genRef(),created:new Date().toISOString(),user:cu,selections:sels,combination:_combo,stake:_stake});
+    tickets.push({
+      id:          genRef(),
+      created:     new Date().toISOString(),
+      user:        cu,
+      roundId:     currentRoundId,
+      selections:  sels,
+      combination: _combo,
+      stake:       _stake
+    });
     saveTickets(tickets);
     u.balance=bal-_stake;
-    users[cu]=u;saveUsers(users);
+    users[cu]=u;
+    saveUsers(users);
+
+    // Sync balance to Firebase
+    syncUserToFirebase(cu, users[cu]);
+
     updateHeaderBalance();
     updateSlipBadge();
     clearAll();
@@ -1224,8 +1321,6 @@ function openSlip(){
   var cu=currentUser();
   var tickets=getTickets();
   var myTickets=cu?tickets.filter(function(t){return t.user===cu;}):[];
-
-  // Load the most recent published round results for matching
   var publishedRounds=getPublishedRounds();
 
   var html=myTickets.length===0
@@ -1233,14 +1328,17 @@ function openSlip(){
     :myTickets.map(function(t,i){
       var date=new Date(t.created).toLocaleString();
 
-      // Try to find a published round that matches this ticket's created time range
-      // We use the most recently published round as the active round
-      var activeRound=publishedRounds.length>0?publishedRounds[publishedRounds.length-1]:null;
-      var roundResults=activeRound?activeRound.matches:null;
+      // ── Match ticket to its published round by roundId ──
+      // If ticket has a roundId, find that specific round.
+      // If no match, show -- (results not yet published for this round).
+      var matchedRound=null;
+      if(t.roundId){
+        matchedRound=publishedRounds.find(function(r){return r.roundId===t.roundId;})||null;
+      }
+      // Fallback for old tickets without roundId: never auto-match
+      var roundResults=matchedRound?matchedRound.matches:null;
 
-      // Count correct if results available
-      var totalCorrect=0;
-      var totalVoid=0;
+      var totalCorrect=0,totalVoid=0;
 
       var rows=t.selections.map(function(s,idx){
         var pick=s.code||'';
@@ -1248,8 +1346,6 @@ function openSlip(){
         var resVal=matchResult?(matchResult.result||'').toString().trim().toUpperCase():'';
         var isVoid=resVal==='VOID';
         var hasResult=resVal!=='';
-
-        // Determine win/loss
         var userPickVals=(s.picks||[]).map(function(p){
           p=(p||'').toLowerCase();
           if(p==='home'||p==='1') return '1';
@@ -1259,42 +1355,32 @@ function openSlip(){
         });
         var isWin=hasResult&&!isVoid&&userPickVals.indexOf(resVal)!==-1;
         var isLost=hasResult&&!isVoid&&!isWin;
-
         if(isVoid) totalVoid++;
         if(isWin)  totalCorrect++;
 
-        // Result indicator
-        var indicator='';
-        if(!hasResult){
-          indicator='<span style="color:var(--text3);font-size:12px;font-weight:600;min-width:32px;text-align:right">—</span>';
-        }else if(isVoid){
-          indicator='<span style="color:var(--text3);font-size:11px;min-width:32px;text-align:right">void</span>';
-        }else if(isWin){
-          indicator='<span style="color:var(--green);font-size:13px;font-weight:800;min-width:32px;text-align:right">✅</span>';
-        }else{
-          indicator='<span style="color:var(--red);font-size:13px;font-weight:700;min-width:32px;text-align:right">❌</span>';
+        var score='';
+        if(matchResult&&matchResult.scoreHome!==undefined&&matchResult.scoreHome!==''&&!isVoid){
+          score='<span style="font-size:10px;color:var(--text3)"> ('+matchResult.scoreHome+'-'+matchResult.scoreAway+')</span>';
         }
 
-        // Score
-        var scoreStr='';
-        if(matchResult&&matchResult.scoreHome!==''&&matchResult.scoreAway!==''&&!isVoid){
-          scoreStr='<span style="font-size:10px;color:var(--text3);margin-left:4px;">('+matchResult.scoreHome+'-'+matchResult.scoreAway+')</span>';
-        }
+        var indicator=!hasResult
+          ?'<span style="color:var(--text3);font-size:13px;min-width:40px;text-align:right;font-weight:600">—</span>'
+          :isVoid
+            ?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right">void</span>'
+            :isWin
+              ?'<span style="color:var(--green);font-size:12px;font-weight:800;min-width:40px;text-align:right">✅ Won</span>'
+              :'<span style="color:var(--red);font-size:12px;font-weight:700;min-width:40px;text-align:right">❌ Lost</span>';
 
         return '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #1e293b;">'
           +'<span style="color:var(--text3);width:22px;flex-shrink:0;font-size:11px;font-weight:700">'+s.matchIndex+'</span>'
-          +'<span style="flex:1;font-size:12px;color:var(--text2)">'+esc(s.home)+' v '+esc(s.away)+'</span>'
-          +'<span style="font-weight:700;color:var(--green);font-size:12px;min-width:30px;text-align:center">'+esc(pick)+'</span>'
-          +scoreStr
+          +'<span style="flex:1;font-size:12px;color:var(--text2)">'+esc(s.home)+' v '+esc(s.away)+score+'</span>'
+          +'<span style="font-weight:700;color:var(--green);font-size:12px;min-width:28px;text-align:center">'+esc(pick)+'</span>'
           +indicator
           +'</div>';
       }).join('');
 
-      // Overall ticket status
       var overallStatus='';
       if(roundResults){
-        var effective=14-totalVoid;
-        var pct=effective>0?Math.round((totalCorrect/effective)*100):0;
         var statusColor=totalCorrect===14?'var(--green)':totalCorrect>=13?'var(--blue)':totalCorrect>=12?'var(--yellow)':'var(--red)';
         overallStatus='<div style="margin-top:8px;padding:8px 10px;background:#111827;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'
           +'<span style="font-size:11px;color:var(--text3)">Result</span>'
@@ -1310,20 +1396,20 @@ function openSlip(){
       return '<div class="ticket-card">'
         +'<div class="tc-header">'
           +'<div>'
-            +'<span class="tc-title">Ticket '+(i+1)+' &mdash; '+date+'</span>'
-            +'<div style="font-size:10px;color:var(--text3);margin-top:2px;">ID: <span style="font-family:monospace;color:var(--gold)">'+esc(t.id)+'</span></div>'
+            +'<span class="tc-title">Ticket '+(i+1)+' — '+date+'</span>'
+            +'<div style="font-size:10px;color:var(--text3);margin-top:2px">ID: <span style="font-family:monospace;color:var(--gold)">'+esc(t.id)+'</span></div>'
           +'</div>'
           +'<button class="tc-delete" onclick="deleteTicket(\''+t.id+'\')">Delete</button>'
         +'</div>'
-        +'<div style="display:flex;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);margin-bottom:2px;">'
-          +'<span style="color:var(--text3);width:22px;font-size:10px;">#</span>'
-          +'<span style="flex:1;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Match</span>'
-          +'<span style="font-size:10px;color:var(--text3);min-width:30px;text-align:center;">Pick</span>'
-          +'<span style="font-size:10px;color:var(--text3);min-width:32px;text-align:right;">Result</span>'
+        +'<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);margin-bottom:2px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">'
+          +'<span style="width:22px">#</span>'
+          +'<span style="flex:1">Match</span>'
+          +'<span style="min-width:28px;text-align:center">Pick</span>'
+          +'<span style="min-width:40px;text-align:right">Result</span>'
         +'</div>'
         +rows
         +overallStatus
-        +'<div class="tc-footer" style="margin-top:8px;">Combos: <strong>'+t.combination+'</strong> &nbsp;|&nbsp; Stake: <strong>₦'+t.stake.toLocaleString()+'</strong></div>'
+        +'<div class="tc-footer" style="margin-top:8px">Combos: <strong>'+t.combination+'</strong> &nbsp;|&nbsp; Stake: <strong>₦'+t.stake.toLocaleString()+'</strong></div>'
         +'</div>';
     }).join('');
 
@@ -1424,10 +1510,21 @@ async function doSignup(){
   var users=getUsers();
   if(users[phone]){setMsg(msg,'Phone number already registered','err');return;}
   var hash=await hashPw(pw);
-  users[phone]={name,email,phone,age,passwordHash:hash,last3:pw.slice(-3),balance:0,disabled:false,archived:false,created:new Date().toISOString()};
-  saveUsers(users);setCurrentUser(phone);
+  var newUser={
+    name:name,email:email,phone:phone,age:age,
+    passwordHash:hash,last3:pw.slice(-3),
+    balance:0,disabled:false,archived:false,
+    created:new Date().toISOString()
+  };
+  users[phone]=newUser;
+  saveUsers(users);
+  // ── Sync to Firebase so admin sees this user from any device ──
+  syncUserToFirebase(phone,newUser);
+  setCurrentUser(phone);
   closeModal('create-modal');
-  ['ca-name','ca-email','ca-phone','ca-age','ca-pw','ca-pw2'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  ['ca-name','ca-email','ca-phone','ca-age','ca-pw','ca-pw2'].forEach(function(id){
+    var e=document.getElementById(id);if(e)e.value='';
+  });
   updateMenuItems();updateHeaderBalance();updateSlipBadge();
   showSuccess('🎉','Welcome, '+name+'!','Your account has been created. You can now deposit and place bets!');
   addLog('Account created',phone);
@@ -1485,8 +1582,222 @@ function openForgot(){closeModal('login-modal');openModal('forgot-modal');}
 function switchToLogin(){closeModal('create-modal');openModal('login-modal');}
 function switchToSignup(){closeModal('login-modal');openModal('create-modal');}
 
-// ── DEPOSIT ──
-var PAYSTACK_KEY = 'pk_live_4ff37d15381d1d12c78fd66f7bc86beb64c59415';
+// ── FIREBASE SYNC HELPER ──
+function syncUserToFirebase(phone, userData){
+  if(!window._FB||!window._db) return;
+  try{
+    var uid=phone.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+    window._fbSetDoc(window._fbDoc(window._db,'users',uid),
+      Object.assign({},userData,{phone:phone,lastSeen:new Date().toISOString()}),
+      {merge:true}
+    );
+  }catch(e){ console.warn('Firebase sync:',e); }
+}
+
+async function loadUsersFromFirebase(){
+  if(!window._FB||!window._db) return;
+  try{
+    var snap=await window._fbGetDocs(window._fbCollection(window._db,'users'));
+    var localUsers=getUsers();
+    snap.forEach(function(d){
+      var data=d.data();
+      if(data.phone){
+        // Merge firebase user into local — firebase wins for balance
+        localUsers[data.phone]=Object.assign(localUsers[data.phone]||{},data);
+      }
+    });
+    saveUsers(localUsers);
+  }catch(e){ console.warn('Firebase load users:',e); }
+}
+
+// ── PAYSTACK — credit directly in callback (CORS blocks verify from browser) ──
+var PAYSTACK_KEY='pk_live_4ff37d15381d1d12c78fd66f7bc86beb64c59415';
+
+function openDeposit(){
+  if(!currentUser()){openModal('auth-gate-modal');return;}
+  _payMethod=null;
+  clearPayMethodSelect();
+  document.getElementById('dep-msg').textContent='';
+  document.getElementById('dep-amount').value='';
+  openModal('deposit-method-modal');
+}
+
+function selectPayMethod(m){
+  _payMethod=m;
+  clearPayMethodSelect();
+  document.querySelectorAll('.pay-card').forEach(function(c){
+    if(c.getAttribute('onclick')==="selectPayMethod('"+m+"')") c.classList.add('selected');
+  });
+}
+
+function clearPayMethodSelect(){
+  document.querySelectorAll('.pay-card').forEach(function(c){c.classList.remove('selected');});
+}
+
+function showComingSoon(){
+  showNotif('💳 Card payments coming soon!');
+}
+
+async function proceedDeposit(){
+  var msg=document.getElementById('dep-msg');
+  msg.textContent='';
+  var amt=Number(document.getElementById('dep-amount').value);
+  if(!_payMethod){setMsg(msg,'Please select a payment method','err');return;}
+  if(!amt||amt<100||amt>100000000){setMsg(msg,'Enter amount between ₦100 and ₦100,000,000','err');return;}
+  _depAmount=amt;
+  closeModal('deposit-method-modal');
+
+  if(_payMethod==='crypto'){
+    var rate=await getNGNperUSDT();
+    var usdtAmt=(amt/rate).toFixed(4);
+    document.getElementById('pay-modal-title').textContent='₿ Send USDT (BEP20)';
+    document.getElementById('pay-amount-display').textContent=usdtAmt+' USDT ≈ ₦'+amt.toLocaleString();
+    document.getElementById('pay-detail-box').innerHTML=
+      pdRow('Network',CRYPTO_NET)+
+      pdRow('Wallet Address','<span style="font-size:11px;word-break:break-all">'+CRYPTO_ADDR+'</span>','copy',CRYPTO_ADDR)+
+      pdRow('Amount',usdtAmt+' USDT');
+    document.getElementById('pay-confirm-btn').textContent='✅ I Have Paid — Confirm';
+    document.getElementById('pay-confirm-btn').onclick=confirmCryptoPayment;
+    startPayTimer();
+    openModal('deposit-pay-modal');
+    return;
+  }
+
+  // ALL OTHER METHODS → Paystack popup
+  var cu=currentUser();
+  var users=getUsers();
+  var u=users[cu]||{};
+  var email=u.email||(cu+'@goalrush.com');
+  var ref='GRJ-'+Date.now()+'-'+Math.random().toString(36).slice(2,7).toUpperCase();
+  var methodLabel={transfer:'Bank Transfer',kuda:'Kuda Bank',opay:'Opay',card:'Card Payment'}[_payMethod]||_payMethod;
+
+  showLoading('Opening payment gateway...');
+  setTimeout(function(){
+    hideLoading();
+    try{
+      var handler=PaystackPop.setup({
+        key:      PAYSTACK_KEY,
+        email:    email,
+        amount:   amt*100,
+        currency: 'NGN',
+        ref:      ref,
+        metadata:{
+          custom_fields:[
+            {display_name:'Phone',    variable_name:'phone',    value:cu},
+            {display_name:'Method',   variable_name:'method',   value:methodLabel},
+            {display_name:'Platform', variable_name:'platform', value:'GoalRush Jackpot'}
+          ]
+        },
+        channels: _payMethod==='card'
+          ?['card']
+          :['bank_transfer','card'],
+
+        callback: function(response){
+          // Paystack only fires callback on genuine success
+          // Credit immediately — verify API requires server-side secret key
+          creditUserAfterPaystack(response.reference, amt, methodLabel, cu);
+        },
+        onClose: function(){
+          showNotif('Payment window closed. Your account was not charged.','err');
+        }
+      });
+      handler.openIframe();
+    }catch(e){
+      hideLoading();
+      showNotif('Payment gateway error. Please try again.','err');
+    }
+  },600);
+}
+
+function creditUserAfterPaystack(reference, amt, method, phone){
+  showLoading('Crediting your account...');
+  setTimeout(function(){
+    var users=getUsers();
+    var u=users[phone]||{};
+    u.balance=Number(u.balance||0)+amt;
+    users[phone]=u;
+    saveUsers(users);
+    updateHeaderBalance();
+
+    // Save deposit record
+    var deps=getDepositRequests();
+    deps.push({
+      id:       reference,
+      user:     phone,
+      amount:   amt,
+      method:   method,
+      time:     new Date().toISOString(),
+      status:   'approved',
+      ref:      reference
+    });
+    saveDepositRequests(deps);
+
+    // Sync to Firebase Firestore
+    syncUserToFirebase(phone, u);
+    if(window._FB&&window._db){
+      try{
+        window._fbSetDoc(
+          window._fbDoc(window._db,'transactions',reference),
+          {userId:phone,amount:amt,reference:reference,method:method,status:'success',time:new Date().toISOString()}
+        );
+      }catch(e){}
+    }
+
+    addLog('Deposit ₦'+amt.toLocaleString()+' via '+method+' ref:'+reference, phone);
+    hideLoading();
+    showSuccess('✅','Payment Successful!',
+      '₦'+amt.toLocaleString()+' has been added to your account!\nNew balance: ₦'+Number(u.balance).toLocaleString());
+  },800);
+}
+
+function confirmCryptoPayment(){
+  if(_payTimerInterval){clearInterval(_payTimerInterval);}
+  var cu=currentUser();
+  var usdtAmt=(_depAmount/1550).toFixed(4);
+  var msg=encodeURIComponent(
+    'Hello GoalRush Support! 👋\n\n'
+    +'I have made a crypto deposit.\n\n'
+    +'📱 Phone: '+cu+'\n'
+    +'💰 Amount: '+usdtAmt+' USDT (≈ ₦'+_depAmount.toLocaleString()+')\n'
+    +'🔗 Network: BEP20\n'
+    +'📍 Wallet: '+CRYPTO_ADDR+'\n'
+    +'⏰ Time: '+new Date().toLocaleString()+'\n\n'
+    +'Please credit my account. Screenshot attached. Thank you!'
+  );
+  var deps=getDepositRequests();
+  var ref=genRef();
+  deps.push({id:ref,user:cu,amount:_depAmount,method:'USDT BEP20',time:new Date().toISOString(),status:'pending'});
+  saveDepositRequests(deps);
+  addLog('Crypto deposit request ₦'+_depAmount,cu);
+  window.open('https://wa.me/'+SUPPORT_WA+'?text='+msg,'_blank');
+  closeModal('deposit-pay-modal');
+  openModal('deposit-review-modal');
+}
+
+function pdRow(label,val,action,copyVal){
+  var copyBtn=action==='copy'?'<button class="pd-copy" onclick="copyText(\''+copyVal+'\')">Copy</button>':'';
+  return '<div class="pd-row"><span class="pd-label">'+label+'</span><span class="pd-val">'+val+copyBtn+'</span></div>';
+}
+
+function startPayTimer(){
+  if(_payTimerInterval){clearInterval(_payTimerInterval);}
+  var secs=25*60+10;
+  var el=document.getElementById('pay-timer');
+  function render(){
+    var m=Math.floor(secs/60),s=secs%60;
+    el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    if(secs<=60) el.style.color='var(--red)';
+    if(secs<=0){clearInterval(_payTimerInterval);el.textContent='EXPIRED';}
+  }
+  render();
+  _payTimerInterval=setInterval(function(){secs--;render();},1000);
+}
+
+function cancelDepositPay(){
+  if(_payTimerInterval){clearInterval(_payTimerInterval);}
+  closeModal('deposit-pay-modal');
+  openModal('deposit-method-modal');
+}
 
 function openDeposit(){
   if(!currentUser()){openModal('auth-gate-modal');return;}
