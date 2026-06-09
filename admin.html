@@ -927,23 +927,24 @@ tbody tr:hover td{background:#0a1a0a40;}
 // ════════════════════════════════════════════════════════
 //  🔥 FIREBASE FIRESTORE — Admin reads users from Firestore
 // ════════════════════════════════════════════════════════
-(async function(){
+
+// ── 🔧 SAME CONFIG AS index.html ──
+var _FIREBASE_CONFIG = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+
+window._fbReady = (async function(){
   try{
     const { initializeApp }  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
     const { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs, serverTimestamp }
                              = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
-    // ── 🔧 SAME CONFIG AS index.html ──
-    const firebaseConfig = {
-      apiKey:            "YOUR_API_KEY",
-      authDomain:        "YOUR_PROJECT.firebaseapp.com",
-      projectId:         "YOUR_PROJECT_ID",
-      storageBucket:     "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId:             "YOUR_APP_ID"
-    };
-
-    const app = initializeApp(firebaseConfig);
+    const app = initializeApp(_FIREBASE_CONFIG);
     const db  = getFirestore(app);
 
     window._FB          = true;
@@ -957,9 +958,11 @@ tbody tr:hover td{background:#0a1a0a40;}
     window._fbServerTS  = serverTimestamp;
 
     console.log('✅ Admin Firebase Firestore ready');
+    return true;
   }catch(e){
     console.warn('Admin Firebase init failed:',e);
     window._FB = false;
+    return false;
   }
 })();
 // ════════════════════════════════════════════════════════
@@ -1117,20 +1120,18 @@ function updateStats(){
    USERS
 ════════════════════════════════════════ */
 async function loadUsers(){
-  // Show local data immediately
   var localUsers=getUsers();
   _allUsers=Object.values(localUsers).filter(function(u){return !u.archived;});
   renderUsersTable(_allUsers);
   updateStats();
 
-  // Pull from Firestore (primary source — all Firebase Auth users land here)
-  if(window._FB && window._db){
+  var fbOk = await window._fbReady;
+  if(fbOk && window._db){
     try{
       var snap = await window._fbGetDocs(window._fbCollection(window._db,'users'));
       snap.forEach(function(d){
         var data = d.data();
-        var key  = data.phone || d.id;   // prefer phone as local key
-        // Normalise field names: fullName → name
+        var key  = data.phone || d.id;
         if(data.fullName && !data.name) data.name = data.fullName;
         localUsers[key] = Object.assign(localUsers[key]||{}, data, {uid: d.id});
       });
@@ -1224,11 +1225,11 @@ function confirmFund(){
     u.balance=Number(u.balance||0)+amt;
     users[_pendingUser]=u; saveUsers(users);
     addLog('Funded ₦'+amt.toLocaleString(),_pendingUser);
-    // Sync to Firestore
-    if(window._FB&&window._db&&u.uid){
+    var fbOk = await window._fbReady;
+    if(fbOk && window._db && u.uid){
       try{
         await window._fbSetDoc(window._fbDoc(window._db,'users',u.uid),
-          {balance:u.balance,lastFundedAt:new Date().toISOString()},{merge:true});
+          {balance:u.balance, lastFundedAt:new Date().toISOString()},{merge:true});
       }catch(e){ console.warn('Fund sync:',e); }
     }
     loadUsers(); updateStats(); hideLoad(); closeMo('mo-fund');
@@ -1330,14 +1331,14 @@ function restoreUser(phone){
 }
 
 /* ── VIEW USER TICKETS + RECEIPT ── */
-function viewUserBets(phone){
+function viewUserBets(userKey){
   var users=getUsers();
-  var u=users[phone]||{};
-  var tickets=getTickets().filter(function(t){return t.user===phone;});
-  var results=getResults();
-  setText('mo-bets-title','🎫 Tickets — '+esc(u.name||phone));
+  var u=users[userKey]||{};
+  var tickets=getTickets().filter(function(t){return t.user===userKey;});
+  var publishedRounds=JSON.parse(localStorage.getItem('grj_published_rounds')||'[]');
 
-  // Show real balance first
+  setText('mo-bets-title','🎫 Tickets — '+esc(u.name||u.fullName||userKey));
+
   var balanceBox='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:14px;">'
     +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Real Account Balance</div>'
     +'<div style="font-size:20px;font-weight:900;color:var(--gold)">₦'+Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2})+'</div>'
@@ -1349,50 +1350,86 @@ function viewUserBets(phone){
     openMo('mo-bets');return;
   }
 
+  // Helper: find the published round that matches a ticket (by roundId or team names)
+  function findRoundForTicket(t){
+    if(t.roundId){
+      var r = publishedRounds.find(function(r){ return r.roundId===t.roundId||r.id===t.roundId; });
+      if(r) return r;
+    }
+    if(!t.selections||t.selections.length<3) return null;
+    return publishedRounds.find(function(r){
+      var rm=r.matches||[];
+      if(rm.length<3) return false;
+      var hits=0;
+      for(var x=0;x<Math.min(4,t.selections.length,rm.length);x++){
+        var s=t.selections[x], m=rm[x];
+        if(!s||!m) continue;
+        if((s.home||'').toLowerCase().trim()===(m.home||'').toLowerCase().trim()
+        && (s.away||'').toLowerCase().trim()===(m.away||'').toLowerCase().trim()) hits++;
+      }
+      return hits>=3;
+    })||null;
+  }
+
   var html=balanceBox+tickets.map(function(t,ti){
-    var correctCount=0;
+    var matchedRound=findRoundForTicket(t);
+    var roundResults=matchedRound?matchedRound.matches:null;
+    var roundWinners=matchedRound?(matchedRound.winners||{}): {};
+    var correctCount=0, voidCount=0;
+
     var rows=t.selections.map(function(s,i){
-      // result can be object {result:'1',...} or plain string
-      var rawRes=results?results[i]:null;
-      var resVal=rawRes?(typeof rawRes==='object'?rawRes.result:rawRes):null;
-      var isVoid=resVal&&resVal.toUpperCase()==='VOID';
-      var matchVal=resVal?resultToVal(resVal):null;
+      var matchResult=roundResults?roundResults[i]:null;
+      var resVal=matchResult?(typeof matchResult==='object'?(matchResult.result||''):matchResult):'';
+      resVal=(resVal||'').toString().toUpperCase().trim();
+      var isVoid=resVal==='VOID';
+      var hasResult=resVal!=='';
       var picks=(s.picks||[]).map(function(p){return pickToVal(p);});
-      var isMatch=!isVoid&&matchVal&&picks.indexOf(matchVal)!==-1;
+      var isMatch=hasResult&&!isVoid&&picks.indexOf(resVal)!==-1;
+      if(isVoid) voidCount++;
       if(isMatch) correctCount++;
+
       var matchIcon='';
-      if(resVal){
+      if(hasResult){
         matchIcon=isVoid
           ?'<span style="color:var(--text3);font-size:11px">void</span>'
           :isMatch
             ?'<span style="color:var(--green)">✅</span>'
             :'<span style="color:var(--red)">❌</span>';
       }
-      // score display
       var score='';
-      if(rawRes&&typeof rawRes==='object'&&rawRes.scoreHome!==''&&rawRes.scoreAway!==''){
-        score='<span style="color:var(--text2);font-size:11px">'+rawRes.scoreHome+'-'+rawRes.scoreAway+'</span> ';
+      if(matchResult&&typeof matchResult==='object'&&matchResult.scoreHome!==''&&matchResult.scoreHome!==undefined&&!isVoid){
+        score='<span style="color:var(--text2);font-size:11px">'+matchResult.scoreHome+'-'+matchResult.scoreAway+'</span> ';
       }
       return '<div class="receipt-row">'
         +'<span class="rr-num">'+s.matchIndex+'</span>'
         +'<span class="rr-teams">'+esc(s.home||'—')+' v '+esc(s.away||'—')+'</span>'
         +'<span class="rr-pick" style="color:var(--green)">'+esc(s.code||'')+'</span>'
-        +(resVal?'<span class="rr-result">'+score+esc(isVoid?'void':resVal)+'</span>':'')
+        +(hasResult?'<span class="rr-result">'+score+esc(isVoid?'void':resVal)+'</span>':'')
         +matchIcon
         +'</div>';
     }).join('');
 
-    var ticketColor=!results?'var(--text2)':
-      correctCount===14?'var(--green)':correctCount===13?'var(--blue)':
-      correctCount===12?'var(--yellow)':'var(--red)';
-    var ticketLabel=!results?'':
-      correctCount===14?'🟢 JACKPOT — 14/14':correctCount===13?'🔵 2nd Prize — 13/14':
-      correctCount===12?'🟡 3rd Prize — 12/14':'🔴 '+correctCount+'/14 Correct';
+    var ticketColor, ticketLabel;
+    if(!roundResults){
+      ticketColor='var(--text3)';
+      ticketLabel='⏳ Awaiting results';
+    } else {
+      ticketColor=correctCount===14?'var(--green)':correctCount===13?'var(--blue)':correctCount===12?'var(--yellow)':'var(--red)';
+      ticketLabel=correctCount===14?'🟢 JACKPOT — 14/14':correctCount===13?'🔵 2nd Prize — 13/14':correctCount===12?'🟡 3rd Prize — 12/14':'🔴 '+correctCount+'/14 Correct';
+      if(voidCount>0) ticketLabel+=' ('+voidCount+' void)';
+    }
+
+    // Prize per ticket
+    var prizeHtml='';
+    if(roundResults && roundWinners[String(correctCount)] && Number(roundWinners[String(correctCount)].prize||0)>0){
+      prizeHtml='<div style="margin-top:4px;font-size:12px;color:var(--gold);font-weight:700">🏆 Winning per Ticket: ₦'+Number(roundWinners[String(correctCount)].prize).toLocaleString()+'</div>';
+    }
 
     return '<div class="ticket-summary-box">'
       +'<div class="ts-ref">Ticket '+(ti+1)+' · Ref: '+esc(t.id||'—')+' · '+fmtDate(t.created)+'</div>'
       +'<div class="ts-stake">Combos: '+t.combination+' · Stake: ₦'+t.stake.toLocaleString()+'</div>'
-      +(results?'<div class="ts-correct" style="color:'+ticketColor+'">'+ticketLabel+'</div>':'')
+      +'<div class="ts-correct" style="color:'+ticketColor+'">'+ticketLabel+'</div>'
+      +prizeHtml
       +'<div style="margin-top:10px">'+rows+'</div>'
       +'</div>';
   }).join('');
@@ -1734,7 +1771,7 @@ function winnerCard(t,cls){
 }
 
 /* ── PUBLISH RESULTS TO USERS ── */
-function publishResults(){
+async function publishResults(){
   var roundId=document.getElementById('pub-round-id').value.trim();
   if(!roundId){ toast('Enter a Round label e.g. 20260024','t-err'); return; }
 
@@ -1769,14 +1806,13 @@ function publishResults(){
   var savedAt=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
     +' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 
-  /* ── KEY FIX: include roundId field so index can match tickets ── */
   var round={
-    id:       roundId,
-    roundId:  roundId,   // tickets store this to match against
-    savedAt:  savedAt,
-    winners:  winners,
-    matches:  matchList,
-    results:  results
+    id:      roundId,
+    roundId: roundId,
+    savedAt: savedAt,
+    winners: winners,
+    matches: matchList,
+    results: results
   };
 
   var rounds=JSON.parse(localStorage.getItem('grj_published_rounds')||'[]');
@@ -1785,21 +1821,24 @@ function publishResults(){
   else rounds.push(round);
   localStorage.setItem('grj_published_rounds',JSON.stringify(rounds));
 
-  /* ── Sync to Firebase so users on ALL devices see results ── */
-  if(window._FB && window._db){
+  // Sync to Firebase so users on ALL devices see results
+  var fbOk = await window._fbReady;
+  if(fbOk && window._db){
     try{
-      window._fbSetDoc(
-        window._fbDoc(window._db,'published_rounds',roundId),
-        round
-      );
-    }catch(e){ console.warn('Firebase publish error:',e); }
+      await window._fbSetDoc(window._fbDoc(window._db,'published_rounds',roundId), round);
+      toast('📢 Results published to users + Firebase!','t-gold');
+    }catch(e){
+      console.warn('Firebase publish error:',e);
+      toast('📢 Results published locally (Firebase sync failed)','t-gold');
+    }
+  } else {
+    toast('📢 Results published to users!','t-gold');
   }
 
   addLog('Results published — Round '+roundId,'admin');
   document.getElementById('publish-save-msg').innerHTML=
     '<span style="color:var(--green)">✅ Round '+esc(roundId)+' published! Users will see results in their Bets tab and Results tab immediately.</span>';
   setTimeout(function(){document.getElementById('publish-save-msg').textContent='';},6000);
-  toast('📢 Results published to users!','t-gold');
 }
 
 /* ── NEW ROUND ── */

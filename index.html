@@ -797,7 +797,19 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
 // ════════════════════════════════════════════════════════
 //  🔥 FIREBASE AUTH + FIRESTORE
 // ════════════════════════════════════════════════════════
-(async function(){
+
+// ── 🔧 PASTE YOUR FIREBASE CONFIG HERE ──
+var _FIREBASE_CONFIG = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+
+// _fbReady resolves when Firebase is fully initialized — auth functions AWAIT this
+window._fbReady = (async function(){
   try{
     const { initializeApp }              = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
     const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
@@ -806,21 +818,10 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
     const { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs, serverTimestamp }
                                          = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
-    // ── 🔧 PASTE YOUR FIREBASE CONFIG HERE ──
-    const firebaseConfig = {
-      apiKey:            "YOUR_API_KEY",
-      authDomain:        "YOUR_PROJECT.firebaseapp.com",
-      projectId:         "YOUR_PROJECT_ID",
-      storageBucket:     "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId:             "YOUR_APP_ID"
-    };
-
-    const app  = initializeApp(firebaseConfig);
+    const app  = initializeApp(_FIREBASE_CONFIG);
     const auth = getAuth(app);
     const db   = getFirestore(app);
 
-    // Expose globals used throughout the file
     window._FB          = true;
     window._auth        = auth;
     window._db          = db;
@@ -835,39 +836,35 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
     window._fbSignIn    = signInWithEmailAndPassword;
     window._fbSignOut   = signOut;
     window._fbResetPw   = sendPasswordResetEmail;
-    window._fbOnAuth    = onAuthStateChanged;
 
-    // ── Auth state listener — keeps session valid across reloads ──
+    // ── Auth state listener — restores session on page reload ──
     onAuthStateChanged(auth, async function(fbUser){
       if(fbUser){
-        // Load Firestore profile and sync to localStorage so rest of app works
         try{
           var snap = await getDoc(doc(db,'users',fbUser.uid));
           if(snap.exists()){
             var data = snap.data();
             var users = getUsers();
             var key = data.phone || fbUser.uid;
+            data.name = data.fullName || data.name || '';
             users[key] = Object.assign(users[key]||{}, data);
             saveUsers(users);
             if(!localStorage.getItem('grj_cu')) setCurrentUser(key);
           }
         }catch(e){ console.warn('Auth state profile load:',e); }
-        updateMenuItems();
-        updateHeaderBalance();
-        updateSlipBadge();
+        updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
       } else {
-        // Firebase says no user — clear local session
         localStorage.removeItem('grj_cu');
-        updateMenuItems();
-        updateHeaderBalance();
-        updateSlipBadge();
+        updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
       }
     });
 
     console.log('✅ Firebase Auth + Firestore ready');
+    return true;
   }catch(e){
     console.warn('Firebase init failed:',e);
     window._FB = false;
+    return false;
   }
 })();
 // ════════════════════════════════════════════════════════
@@ -1366,17 +1363,44 @@ function openSlip(){
     :myTickets.map(function(t,i){
       var date=new Date(t.created).toLocaleString();
 
-      // ── Match ticket to its published round by roundId ──
-      // If ticket has a roundId, find that specific round.
-      // If no match, show -- (results not yet published for this round).
-      var matchedRound=null;
-      if(t.roundId){
-        matchedRound=publishedRounds.find(function(r){return r.roundId===t.roundId;})||null;
-      }
-      // Fallback for old tickets without roundId: never auto-match
-      var roundResults=matchedRound?matchedRound.matches:null;
+      // ── Find the round whose match lineup matches this ticket's selections ──
+      // Primary: match by roundId. Fallback: match by comparing team names.
+      var matchedRound = null;
 
-      var totalCorrect=0,totalVoid=0;
+      // 1) Try roundId match first
+      if(t.roundId){
+        matchedRound = publishedRounds.find(function(r){
+          return r.roundId===t.roundId || r.id===t.roundId;
+        }) || null;
+      }
+
+      // 2) If still null, try matching by team names (for tickets placed before roundId stamping,
+      //    or when roundId format differs). Compare first 3 matches as fingerprint.
+      if(!matchedRound && t.selections && t.selections.length >= 3){
+        matchedRound = publishedRounds.find(function(r){
+          var rMatches = r.matches || [];
+          if(rMatches.length < 3) return false;
+          // Check if at least 3 of the first 4 matches share the same home/away teams
+          var hits = 0;
+          for(var x=0; x<Math.min(4, t.selections.length, rMatches.length); x++){
+            var s = t.selections[x];
+            var m = rMatches[x];
+            if(!s||!m) continue;
+            var sh = (s.home||'').toLowerCase().trim();
+            var sa = (s.away||'').toLowerCase().trim();
+            var mh = (m.home||'').toLowerCase().trim();
+            var ma = (m.away||'').toLowerCase().trim();
+            if(sh===mh && sa===ma) hits++;
+          }
+          return hits >= 3;
+        }) || null;
+      }
+
+      var roundResults = matchedRound ? matchedRound.matches : null;
+      // Get winners info for this round to show prize
+      var roundWinners = matchedRound ? (matchedRound.winners || {}) : {};
+
+      var totalCorrect=0, totalVoid=0;
 
       var rows=t.selections.map(function(s,idx){
         var pick=s.code||'';
@@ -1392,7 +1416,6 @@ function openSlip(){
           return '';
         });
         var isWin=hasResult&&!isVoid&&userPickVals.indexOf(resVal)!==-1;
-        var isLost=hasResult&&!isVoid&&!isWin;
         if(isVoid) totalVoid++;
         if(isWin)  totalCorrect++;
 
@@ -1420,14 +1443,24 @@ function openSlip(){
       var overallStatus='';
       if(roundResults){
         var statusColor=totalCorrect===14?'var(--green)':totalCorrect>=13?'var(--blue)':totalCorrect>=12?'var(--yellow)':'var(--red)';
+        // Check if this ticket won a prize
+        var prizeEntry = roundWinners[String(totalCorrect)];
+        var prizeHtml = '';
+        if(prizeEntry && Number(prizeEntry.prize||0) > 0){
+          prizeHtml = '<div style="margin-top:6px;padding:8px 10px;background:linear-gradient(135deg,#0a2010,#071407);border:1px solid var(--green);border-radius:8px;text-align:center;">'
+            +'<span style="font-size:12px;color:var(--text2)">🏆 Winning per Ticket: </span>'
+            +'<span style="font-size:15px;font-weight:900;color:var(--gold)">₦'+Number(prizeEntry.prize).toLocaleString()+'</span>'
+            +'</div>';
+        }
         overallStatus='<div style="margin-top:8px;padding:8px 10px;background:#111827;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'
           +'<span style="font-size:11px;color:var(--text3)">Result</span>'
           +'<span style="font-size:13px;font-weight:800;color:'+statusColor+'">'+totalCorrect+' correct'+(totalVoid>0?' ('+totalVoid+' void)':'')+'</span>'
-          +'</div>';
+          +'</div>'
+          +prizeHtml;
       }else{
         overallStatus='<div style="margin-top:8px;padding:8px 10px;background:#111827;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'
           +'<span style="font-size:11px;color:var(--text3)">Result</span>'
-          +'<span style="font-size:13px;font-weight:700;color:var(--text3)">— Awaiting results</span>'
+          +'<span style="font-size:13px;font-weight:700;color:var(--text3)">⏳ Awaiting results</span>'
           +'</div>';
       }
 
@@ -1547,8 +1580,11 @@ async function doSignup(){
   if(pw.length<6){setMsg(msg,'Password must be at least 6 characters','err');return;}
   if(pw!==pw2){setMsg(msg,'❌ Passwords do not match. Please try again','err');return;}
 
-  if(!window._FB||!window._auth||!window._db){
-    setMsg(msg,'Firebase not ready. Please refresh and try again.','err');return;
+  setMsg(msg,'Connecting to server...','ok');
+  // Wait for Firebase to finish initializing (fixes "Firebase not ready" error)
+  var fbOk = await window._fbReady;
+  if(!fbOk || !window._auth || !window._db){
+    setMsg(msg,'Server connection failed. Check your internet and try again.','err');return;
   }
 
   setMsg(msg,'Creating your account...','ok');
@@ -1556,10 +1592,11 @@ async function doSignup(){
     var userCredential = await window._fbCreateUser(window._auth, email, pw);
     var uid = userCredential.user.uid;
 
-    // Save profile to Firestore (no password stored)
+    // Save profile to Firestore — NO password stored here
     var profile = {
       uid:       uid,
       fullName:  name,
+      name:      name,
       email:     email,
       phone:     phone,
       age:       age,
@@ -1575,8 +1612,7 @@ async function doSignup(){
 
     // Mirror to localStorage so rest of app works immediately
     var users=getUsers();
-    var localProfile = Object.assign({},profile,{name:name,created:new Date().toISOString(),createdAt:new Date().toISOString()});
-    users[phone] = localProfile;
+    users[phone] = Object.assign({}, profile, {createdAt: new Date().toISOString(), created: new Date().toISOString()});
     saveUsers(users);
     setCurrentUser(phone);
 
@@ -1592,6 +1628,7 @@ async function doSignup(){
     if(e.code==='auth/email-already-in-use') errMsg='This email is already registered. Please login instead.';
     else if(e.code==='auth/invalid-email')   errMsg='Invalid email address format.';
     else if(e.code==='auth/weak-password')   errMsg='Password is too weak. Use at least 6 characters.';
+    else if(e.code==='auth/network-request-failed') errMsg='Network error. Check your internet connection.';
     setMsg(msg,errMsg,'err');
   }
 }
@@ -1603,8 +1640,10 @@ async function doLogin(){
   msg.textContent='';
   if(!email||!pw){setMsg(msg,'Email and password required','err');return;}
 
-  if(!window._FB||!window._auth||!window._db){
-    setMsg(msg,'Firebase not ready. Please refresh.','err');return;
+  setMsg(msg,'Connecting...','ok');
+  var fbOk = await window._fbReady;
+  if(!fbOk || !window._auth || !window._db){
+    setMsg(msg,'Server connection failed. Check your internet and try again.','err');return;
   }
 
   setMsg(msg,'Signing in...','ok');
@@ -1612,54 +1651,52 @@ async function doLogin(){
     var userCredential = await window._fbSignIn(window._auth, email, pw);
     var uid = userCredential.user.uid;
 
-    // Load Firestore profile
     var snap = await window._fbGetDoc(window._fbDoc(window._db,'users',uid));
     if(!snap.exists()){setMsg(msg,'Account profile not found. Contact support.','err');return;}
     var data = snap.data();
 
     if(data.archived || data.status==='banned'){
       setMsg(msg,'This account has been suspended. Contact support.','err');
-      await window._fbSignOut(window._auth);
-      return;
+      await window._fbSignOut(window._auth); return;
     }
     if(data.disabled){
       setMsg(msg,'This account has been disabled. Contact support.','err');
-      await window._fbSignOut(window._auth);
-      return;
+      await window._fbSignOut(window._auth); return;
     }
 
-    // Mirror to localStorage
     var users=getUsers();
     var key = data.phone || uid;
-    users[key] = Object.assign(users[key]||{}, data, {name: data.fullName||data.name||'', created: data.createdAt||new Date().toISOString()});
+    users[key] = Object.assign(users[key]||{}, data, {
+      name: data.fullName||data.name||'',
+      created: data.createdAt||new Date().toISOString()
+    });
     saveUsers(users);
 
     document.getElementById('li-email').value='';
     document.getElementById('li-pw').value='';
     setCurrentUser(key);
     closeModal('login-modal');
-    updateMenuItems();
-    updateHeaderBalance();
-    updateSlipBadge();
-    loadResultsRounds();
+    updateMenuItems(); updateHeaderBalance(); updateSlipBadge(); loadResultsRounds();
     showNotif('Welcome back, '+(data.fullName||data.name||email)+'! ⚽');
     addLog('Login (Firebase Auth)', key);
   }catch(e){
     var errMsg = 'Login failed. Please try again.';
     if(e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential')
       errMsg='Incorrect email or password. Please try again.';
-    else if(e.code==='auth/invalid-email') errMsg='Invalid email address.';
+    else if(e.code==='auth/invalid-email')   errMsg='Invalid email address.';
     else if(e.code==='auth/too-many-requests') errMsg='Too many attempts. Please wait and try again.';
+    else if(e.code==='auth/network-request-failed') errMsg='Network error. Check your internet connection.';
     setMsg(msg,errMsg,'err');
     document.getElementById('li-pw').value='';
   }
 }
 
 async function doLogout(){
-  if(window._FB&&window._auth){
+  var fbOk = await window._fbReady;
+  if(fbOk && window._auth){
     try{ await window._fbSignOut(window._auth); }catch(e){}
   }
-  logoutUser();updateMenuItems();updateHeaderBalance();updateSlipBadge();
+  logoutUser(); updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
   showNotif('Logged out successfully.');
 }
 
@@ -1667,7 +1704,9 @@ async function doResetPw(){
   var email=gv('fp-email').trim().toLowerCase();
   var msg=document.getElementById('fp-msg');msg.textContent='';
   if(!email){setMsg(msg,'Enter your email address','err');return;}
-  if(!window._FB||!window._auth){setMsg(msg,'Firebase not ready. Please refresh.','err');return;}
+  setMsg(msg,'Connecting...','ok');
+  var fbOk = await window._fbReady;
+  if(!fbOk||!window._auth){setMsg(msg,'Server connection failed. Check your internet and try again.','err');return;}
   try{
     await window._fbResetPw(window._auth, email);
     setMsg(msg,'✅ Password reset email sent! Check your inbox.','ok');
@@ -1676,6 +1715,7 @@ async function doResetPw(){
     var errMsg='Could not send reset email. Please try again.';
     if(e.code==='auth/user-not-found') errMsg='No account found with this email.';
     else if(e.code==='auth/invalid-email') errMsg='Invalid email address.';
+    else if(e.code==='auth/network-request-failed') errMsg='Network error. Check your internet.';
     setMsg(msg,errMsg,'err');
   }
 }
@@ -1686,9 +1726,9 @@ function switchToSignup(){closeModal('login-modal');openModal('create-modal');}
 
 // ── FIREBASE SYNC HELPER (balance/profile updates after registration) ──
 async function syncUserToFirebase(phone, userData){
-  if(!window._FB||!window._db) return;
+  var fbOk = await window._fbReady;
+  if(!fbOk || !window._db) return;
   try{
-    // Find the uid for this phone number from Firestore
     var snap = await window._fbGetDocs(window._fbCollection(window._db,'users'));
     var uid = null;
     snap.forEach(function(d){ if(d.data().phone===phone) uid=d.id; });
