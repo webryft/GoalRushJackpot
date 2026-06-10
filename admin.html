@@ -923,16 +923,9 @@ tbody tr:hover td{background:#0a1a0a40;}
 <div id="toast"></div>
 
 <script>
-'use strict';
 // ════════════════════════════════════════════════════════
-//  🔥 FIREBASE FIRESTORE — Admin reads users from Firestore
+//  🔥 FIREBASE CONFIG
 // ════════════════════════════════════════════════════════
-
-// ══════════════════════════════════════════════════════════════
-//  🔧 PASTE YOUR FIREBASE CONFIG HERE (exact same as index.html)
-//  Get it from: Firebase Console → Project Settings → Your Apps
-// ══════════════════════════════════════════════════════════════
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 var _FIREBASE_CONFIG = {
   apiKey: "AIzaSyDDgcOPxwXS8P5kAvmcqaRd8nTCl2a3Q4E",
   authDomain: "goalrushjackpot.firebaseapp.com",
@@ -943,568 +936,461 @@ var _FIREBASE_CONFIG = {
   measurementId: "G-FDNDS7FDCD"
 };
 
+// ── In-memory cache ──
+var _cache = {
+  users: {},
+  tickets: [],
+  deposits: [],
+  withdrawals: [],
+  logs: [],
+  matches: null,
+  results: null,
+  prizes: null,
+  countdown: null,
+  publishedRounds: [],
+  broadcast: null,
+  currentRoundId: 'round_default',
+};
+
+// ════════════════════════════════════════════════════════
+//  FIREBASE INIT
+// ════════════════════════════════════════════════════════
 window._fbReady = (async function(){
   try{
-    const { initializeApp }  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-    const { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs, serverTimestamp, query, where }
-                             = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+    const { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs,
+            addDoc, serverTimestamp, query, where, deleteDoc, orderBy, limit }
+      = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
     const app = initializeApp(_FIREBASE_CONFIG);
     const db  = getFirestore(app);
 
-    window._FB          = true;
-    window._db          = db;
-    window._fbDoc       = doc;
-    window._fbSetDoc    = setDoc;
-    window._fbGetDoc    = getDoc;
-    window._fbUpdateDoc = updateDoc;
-    window._fbCollection= collection;
-    window._fbGetDocs   = getDocs;
-    window._fbServerTS  = serverTimestamp;
-    window._fbQuery     = query;
-    window._fbWhere     = where;
+    window._FB = true;
+    window._db = db;
+    window._F  = { doc, setDoc, getDoc, updateDoc, collection, getDocs,
+                   addDoc, serverTimestamp, query, where, deleteDoc, orderBy, limit };
 
-    console.log('✅ Admin Firebase Firestore ready');
+    console.log('✅ Admin Firebase ready');
     return true;
   }catch(e){
-    console.warn('Admin Firebase init failed:',e);
+    console.error('Admin Firebase init failed:', e);
     window._FB = false;
     return false;
   }
 })();
-// ════════════════════════════════════════════════════════
 
-/* ── DATA WRAPPERS ── */
-function getUsers(){       try{return JSON.parse(localStorage.getItem('grj_users')||'{}')}catch(e){return{}} }
-function saveUsers(u){     localStorage.setItem('grj_users',JSON.stringify(u)); }
+// ── Admin password (simple protection) ──
+var ADMIN_PASS = 'goalrush2024admin';
 
-// ── Sync a single user document to Firestore by uid ──
-async function _syncAdminUserToFirestore(userKey, updateData){
-  var fbOk = await window._fbReady;
-  if(!fbOk||!window._db) return;
-  try{
-    var users = getUsers();
-    var u = users[userKey]||{};
-    var uid = u.uid||null;
-    if(!uid){
-      // Try to find by phone in Firestore
-      if(window._fbQuery&&window._fbWhere){
-        var snap = await window._fbGetDocs(
-          window._fbQuery(window._fbCollection(window._db,'users'), window._fbWhere('phone','==',userKey))
-        );
-        if(!snap.empty){ uid = snap.docs[0].id; u.uid = uid; users[userKey]=u; saveUsers(users); }
-      }
-    }
-    if(!uid) return;
-    await window._fbSetDoc(window._fbDoc(window._db,'users',uid), updateData, {merge:true});
-  }catch(e){ console.warn('Admin user Firestore sync:',e); }
-}
-function getTickets(){     try{return JSON.parse(localStorage.getItem('grj_tickets')||'[]')}catch(e){return[]} }
-function saveTickets(t){   localStorage.setItem('grj_tickets',JSON.stringify(t)); }
-function getWithdrawals(){ try{return JSON.parse(localStorage.getItem('grj_withdrawals')||'[]')}catch(e){return[]} }
-function saveWithdrawals(w){localStorage.setItem('grj_withdrawals',JSON.stringify(w)); }
-function getDeposits(){    try{return JSON.parse(localStorage.getItem('grj_deposits')||'[]')}catch(e){return[]} }
-function saveDeposits(d){  localStorage.setItem('grj_deposits',JSON.stringify(d)); }
-function getLogs(){        try{return JSON.parse(localStorage.getItem('grj_logs')||'[]')}catch(e){return[]} }
-function saveLogs(l){      localStorage.setItem('grj_logs',JSON.stringify(l)); }
-function getResults(){     try{return JSON.parse(localStorage.getItem('grj_results')||'null')}catch(e){return null} }
-function saveResults2(r){  localStorage.setItem('grj_results',JSON.stringify(r)); }
-function getMatches(){
-  try{ var m=JSON.parse(localStorage.getItem('grj_matches')||'null'); return m||DEFAULT_MATCHES; }
-  catch(e){ return DEFAULT_MATCHES; }
-}
-function saveMatchData(m){ localStorage.setItem('grj_matches',JSON.stringify(m)); }
-function getCountdown(){   try{return JSON.parse(localStorage.getItem('grj_countdown')||'null')}catch(e){return null} }
-function saveCountdown(c){ localStorage.setItem('grj_countdown',JSON.stringify(c)); }
-function clearCountdown(){ localStorage.removeItem('grj_countdown'); }
-function getPrizes(){      try{return JSON.parse(localStorage.getItem('grj_prizes')||'null')}catch(e){return null} }
-function savePrizesData(p){localStorage.setItem('grj_prizes',JSON.stringify(p)); }
-function getBroadcast(){   return localStorage.getItem('grj_broadcast')||''; }
-function saveBroadcast(m){ localStorage.setItem('grj_broadcast',m); }
-function addLog(action,user){
-  var l=getLogs();
-  l.unshift({time:new Date().toLocaleString(),action:action,user:user});
-  if(l.length>500) l=l.slice(0,500);
-  saveLogs(l);
-}
-
-/* ── CREDENTIALS ── */
-var ADMIN_USER = 'GoalRush';
-var ADMIN_PASS = '242777Aa#';
-var SUPPORT_WA = '17404061406';
-
-/* ── DEFAULT MATCHES ── */
-var DEFAULT_MATCHES = [
-  {time:'2025-09-06 14:00',home:'Bournemouth',away:'Brighton'},
-  {time:'2025-09-06 14:00',home:'Arsenal',away:'Liverpool'},
-  {time:'2025-09-06 14:00',home:'Chelsea',away:'Man City'},
-  {time:'2025-09-06 14:00',home:'Tottenham',away:'Everton'},
-  {time:'2025-09-06 14:00',home:'Aston Villa',away:'Newcastle'},
-  {time:'2025-09-06 14:00',home:'West Ham',away:'Wolves'},
-  {time:'2025-09-06 14:00',home:'Leeds',away:'Southampton'},
-  {time:'2025-09-06 14:00',home:'Leicester',away:'Fulham'},
-  {time:'2025-09-06 14:00',home:'Crystal Palace',away:'Brentford'},
-  {time:'2025-09-06 14:00',home:'Burnley',away:'Norwich'},
-  {time:'2025-09-06 14:00',home:'Sheff Utd',away:'Stoke'},
-  {time:'2025-09-06 14:00',home:'Swansea',away:'Cardiff'},
-  {time:'2025-09-06 14:00',home:'Celtic',away:'Rangers'},
-  {time:'2025-09-06 14:00',home:'PSG',away:'Marseille'},
-];
-
-/* ── PENDING STATE ── */
-var _pendingUser   = null;
-var _pendingDepIdx = null;
-var _allUsers      = [];
-var _scanDone      = false;
-
-/* ════════════════════════════════════════
-   LOGIN / LOGOUT
-════════════════════════════════════════ */
-function doLogin(){
-  var u=document.getElementById('adm-user').value.trim();
-  var p=document.getElementById('adm-pass').value;
-  var err=document.getElementById('login-err');
-  if(u===ADMIN_USER && p===ADMIN_PASS){
-    err.classList.remove('show');
+function adminLogin(){
+  var pw = document.getElementById('admin-pw').value;
+  if(pw === ADMIN_PASS){
     document.getElementById('login-screen').style.display='none';
-    document.getElementById('admin-app').style.display='block';
     initAdmin();
   } else {
-    err.classList.add('show');
-    document.getElementById('adm-pass').value='';
-    document.getElementById('adm-pass').focus();
+    document.getElementById('admin-login-err').textContent='❌ Wrong password.';
+    setTimeout(function(){ document.getElementById('admin-login-err').textContent=''; },2000);
   }
 }
-function doLogout(){
-  document.getElementById('login-screen').style.display='flex';
-  document.getElementById('admin-app').style.display='none';
-  document.getElementById('adm-user').value='';
-  document.getElementById('adm-pass').value='';
-}
 
-/* ════════════════════════════════════════
-   INIT
-════════════════════════════════════════ */
-function initAdmin(){
-  startClock();
-  loadUsers();
-  loadDeposits();
-  loadWithdrawals();
-  loadLogs();
-  renderMatchesEditor();
-  renderResultsEditor();
-  loadCurrentCountdown();
+async function initAdmin(){
+  var fbOk = await window._fbReady;
+  if(!fbOk){ toast('⚠️ Firebase not connected. Check config.','t-err'); }
+  switchAdminTab('users');
+  loadMatchesEditor();
   loadPrizesForm();
+  loadCurrentCountdown();
   loadBroadcast();
-  updateStats();
+  await loadAllData();
 }
 
-function startClock(){
-  function tick(){
-    var n=new Date();
-    setText('ah-clock',
-      n.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+
-      ' · '+n.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
-    );
+// ── Load ALL Firestore data into memory ──
+async function loadAllData(){
+  var fbOk = await window._fbReady;
+  if(!fbOk || !window._db) return;
+  showLoad('Syncing from Firebase...');
+  try{
+    // Users
+    var us = await window._F.getDocs(window._F.collection(window._db,'users'));
+    _cache.users = {};
+    us.forEach(function(d){
+      var data=d.data(); var key=data.phone||d.id;
+      _cache.users[key]=Object.assign({},data,{uid:d.id});
+    });
+    // Tickets
+    var ts = await window._F.getDocs(window._F.collection(window._db,'tickets'));
+    _cache.tickets=[]; ts.forEach(function(d){_cache.tickets.push(d.data());});
+    _cache.tickets.sort(function(a,b){return (b.created||'').localeCompare(a.created||'');});
+    // Deposits
+    var ds = await window._F.getDocs(window._F.collection(window._db,'deposits'));
+    _cache.deposits=[]; ds.forEach(function(d){_cache.deposits.push(d.data());});
+    _cache.deposits.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
+    // Withdrawals
+    var ws = await window._F.getDocs(window._F.collection(window._db,'withdrawals'));
+    _cache.withdrawals=[]; ws.forEach(function(d){_cache.withdrawals.push(d.data());});
+    _cache.withdrawals.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
+    // Logs
+    var ls = await window._F.getDocs(window._F.collection(window._db,'logs'));
+    _cache.logs=[]; ls.forEach(function(d){_cache.logs.push(d.data());});
+    _cache.logs.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
+    // App settings: matches
+    var ms = await window._F.getDoc(window._F.doc(window._db,'app_settings','matches'));
+    if(ms.exists()&&ms.data().matches){ _cache.matches=ms.data().matches; loadMatchesEditor(); }
+    // App settings: prizes
+    var ps = await window._F.getDoc(window._F.doc(window._db,'app_settings','prizes'));
+    if(ps.exists()){ _cache.prizes=ps.data(); loadPrizesForm(); }
+    // App settings: countdown
+    var cs = await window._F.getDoc(window._F.doc(window._db,'app_settings','countdown'));
+    if(cs.exists()){ _cache.countdown=cs.data(); loadCurrentCountdown(); }
+    // App settings: broadcast
+    var bcs = await window._F.getDoc(window._F.doc(window._db,'app_settings','broadcast'));
+    if(bcs.exists()){ _cache.broadcast=bcs.data(); loadBroadcast(); }
+    // App settings: current round
+    var cr = await window._F.getDoc(window._F.doc(window._db,'app_settings','current_round'));
+    if(cr.exists()){ _cache.currentRoundId=cr.data().roundId||'round_default'; }
+    // App settings: results
+    var rs = await window._F.getDoc(window._F.doc(window._db,'app_settings','current_results'));
+    if(rs.exists()){ _cache.results=rs.data().results||null; }
+    // Published rounds
+    var prs = await window._F.getDocs(window._F.collection(window._db,'published_rounds'));
+    _cache.publishedRounds=[];
+    prs.forEach(function(d){_cache.publishedRounds.push(d.data());});
+    _cache.publishedRounds.sort(function(a,b){return (a.savedAt||'').localeCompare(b.savedAt||'');});
+
+    // Refresh UI
+    renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
+    loadDeposits(); loadWithdrawals(); loadLogs(); updateStats();
+    loadPrizesForm(); loadCurrentCountdown(); loadBroadcast();
+    renderResultsEditor();
+
+    hideLoad();
+    toast('✅ All data loaded from Firebase');
+  }catch(e){
+    hideLoad();
+    toast('Firebase load error: '+e.message,'t-err');
+    console.error(e);
   }
-  tick(); setInterval(tick,1000);
 }
 
-/* ── TABS ── */
-function openTab(name){
-  var names=['users','archive','deposits','withdrawals','results','prizes','matches','countdown','betid','broadcast','logs'];
-  document.querySelectorAll('.tab-btn').forEach(function(b,i){
-    b.classList.toggle('active', names[i]===name);
-  });
-  document.querySelectorAll('.tab-content').forEach(function(c){
-    c.classList.toggle('active', c.id==='tab-'+name);
-  });
-  if(name==='archive')  loadArchive();
-  if(name==='logs')     loadLogs();
-  if(name==='deposits') loadDeposits();
-  if(name==='withdrawals') loadWithdrawals();
+function getMatches(){ return _cache.matches || DEFAULT_MATCHES; }
+function getResults(){ return _cache.results || null; }
+function getTickets(){ return _cache.tickets || []; }
+function getDeposits(){ return _cache.deposits || []; }
+function getWithdrawals(){ return _cache.withdrawals || []; }
+function getLogs(){ return _cache.logs || []; }
+function getUsers(){ return _cache.users || {}; }
+
+var DEFAULT_MATCHES = [
+  {time:'2025-09-03 06:34',home:'Bournemouth',away:'Brighton'},
+  {time:'2025-09-03 01:20',home:'Arsenal',away:'Liverpool'},
+  {time:'2025-09-03 14:00',home:'Chelsea',away:'Man City'},
+  {time:'2025-09-03 14:00',home:'Tottenham',away:'Everton'},
+  {time:'2025-09-03 14:00',home:'Aston Villa',away:'Newcastle'},
+  {time:'2025-09-03 14:00',home:'West Ham',away:'Wolves'},
+  {time:'2025-09-03 14:00',home:'Leeds',away:'Southampton'},
+  {time:'2025-09-03 14:00',home:'Leicester',away:'Fulham'},
+  {time:'2025-09-03 14:00',home:'Crystal Palace',away:'Brentford'},
+  {time:'2025-09-03 14:00',home:'Burnley',away:'Norwich'},
+  {time:'2025-09-03 14:00',home:'Sheff Utd',away:'Stoke'},
+  {time:'2025-09-03 14:00',home:'Swansea',away:'Cardiff'},
+  {time:'2025-09-03 14:00',home:'Celtic',away:'Rangers'},
+  {time:'2025-09-03 14:00',home:'PSG',away:'Marseille'},
+];
+
+// ── ADMIN TABS ──
+var _currentTab='users';
+function switchAdminTab(tab){
+  _currentTab=tab;
+  document.querySelectorAll('.tab-link').forEach(function(l){l.classList.toggle('active',l.dataset.tab===tab);});
+  document.querySelectorAll('.tab-section').forEach(function(s){s.style.display=s.id==='tab-'+tab?'block':'none';});
+  if(tab==='users')    { loadUsers(); }
+  if(tab==='deposits') { loadDeposits(); }
+  if(tab==='withdrawals'){ loadWithdrawals(); }
+  if(tab==='results')  { renderResultsEditor(); }
+  if(tab==='archive')  { loadArchive(); }
+  if(tab==='logs')     { loadLogs(); }
+  if(tab==='prizes')   { loadPrizesForm(); }
+  if(tab==='matches')  { loadMatchesEditor(); }
+  if(tab==='broadcast'){ loadBroadcast(); }
+  if(tab==='countdown'){ loadCurrentCountdown(); }
+  if(tab==='betid')    {}
 }
 
-/* ════════════════════════════════════════
-   STATS
-════════════════════════════════════════ */
+// ── STATS ──
 function updateStats(){
-  var users=getUsers();
-  var allArr=Object.values(users);
-  var total=allArr.filter(function(u){return !u.archived;}).length;
-  var active=allArr.filter(function(u){return !u.archived && !u.disabled && u.status!=='banned';}).length;
-  var deps=getDeposits().filter(function(d){return d.status==='pending';}).length;
-  var wds=getWithdrawals().filter(function(w){return w.status==='pending';}).length;
-  var tickets=getTickets().length;
+  var users = Object.values(_cache.users);
+  var total  = users.filter(function(u){return !u.archived;}).length;
+  var active = users.filter(function(u){return !u.archived&&!u.disabled&&u.status!=='banned';}).length;
+  var pendDeps = _cache.deposits.filter(function(d){return d.status==='pending';}).length;
+  var pendWds  = _cache.withdrawals.filter(function(d){return d.status==='pending';}).length;
   setText('st-users',    active);
-  setText('st-deposits', deps);
-  setText('st-withdrawals',wds);
-  setText('st-tickets',  tickets);
-  // Show total in sub-label if element exists
+  setText('st-deposits', pendDeps);
+  setText('st-withdrawals', pendWds);
+  setText('st-tickets',  _cache.tickets.length);
   var lbl=document.getElementById('st-total-users-label');
   if(lbl) lbl.textContent='Total: '+total+' · Active: '+active;
 }
 
-/* ════════════════════════════════════════
-   USERS
-════════════════════════════════════════ */
-async function loadUsers(){
-  var localUsers=getUsers();
-  _allUsers=Object.values(localUsers).filter(function(u){return !u.archived;});
-  renderUsersTable(_allUsers);
-  updateStats();
+// ── USERS ──
+var _allUsers=[], _pendingUser='';
 
-  var fbOk = await window._fbReady;
-  if(fbOk && window._db){
-    try{
-      var snap = await window._fbGetDocs(window._fbCollection(window._db,'users'));
-      snap.forEach(function(d){
-        var data = d.data();
-        var key  = data.phone || d.id;
-        if(data.fullName && !data.name) data.name = data.fullName;
-        localUsers[key] = Object.assign(localUsers[key]||{}, data, {uid: d.id});
-      });
-      saveUsers(localUsers);
-      _allUsers = Object.values(localUsers).filter(function(u){return !u.archived;});
-      filterUsers();
-      updateStats();
-    }catch(e){
-      toast('Firebase sync: '+e.message,'t-err');
-    }
-  }
+async function loadUsers(){
+  await loadAllData();
 }
 
 function filterUsers(){
-  var q=document.getElementById('user-search').value.toLowerCase().trim();
-  var list=q ? _allUsers.filter(function(u){
-    return (u.phone||'').includes(q)||(u.name||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q);
-  }) : _allUsers;
-  renderUsersTable(list);
+  var q=(document.getElementById('user-search')||{value:''}).value.toLowerCase();
+  var arr=Object.values(_cache.users).filter(function(u){return !u.archived;});
+  if(q) arr=arr.filter(function(u){
+    return (u.name||'').toLowerCase().includes(q)||(u.phone||'').includes(q)||(u.email||'').toLowerCase().includes(q);
+  });
+  renderUsersTable(arr);
 }
 
 function renderUsersTable(users){
-  // Sort newest first
-  users = users.slice().sort(function(a,b){
-    return new Date(b.createdAt||b.created||0) - new Date(a.createdAt||a.created||0);
-  });
-  var totalUsers  = users.length;
-  var activeUsers = users.filter(function(u){return !u.disabled && !u.archived && (u.status!=='banned');}).length;
-  setText('st-users', activeUsers);
-  document.getElementById('st-total-users-label') && setText('st-total-users-label', 'Total: '+totalUsers+' · Active: '+activeUsers);
-
-  if(!users.length){
-    document.getElementById('users-tbl-wrap').innerHTML='<div class="tbl-empty">No users found.</div>';
-    return;
-  }
+  users=users.slice().sort(function(a,b){return (b.createdAt||b.created||'').localeCompare(a.createdAt||a.created||'');});
+  var total=users.length;
+  var active=users.filter(function(u){return !u.disabled&&u.status!=='banned';}).length;
+  setText('st-users',active);
+  if(!users.length){ document.getElementById('users-tbl-wrap').innerHTML='<div class="tbl-empty">No users found.</div>'; return; }
   var rows=users.map(function(u){
     var bal=Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2});
-    var status = (u.disabled||u.status==='banned')
+    var status=(u.disabled||u.status==='banned')
       ?'<span class="sbadge sb-dis">Disabled</span>'
       :'<span class="sbadge sb-ok">Active</span>';
-    var phone  = esc(u.phone||'—');
-    var email  = esc(u.email||'—');
-    var name   = esc(u.name||u.fullName||'—');
-    var regDate= esc(fmtDate(u.createdAt||u.created));
+    var phone=esc(u.phone||'—'); var email=esc(u.email||'—'); var name=esc(u.name||u.fullName||'—');
+    var reg=esc(fmtDate(u.createdAt||u.created));
+    var key=esc(u.phone||u.uid||'');
     return '<tr>'
-      +'<td>'
-        +'<div class="td-phone">'+name+'</div>'
-        +'<div style="font-size:11px;color:var(--text3)">📱 '+phone+'</div>'
-        +(u.age?'<div style="font-size:10px;color:var(--text3)">Age: '+esc(String(u.age))+(u.gender?' · '+esc(u.gender):'')+'</div>':'')
-      +'</td>'
+      +'<td><div class="td-phone">'+name+'</div><div style="font-size:11px;color:var(--text3)">📱 '+phone+'</div>'
+      +(u.age?'<div style="font-size:10px;color:var(--text3)">Age: '+esc(String(u.age))+(u.gender?' · '+esc(u.gender):'')+'</div>':'')+'</td>'
       +'<td style="font-size:11px;color:var(--text3)">'+email+'</td>'
       +'<td class="td-bal">₦'+bal+'</td>'
       +'<td>'+status+'</td>'
-      +'<td style="font-size:11px;color:var(--text3)">'+regDate+'</td>'
+      +'<td style="font-size:11px;color:var(--text3)">'+reg+'</td>'
       +'<td><div class="acts">'
-        +'<button class="ab ab-fund" onclick="openFund(\''+esc(u.phone||u.uid||'')+'\')">💰 Fund</button>'
+        +'<button class="ab ab-fund" onclick="openFund(\''+key+'\')">💰 Fund</button>'
         +(u.disabled
-          ?'<button class="ab ab-en"  onclick="setDisabled(\''+esc(u.phone||u.uid||'')+'\',false)">✅ Enable</button>'
-          :'<button class="ab ab-dis" onclick="setDisabled(\''+esc(u.phone||u.uid||'')+'\',true)">⛔ Disable</button>')
-        +'<button class="ab ab-clear" onclick="openClear(\''+esc(u.phone||u.uid||'')+'\')">🗑 Clear Bal</button>'
-        +'<button class="ab ab-view"  onclick="viewUserBets(\''+esc(u.phone||u.uid||'')+'\')">🎫 Tickets</button>'
-        +'<button class="ab ab-del"   onclick="openDelete(\''+esc(u.phone||u.uid||'')+'\')">🗂 Archive</button>'
+          ?'<button class="ab ab-en" onclick="setDisabled(\''+key+'\',false)">✅ Enable</button>'
+          :'<button class="ab ab-dis" onclick="setDisabled(\''+key+'\',true)">⛔ Disable</button>')
+        +'<button class="ab ab-clear" onclick="openClear(\''+key+'\')">🗑 Clear Bal</button>'
+        +'<button class="ab ab-view" onclick="viewUserBets(\''+key+'\')">🎫 Tickets</button>'
+        +'<button class="ab ab-del" onclick="openDelete(\''+key+'\')">🗂 Archive</button>'
       +'</div></td>'
       +'</tr>';
   }).join('');
   document.getElementById('users-tbl-wrap').innerHTML=
-    '<table><thead><tr>'
-      +'<th>Name / Phone</th><th>Email</th><th>Balance</th>'
-      +'<th>Status</th><th>Registered</th><th>Actions</th>'
-    +'</tr></thead><tbody>'+rows+'</tbody></table>';
+    '<table><thead><tr><th>Name / Phone</th><th>Email</th><th>Balance</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
-/* ── FUND ── */
-function openFund(phone){
-  _pendingUser=phone;
-  var u=(getUsers()[phone]||{});
-  document.getElementById('fund-info').innerHTML=
-    '<strong>'+esc(u.name||phone)+'</strong><br/>Phone: '+esc(phone)+
-    '<br/>Current Balance: <span style="color:var(--gold)">₦'+Number(u.balance||0).toLocaleString()+'</span>';
-  document.getElementById('fund-amount').value='';
-  setText('fund-err','');
+// ── Fund user ──
+function openFund(key){
+  _pendingUser=key;
+  var u=_cache.users[key]||{};
+  document.getElementById('fund-user').textContent=esc(u.name||u.fullName||key);
+  document.getElementById('fund-balance').textContent='₦'+Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2});
+  document.getElementById('fund-amount').value=''; document.getElementById('fund-err').textContent='';
   openMo('mo-fund');
 }
-function confirmFund(){
+async function confirmFund(){
   var amt=Number(document.getElementById('fund-amount').value);
   if(!amt||amt<=0){setText('fund-err','Enter a valid amount.');return;}
-  if(amt>100000000){setText('fund-err','Amount too large.');return;}
   showLoad('Adding funds...');
-  setTimeout(async function(){
-    var users=getUsers(); var u=users[_pendingUser]; if(!u){hideLoad();return;}
-    u.balance=Number(u.balance||0)+amt;
-    users[_pendingUser]=u; saveUsers(users);
-    addLog('Funded ₦'+amt.toLocaleString(),_pendingUser);
-    var fbOk = await window._fbReady;
-    if(fbOk && window._db && u.uid){
-      try{
-        await window._fbSetDoc(window._fbDoc(window._db,'users',u.uid),
-          {balance:u.balance, lastFundedAt:new Date().toISOString()},{merge:true});
-      }catch(e){ console.warn('Fund sync:',e); }
-    }
-    loadUsers(); updateStats(); hideLoad(); closeMo('mo-fund');
-    toast('✅ ₦'+amt.toLocaleString()+' added to '+_pendingUser);
-  },700);
+  var u=_cache.users[_pendingUser]; if(!u){hideLoad();return;}
+  var newBal=Number(u.balance||0)+amt;
+  u.balance=newBal; _cache.users[_pendingUser]=u;
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db&&u.uid){
+    try{
+      await window._F.setDoc(window._F.doc(window._db,'users',u.uid),
+        {balance:newBal,lastFundedAt:new Date().toISOString()},{merge:true});
+    }catch(e){ console.warn('Fund sync:',e); }
+  }
+  await addLog('Funded ₦'+amt.toLocaleString(),_pendingUser);
+  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
+  updateStats(); hideLoad(); closeMo('mo-fund');
+  toast('✅ ₦'+amt.toLocaleString()+' added to '+_pendingUser);
 }
 
-/* ── DISABLE / ENABLE ── */
-async function setDisabled(phone, disabled){
+// ── Disable/Enable ──
+async function setDisabled(key, disabled){
   showLoad(disabled?'Disabling account...':'Enabling account...');
-  setTimeout(async function(){
-    var users=getUsers(); var u=users[phone]; if(!u){hideLoad();return;}
-    u.disabled=disabled; u.status=disabled?'disabled':'active';
-    users[phone]=u; saveUsers(users);
-    await _syncAdminUserToFirestore(phone,{disabled:disabled,status:disabled?'disabled':'active'});
-    addLog(disabled?'Account disabled':'Account enabled', phone);
-    loadUsers(); updateStats(); hideLoad();
-    toast(disabled?'⛔ Account disabled':'✅ Account enabled');
-  },600);
+  var u=_cache.users[key]; if(!u){hideLoad();return;}
+  u.disabled=disabled; u.status=disabled?'disabled':'active';
+  _cache.users[key]=u;
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db&&u.uid){
+    try{
+      await window._F.setDoc(window._F.doc(window._db,'users',u.uid),
+        {disabled:disabled,status:u.status},{merge:true});
+    }catch(e){}
+  }
+  await addLog(disabled?'Account disabled':'Account enabled',key);
+  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
+  updateStats(); hideLoad();
+  toast(disabled?'⛔ Account disabled':'✅ Account enabled');
 }
 
-/* ── CLEAR BALANCE ── */
-function openClear(phone){
-  _pendingUser=phone;
-  var u=(getUsers()[phone]||{});
+// ── Clear balance ──
+function openClear(key){
+  _pendingUser=key; var u=_cache.users[key]||{};
   document.getElementById('clear-info').innerHTML=
-    'Zero out the balance for <strong>'+esc(u.name||phone)+'</strong>.<br/>'
+    'Zero out the balance for <strong>'+esc(u.name||u.fullName||key)+'</strong>.<br/>'
     +'Current Balance: <span style="color:var(--gold)">₦'+Number(u.balance||0).toLocaleString()+'</span><br/><br/>'
     +'<strong style="color:var(--red)">This cannot be undone.</strong>';
   openMo('mo-clear');
 }
 async function confirmClear(){
   showLoad('Clearing balance...');
-  setTimeout(async function(){
-    var users=getUsers(); var u=users[_pendingUser]; if(!u){hideLoad();return;}
-    u.balance=0; users[_pendingUser]=u; saveUsers(users);
-    await _syncAdminUserToFirestore(_pendingUser,{balance:0,balanceClearedAt:new Date().toISOString()});
-    addLog('Balance cleared',_pendingUser);
-    loadUsers(); updateStats(); hideLoad(); closeMo('mo-clear');
-    toast('🗑️ Balance cleared','t-err');
-  },600);
+  var u=_cache.users[_pendingUser]; if(!u){hideLoad();return;}
+  u.balance=0; _cache.users[_pendingUser]=u;
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db&&u.uid){
+    try{
+      await window._F.setDoc(window._F.doc(window._db,'users',u.uid),
+        {balance:0,balanceClearedAt:new Date().toISOString()},{merge:true});
+    }catch(e){}
+  }
+  await addLog('Balance cleared',_pendingUser);
+  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
+  updateStats(); hideLoad(); closeMo('mo-clear');
+  toast('🗑️ Balance cleared','t-err');
 }
 
-/* ── ARCHIVE / DELETE USER ── */
-function openDelete(phone){
-  _pendingUser=phone;
-  var u=(getUsers()[phone]||{});
+// ── Archive user ──
+function openDelete(key){
+  _pendingUser=key; var u=_cache.users[key]||{};
   document.getElementById('delete-info').innerHTML=
-    'Archive user <strong>'+esc(u.name||phone)+'</strong>?<br/><br/>'
-    +'They will be moved to the Archive tab and will not be able to login or place bets. You can restore them at any time.';
+    'Archive user <strong>'+esc(u.name||u.fullName||key)+'</strong>?<br/><br/>'
+    +'They will be moved to Archive and cannot login.';
   openMo('mo-delete');
 }
 async function confirmDelete(){
   showLoad('Archiving user...');
-  setTimeout(async function(){
-    var users=getUsers(); var u=users[_pendingUser]; if(!u){hideLoad();return;}
-    u.archived=true; u.archivedAt=new Date().toISOString(); u.status='archived';
-    users[_pendingUser]=u; saveUsers(users);
-    await _syncAdminUserToFirestore(_pendingUser,{archived:true,archivedAt:u.archivedAt,status:'archived'});
-    addLog('User archived',_pendingUser);
-    loadUsers(); loadArchive(); updateStats(); hideLoad(); closeMo('mo-delete');
-    toast('🗂 User archived','t-gold');
-  },600);
+  var u=_cache.users[_pendingUser]; if(!u){hideLoad();return;}
+  u.archived=true; u.archivedAt=new Date().toISOString(); u.status='archived';
+  _cache.users[_pendingUser]=u;
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db&&u.uid){
+    try{
+      await window._F.setDoc(window._F.doc(window._db,'users',u.uid),
+        {archived:true,archivedAt:u.archivedAt,status:'archived'},{merge:true});
+    }catch(e){}
+  }
+  await addLog('User archived',_pendingUser);
+  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
+  loadArchive(); updateStats(); hideLoad(); closeMo('mo-delete');
+  toast('🗂 User archived','t-gold');
 }
 
-/* ── ARCHIVE TAB ── */
+// ── Archive tab ──
 function loadArchive(){
-  var users=getUsers();
-  var archived=Object.values(users).filter(function(u){return u.archived;});
-  if(!archived.length){
-    document.getElementById('archive-tbl-wrap').innerHTML='<div class="tbl-empty">No archived users.</div>';
-    return;
-  }
+  var archived=Object.values(_cache.users).filter(function(u){return u.archived;});
+  if(!archived.length){ document.getElementById('archive-tbl-wrap').innerHTML='<div class="tbl-empty">No archived users.</div>'; return; }
   var rows=archived.map(function(u){
+    var key=esc(u.phone||u.uid||'');
     return '<tr>'
-      +'<td><div class="td-phone">'+esc(u.phone||'—')+'</div><div class="td-name">'+esc(u.name||'—')+'</div></td>'
+      +'<td><div class="td-phone">'+esc(u.phone||'—')+'</div><div class="td-name">'+esc(u.name||u.fullName||'—')+'</div></td>'
       +'<td style="font-size:11px;color:var(--text3)">'+esc(u.email||'—')+'</td>'
       +'<td class="td-bal">₦'+Number(u.balance||0).toLocaleString()+'</td>'
       +'<td><span class="sbadge sb-arc">Archived</span></td>'
       +'<td style="font-size:11px;color:var(--text3)">'+esc(fmtDate(u.archivedAt||u.created))+'</td>'
-      +'<td><div class="acts">'
-        +'<button class="ab ab-restore" onclick="restoreUser(\''+esc(u.phone)+'\')">♻️ Restore</button>'
-      +'</div></td>'
+      +'<td><div class="acts"><button class="ab ab-restore" onclick="restoreUser(\''+key+'\')">♻️ Restore</button></div></td>'
       +'</tr>';
   }).join('');
   document.getElementById('archive-tbl-wrap').innerHTML=
-    '<table><thead><tr>'
-      +'<th>Phone / Name</th><th>Email</th><th>Balance</th>'
-      +'<th>Status</th><th>Archived On</th><th>Actions</th>'
-    +'</tr></thead><tbody>'+rows+'</tbody></table>';
+    '<table><thead><tr><th>Phone / Name</th><th>Email</th><th>Balance</th><th>Status</th><th>Archived On</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
-
-async function restoreUser(phone){
+async function restoreUser(key){
   showLoad('Restoring user...');
-  setTimeout(async function(){
-    var users=getUsers(); var u=users[phone]; if(!u){hideLoad();return;}
-    u.archived=false; u.archivedAt=null; u.disabled=false; u.status='active';
-    users[phone]=u; saveUsers(users);
-    await _syncAdminUserToFirestore(phone,{archived:false,archivedAt:null,disabled:false,status:'active'});
-    addLog('User restored from archive',phone);
-    loadArchive(); loadUsers(); updateStats(); hideLoad();
-    toast('✅ User restored successfully');
-  },600);
+  var u=_cache.users[key]; if(!u){hideLoad();return;}
+  u.archived=false; u.archivedAt=null; u.disabled=false; u.status='active';
+  _cache.users[key]=u;
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db&&u.uid){
+    try{
+      await window._F.setDoc(window._F.doc(window._db,'users',u.uid),
+        {archived:false,archivedAt:null,disabled:false,status:'active'},{merge:true});
+    }catch(e){}
+  }
+  await addLog('User restored',key);
+  loadArchive();
+  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
+  updateStats(); hideLoad(); toast('✅ User restored');
 }
 
-/* ── VIEW USER TICKETS + RECEIPT ── */
+// ── View User Bets ──
 function viewUserBets(userKey){
-  var users=getUsers();
-  var u=users[userKey]||{};
-  var tickets=getTickets().filter(function(t){return t.user===userKey;});
-  var publishedRounds=JSON.parse(localStorage.getItem('grj_published_rounds')||'[]');
-
+  var u=_cache.users[userKey]||{};
+  var tickets=_cache.tickets.filter(function(t){return t.user===userKey;});
   setText('mo-bets-title','🎫 Tickets — '+esc(u.name||u.fullName||userKey));
-
-  var balanceBox='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:14px;">'
-    +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Real Account Balance</div>'
+  var balBox='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:14px;">'
+    +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Balance</div>'
     +'<div style="font-size:20px;font-weight:900;color:var(--gold)">₦'+Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2})+'</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">Phone: '+esc(u.phone||'—')+' · Email: '+esc(u.email||'—')+(u.age?' · Age: '+u.age:'')+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">📱 '+esc(u.phone||'—')+' · 📧 '+esc(u.email||'—')+'</div>'
     +'</div>';
-
-  if(!tickets.length){
-    document.getElementById('mo-bets-content').innerHTML=balanceBox+'<div class="tbl-empty">No tickets placed by this user.</div>';
-    openMo('mo-bets');return;
-  }
-
-  // Helper: find the published round that matches a ticket (by roundId or team names)
-  function findRoundForTicket(t){
-    if(t.roundId){
-      var r = publishedRounds.find(function(r){ return r.roundId===t.roundId||r.id===t.roundId; });
-      if(r) return r;
+  if(!tickets.length){ document.getElementById('mo-bets-content').innerHTML=balBox+'<div class="tbl-empty">No tickets placed.</div>'; openMo('mo-bets'); return; }
+  var html=balBox+tickets.map(function(t,ti){
+    var matchedRound=null;
+    if(t.roundId){ matchedRound=_cache.publishedRounds.find(function(r){return r.roundId===t.roundId||r.id===t.roundId;})||null; }
+    if(!matchedRound&&t.selections&&t.selections.length>=3){
+      matchedRound=_cache.publishedRounds.find(function(r){
+        var rm=r.matches||[]; if(rm.length<3)return false; var hits=0;
+        for(var x=0;x<Math.min(4,t.selections.length,rm.length);x++){
+          var s=t.selections[x],m=rm[x]; if(!s||!m)continue;
+          if((s.home||'').toLowerCase().trim()===(m.home||'').toLowerCase().trim()
+          &&(s.away||'').toLowerCase().trim()===(m.away||'').toLowerCase().trim()) hits++;
+        }
+        return hits>=3;
+      })||null;
     }
-    if(!t.selections||t.selections.length<3) return null;
-    return publishedRounds.find(function(r){
-      var rm=r.matches||[];
-      if(rm.length<3) return false;
-      var hits=0;
-      for(var x=0;x<Math.min(4,t.selections.length,rm.length);x++){
-        var s=t.selections[x], m=rm[x];
-        if(!s||!m) continue;
-        if((s.home||'').toLowerCase().trim()===(m.home||'').toLowerCase().trim()
-        && (s.away||'').toLowerCase().trim()===(m.away||'').toLowerCase().trim()) hits++;
-      }
-      return hits>=3;
-    })||null;
-  }
-
-  var html=balanceBox+tickets.map(function(t,ti){
-    var matchedRound=findRoundForTicket(t);
     var roundResults=matchedRound?matchedRound.matches:null;
-    var roundWinners=matchedRound?(matchedRound.winners||{}): {};
-    var correctCount=0, voidCount=0;
-
+    var roundWinners=matchedRound?(matchedRound.winners||{}):{};
+    var correctCount=0,voidCount=0;
     var rows=t.selections.map(function(s,i){
       var matchResult=roundResults?roundResults[i]:null;
       var resVal=matchResult?(typeof matchResult==='object'?(matchResult.result||''):matchResult):'';
       resVal=(resVal||'').toString().toUpperCase().trim();
-      var isVoid=resVal==='VOID';
-      var hasResult=resVal!=='';
-      var picks=(s.picks||[]).map(function(p){return pickToVal(p);});
+      var isVoid=resVal==='VOID'; var hasResult=resVal!=='';
+      var picks=(s.picks||[]).map(function(p){ p=(p||'').toLowerCase(); if(p==='home'||p==='1')return '1'; if(p==='draw'||p==='x')return 'X'; if(p==='away'||p==='2')return '2'; return ''; });
       var isMatch=hasResult&&!isVoid&&picks.indexOf(resVal)!==-1;
-      if(isVoid) voidCount++;
-      if(isMatch) correctCount++;
-
-      var matchIcon='';
-      if(hasResult){
-        matchIcon=isVoid
-          ?'<span style="color:var(--text3);font-size:11px">void</span>'
-          :isMatch
-            ?'<span style="color:var(--green)">✅</span>'
-            :'<span style="color:var(--red)">❌</span>';
-      }
-      var score='';
-      if(matchResult&&typeof matchResult==='object'&&matchResult.scoreHome!==''&&matchResult.scoreHome!==undefined&&!isVoid){
-        score='<span style="color:var(--text2);font-size:11px">'+matchResult.scoreHome+'-'+matchResult.scoreAway+'</span> ';
-      }
+      if(isVoid) voidCount++; if(isMatch) correctCount++;
+      var matchIcon=''; if(hasResult){ matchIcon=isVoid?'<span style="color:var(--text3);font-size:11px">void</span>':isMatch?'<span style="color:var(--green)">✅</span>':'<span style="color:var(--red)">❌</span>'; }
+      var score=''; if(matchResult&&typeof matchResult==='object'&&matchResult.scoreHome!==''&&matchResult.scoreHome!==undefined&&!isVoid){ score='<span style="color:var(--text2);font-size:11px">'+matchResult.scoreHome+'-'+matchResult.scoreAway+'</span> '; }
       return '<div class="receipt-row">'
         +'<span class="rr-num">'+s.matchIndex+'</span>'
         +'<span class="rr-teams">'+esc(s.home||'—')+' v '+esc(s.away||'—')+'</span>'
         +'<span class="rr-pick" style="color:var(--green)">'+esc(s.code||'')+'</span>'
         +(hasResult?'<span class="rr-result">'+score+esc(isVoid?'void':resVal)+'</span>':'')
-        +matchIcon
-        +'</div>';
+        +matchIcon+'</div>';
     }).join('');
-
-    var ticketColor, ticketLabel;
-    if(!roundResults){
-      ticketColor='var(--text3)';
-      ticketLabel='⏳ Awaiting results';
-    } else {
-      ticketColor=correctCount===14?'var(--green)':correctCount===13?'var(--blue)':correctCount===12?'var(--yellow)':'var(--red)';
-      ticketLabel=correctCount===14?'🟢 JACKPOT — 14/14':correctCount===13?'🔵 2nd Prize — 13/14':correctCount===12?'🟡 3rd Prize — 12/14':'🔴 '+correctCount+'/14 Correct';
-      if(voidCount>0) ticketLabel+=' ('+voidCount+' void)';
-    }
-
-    // Prize per ticket
+    var tc=!roundResults?'var(--text3)':correctCount===14?'var(--green)':correctCount===13?'var(--blue)':correctCount===12?'var(--yellow)':'var(--red)';
+    var tl=!roundResults?'⏳ Awaiting results':correctCount===14?'🟢 JACKPOT — 14/14':correctCount===13?'🔵 2nd — 13/14':correctCount===12?'🟡 3rd — 12/14':'🔴 '+correctCount+'/14 Correct';
+    if(voidCount>0&&roundResults) tl+=' ('+voidCount+' void)';
     var prizeHtml='';
-    if(roundResults && roundWinners[String(correctCount)] && Number(roundWinners[String(correctCount)].prize||0)>0){
+    if(roundResults&&roundWinners[String(correctCount)]&&Number(roundWinners[String(correctCount)].prize||0)>0)
       prizeHtml='<div style="margin-top:4px;font-size:12px;color:var(--gold);font-weight:700">🏆 Winning per Ticket: ₦'+Number(roundWinners[String(correctCount)].prize).toLocaleString()+'</div>';
-    }
-
     return '<div class="ticket-summary-box">'
       +'<div class="ts-ref">Ticket '+(ti+1)+' · Ref: '+esc(t.id||'—')+' · '+fmtDate(t.created)+'</div>'
       +'<div class="ts-stake">Combos: '+t.combination+' · Stake: ₦'+t.stake.toLocaleString()+'</div>'
-      +'<div class="ts-correct" style="color:'+ticketColor+'">'+ticketLabel+'</div>'
-      +prizeHtml
-      +'<div style="margin-top:10px">'+rows+'</div>'
+      +'<div class="ts-correct" style="color:'+tc+'">'+tl+'</div>'
+      +prizeHtml+'<div style="margin-top:10px">'+rows+'</div>'
       +'</div>';
   }).join('');
-
   document.getElementById('mo-bets-content').innerHTML=html;
   openMo('mo-bets');
 }
 
-/* ── helpers ── */
-function pickToVal(p){
-  p=(p||'').toLowerCase();
-  if(p==='home'||p==='1') return '1';
-  if(p==='draw'||p==='x') return 'X';
-  if(p==='away'||p==='2') return '2';
-  return '';
-}
-function resultToVal(r){
-  r=(r||'').toUpperCase();
-  if(r==='1')    return '1';
-  if(r==='X')    return 'X';
-  if(r==='2')    return '2';
-  if(r==='VOID') return 'VOID';
-  return '';
-}
-
-/* ════════════════════════════════════════
-   DEPOSITS
-════════════════════════════════════════ */
+// ════════════════════════════════════════════════════════
+//  DEPOSITS
+// ════════════════════════════════════════════════════════
 function loadDeposits(){
-  var deps=getDeposits();
-  if(!deps.length){
-    document.getElementById('deposits-tbl-wrap').innerHTML='<div class="tbl-empty">No deposit requests yet.</div>';
-    updateStats();return;
-  }
+  var deps=_cache.deposits;
+  if(!deps.length){ document.getElementById('deposits-tbl-wrap').innerHTML='<div class="tbl-empty">No deposit requests yet.</div>'; updateStats(); return; }
   var rows=deps.map(function(d,i){
-    var sb=d.status==='pending'?'<span class="sbadge sb-pend">Pending</span>':
-           d.status==='approved'?'<span class="sbadge sb-ok">Approved</span>':
-           '<span class="sbadge sb-dis">Rejected</span>';
+    var sb=d.status==='pending'?'<span class="sbadge sb-pend">Pending</span>':d.status==='approved'?'<span class="sbadge sb-ok">Approved</span>':'<span class="sbadge sb-dis">Rejected</span>';
     var acts=d.status==='pending'
-      ?'<button class="ab ab-approve" onclick="openApproveDeposit('+i+')">✅ Approve</button>'
-       +'<button class="ab ab-reject" onclick="openRejectDeposit('+i+')">❌ Reject</button>':'';
+      ?'<button class="ab ab-approve" onclick="openApproveDeposit('+i+')">✅ Approve</button><button class="ab ab-reject" onclick="openRejectDeposit('+i+')">❌ Reject</button>':'';
     return '<tr>'
       +'<td class="td-phone">'+esc(d.user||'—')+'</td>'
       +'<td class="td-bal">₦'+Number(d.amount||0).toLocaleString()+'</td>'
@@ -1516,532 +1402,339 @@ function loadDeposits(){
       +'</tr>';
   }).join('');
   document.getElementById('deposits-tbl-wrap').innerHTML=
-    '<table><thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Status</th><th>Time</th><th>Ref</th><th>Actions</th></tr></thead>'
-    +'<tbody>'+rows+'</tbody></table>';
+    '<table><thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Status</th><th>Time</th><th>Ref</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>';
   updateStats();
 }
 
-function openApproveDeposit(idx){
-  _pendingDepIdx=idx;
-  var d=getDeposits()[idx]||{};
-  document.getElementById('approve-dep-info').innerHTML=
-    'Approve and credit <strong>₦'+Number(d.amount||0).toLocaleString()+'</strong> to <strong>'+esc(d.user||'—')+'</strong>?<br/>'
-    +'Method: '+esc(d.method||'—')+'&nbsp;·&nbsp;Ref: '+esc(d.id||'—');
-  openMo('mo-approve-dep');
-}
+var _pendingDepIdx=-1;
+function openApproveDeposit(idx){ _pendingDepIdx=idx; var d=_cache.deposits[idx]||{}; document.getElementById('approve-dep-info').innerHTML='Approve and credit <strong>₦'+Number(d.amount||0).toLocaleString()+'</strong> to <strong>'+esc(d.user||'—')+'</strong>?<br/>Method: '+esc(d.method||'—')+'&nbsp;·&nbsp;Ref: '+esc(d.id||'—'); openMo('mo-approve-dep'); }
 async function confirmApproveDeposit(){
   showLoad('Crediting user...');
-  setTimeout(async function(){
-    var deps=getDeposits(); var d=deps[_pendingDepIdx]; if(!d){hideLoad();return;}
-    var users=getUsers(); var u=users[d.user];
-    if(u){
-      u.balance=Number(u.balance||0)+Number(d.amount||0);
-      users[d.user]=u; saveUsers(users);
-      await _syncAdminUserToFirestore(d.user,{balance:u.balance,lastDeposit:new Date().toISOString()});
-    }
-    d.status='approved'; deps[_pendingDepIdx]=d; saveDeposits(deps);
-    // Sync deposit status to Firestore
-    var fbOk = await window._fbReady;
-    if(fbOk&&window._db&&d.id){
-      try{ await window._fbSetDoc(window._fbDoc(window._db,'deposits',d.id),{status:'approved',approvedAt:new Date().toISOString()},{merge:true}); }catch(e){}
-    }
-    addLog('Deposit approved ₦'+Number(d.amount).toLocaleString(),d.user);
-    loadDeposits(); loadUsers(); hideLoad(); closeMo('mo-approve-dep');
-    toast('✅ ₦'+Number(d.amount).toLocaleString()+' credited to '+d.user);
-  },800);
-}
-
-function openRejectDeposit(idx){
-  _pendingDepIdx=idx;
-  var d=getDeposits()[idx]||{};
-  document.getElementById('reject-dep-info').innerHTML=
-    'Reject deposit of <strong>₦'+Number(d.amount||0).toLocaleString()+'</strong> from <strong>'+esc(d.user||'—')+'</strong>?<br/>'
-    +'Ref: '+esc(d.id||'—');
-  openMo('mo-reject-dep');
-}
-function confirmRejectDeposit(){
-  showLoad('Rejecting...');
-  setTimeout(function(){
-    var deps=getDeposits(); var d=deps[_pendingDepIdx]; if(!d){hideLoad();return;}
-    d.status='rejected'; deps[_pendingDepIdx]=d; saveDeposits(deps);
-    addLog('Deposit rejected ₦'+Number(d.amount).toLocaleString(),d.user);
-    loadDeposits(); hideLoad(); closeMo('mo-reject-dep');
-    toast('❌ Deposit rejected','t-err');
-  },600);
-}
-
-/* ════════════════════════════════════════
-   WITHDRAWALS
-════════════════════════════════════════ */
-function loadWithdrawals(){
-  var wds=getWithdrawals();
-  if(!wds.length){
-    document.getElementById('withdrawals-tbl-wrap').innerHTML='<div class="tbl-empty">No withdrawal requests yet.</div>';
-    updateStats();return;
+  var d=_cache.deposits[_pendingDepIdx]; if(!d){hideLoad();return;}
+  var u=_cache.users[d.user];
+  if(u){ u.balance=Number(u.balance||0)+Number(d.amount||0); _cache.users[d.user]=u; }
+  d.status='approved'; _cache.deposits[_pendingDepIdx]=d;
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){
+    try{
+      if(u&&u.uid) await window._F.setDoc(window._F.doc(window._db,'users',u.uid),{balance:u.balance,lastDeposit:new Date().toISOString()},{merge:true});
+      if(d.id) await window._F.setDoc(window._F.doc(window._db,'deposits',d.id),{status:'approved',approvedAt:new Date().toISOString()},{merge:true});
+    }catch(e){}
   }
+  await addLog('Deposit approved ₦'+Number(d.amount).toLocaleString(),d.user);
+  loadDeposits();
+  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
+  hideLoad(); closeMo('mo-approve-dep');
+  toast('✅ ₦'+Number(d.amount).toLocaleString()+' credited to '+d.user);
+}
+function openRejectDeposit(idx){ _pendingDepIdx=idx; var d=_cache.deposits[idx]||{}; document.getElementById('reject-dep-info').innerHTML='Reject deposit of <strong>₦'+Number(d.amount||0).toLocaleString()+'</strong> from <strong>'+esc(d.user||'—')+'</strong>?<br/>Ref: '+esc(d.id||'—'); openMo('mo-reject-dep'); }
+async function confirmRejectDeposit(){
+  showLoad('Rejecting...');
+  var d=_cache.deposits[_pendingDepIdx]; if(!d){hideLoad();return;}
+  d.status='rejected'; _cache.deposits[_pendingDepIdx]=d;
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db&&d.id){ try{ await window._F.setDoc(window._F.doc(window._db,'deposits',d.id),{status:'rejected'},{merge:true}); }catch(e){} }
+  await addLog('Deposit rejected ₦'+Number(d.amount).toLocaleString(),d.user);
+  loadDeposits(); hideLoad(); closeMo('mo-reject-dep');
+  toast('❌ Deposit rejected','t-err');
+}
+
+// ════════════════════════════════════════════════════════
+//  WITHDRAWALS
+// ════════════════════════════════════════════════════════
+function loadWithdrawals(){
+  var wds=_cache.withdrawals;
+  if(!wds.length){ document.getElementById('withdrawals-tbl-wrap').innerHTML='<div class="tbl-empty">No withdrawal requests yet.</div>'; updateStats(); return; }
   var rows=wds.map(function(w){
     var sb=w.status==='pending'?'<span class="sbadge sb-pend">Pending</span>':'<span class="sbadge sb-done">Paid</span>';
     var acts=w.status==='pending'?'<button class="ab ab-approve" onclick="markWdPaid(\''+esc(w.id||w.code)+'\')">✅ Mark Paid</button>':'';
-    return '<tr>'
-      +'<td class="td-phone">'+esc(w.user||'—')+'</td>'
-      +'<td class="td-bal">₦'+Number(w.amount||0).toLocaleString()+'</td>'
-      +'<td style="font-size:12px">'+esc(w.bank||'—')+'</td>'
-      +'<td style="font-family:monospace;font-size:12px">'+esc(w.account||'—')+'</td>'
-      +'<td>'+sb+'</td>'
-      +'<td style="font-size:11px;color:var(--text3)">'+esc(fmtDate(w.time))+'</td>'
-      +'<td style="font-size:11px;color:var(--gold);font-family:monospace">'+esc(w.code||w.id||'—')+'</td>'
-      +'<td><div class="acts">'+acts+'</div></td>'
-      +'</tr>';
+    return '<tr><td class="td-phone">'+esc(w.user||'—')+'</td><td class="td-bal">₦'+Number(w.amount||0).toLocaleString()+'</td><td style="font-size:12px">'+esc(w.bank||'—')+'</td><td style="font-family:monospace;font-size:12px">'+esc(w.account||'—')+'</td><td>'+sb+'</td><td style="font-size:11px;color:var(--text3)">'+esc(fmtDate(w.time))+'</td><td style="font-size:11px;color:var(--gold);font-family:monospace">'+esc(w.code||w.id||'—')+'</td><td><div class="acts">'+acts+'</div></td></tr>';
   }).join('');
   document.getElementById('withdrawals-tbl-wrap').innerHTML=
-    '<table><thead><tr><th>User</th><th>Amount</th><th>Bank</th><th>Account</th><th>Status</th><th>Time</th><th>Ref Code</th><th>Actions</th></tr></thead>'
-    +'<tbody>'+rows+'</tbody></table>';
+    '<table><thead><tr><th>User</th><th>Amount</th><th>Bank</th><th>Account</th><th>Status</th><th>Time</th><th>Ref Code</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>';
   updateStats();
 }
 async function markWdPaid(id){
   showLoad('Marking as paid...');
-  setTimeout(async function(){
-    var wds=getWithdrawals();
-    var w=wds.find(function(x){return (x.id===id||x.code===id);});
-    if(w){
-      w.status='paid'; w.paidAt=new Date().toISOString();
-      saveWithdrawals(wds);
-      addLog('Withdrawal paid ref:'+id,w.user);
-      var fbOk = await window._fbReady;
-      if(fbOk&&window._db&&w.id){
-        try{ await window._fbSetDoc(window._fbDoc(window._db,'withdrawals',w.id),{status:'paid',paidAt:w.paidAt},{merge:true}); }catch(e){}
-      }
-    }
-    loadWithdrawals();hideLoad();toast('✅ Withdrawal marked as paid');
-  },600);
+  var w=_cache.withdrawals.find(function(x){return x.id===id||x.code===id;});
+  if(w){ w.status='paid'; w.paidAt=new Date().toISOString(); }
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db&&id){ try{ await window._F.setDoc(window._F.doc(window._db,'withdrawals',id),{status:'paid',paidAt:new Date().toISOString()},{merge:true}); }catch(e){} }
+  await addLog('Withdrawal paid ref:'+id, w?w.user:'');
+  loadWithdrawals(); hideLoad(); toast('✅ Withdrawal marked as paid');
 }
 
-/* ════════════════════════════════════════
-   RESULTS EDITOR (with score + void)
-════════════════════════════════════════ */
+// ════════════════════════════════════════════════════════
+//  RESULTS
+// ════════════════════════════════════════════════════════
+var _currentResults=[];
+
 function renderResultsEditor(){
   var matches=getMatches();
-  var saved=getResults()||[];
+  var saved=_cache.results||[];
   var html=matches.map(function(m,i){
-    var cur=(saved[i]&&saved[i].result)||'';
-    var scoreH=(saved[i]&&saved[i].scoreHome!==undefined)?saved[i].scoreHome:'';
-    var scoreA=(saved[i]&&saved[i].scoreAway!==undefined)?saved[i].scoreAway:'';
-    var isVoid=cur==='VOID';
-    return '<div class="result-row" style="flex-wrap:wrap;gap:8px;">'
-      +'<span class="result-match-num">Match '+(i+1)+'</span>'
-      +'<div style="flex:1;min-width:140px;">'
-        +'<div style="font-size:12px;color:var(--text2);font-weight:600">'+esc(m.home)+'</div>'
-        +'<div style="font-size:12px;color:var(--text2);font-weight:600">'+esc(m.away)+'</div>'
-        +(m.time?'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+esc(m.time)+'</div>':'')
+    var r=saved[i]||{};
+    var res=typeof r==='object'?r.result||'':r||'';
+    var sh=typeof r==='object'?r.scoreHome||'':'';
+    var sa=typeof r==='object'?r.scoreAway||'':'';
+    _currentResults[i]=_currentResults[i]||{result:res};
+    if(res&&!_currentResults[i].result) _currentResults[i].result=res;
+    var mk=function(v,label,sel){
+      var s=sel?'res-btn sel-'+v.toLowerCase():'res-btn';
+      var st=v==='VOID'&&sel?'background:#3d0000;border-color:var(--red);color:var(--red);':'';
+      return '<button class="'+s+'" id="rb-'+i+'-'+v+'" onclick="setResult('+i+',\''+v+'\')" style="'+st+'">'+label+'</button>';
+    };
+    return '<div class="result-row">'
+      +'<div class="rr-match"><span style="color:var(--text3);font-size:11px;">'+(i+1)+'.</span> <strong>'+esc(m.home)+'</strong> vs <strong>'+esc(m.away)+'</strong></div>'
+      +'<div class="rr-btns">'
+        +mk('1','1 Home',res==='1')+mk('X','X Draw',res==='X')+mk('2','2 Away',res==='2')+mk('VOID','Void',res==='VOID')
       +'</div>'
-      +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
-        +'<input type="number" id="sc-h-'+i+'" value="'+esc(String(scoreH))+'" placeholder="H" min="0" max="99" style="width:48px;text-align:center;background:#030a03;border:1px solid var(--border);color:var(--text);padding:6px;border-radius:7px;font-size:13px;font-weight:700;outline:none;" />'
-        +'<span style="color:var(--text3);font-weight:700">-</span>'
-        +'<input type="number" id="sc-a-'+i+'" value="'+esc(String(scoreA))+'" placeholder="A" min="0" max="99" style="width:48px;text-align:center;background:#030a03;border:1px solid var(--border);color:var(--text);padding:6px;border-radius:7px;font-size:13px;font-weight:700;outline:none;" />'
-      +'</div>'
-      +'<div class="result-btns">'
-        +'<button class="res-btn'+(cur==='1'?' sel-1':'')+'" id="rb-'+i+'-1" onclick="setResult('+i+',\'1\')">1</button>'
-        +'<button class="res-btn'+(cur==='X'?' sel-x':'')+'" id="rb-'+i+'-X" onclick="setResult('+i+',\'X\')">X</button>'
-        +'<button class="res-btn'+(cur==='2'?' sel-2':'')+'" id="rb-'+i+'-2" onclick="setResult('+i+',\'2\')">2</button>'
-        +'<button class="res-btn'+(isVoid?' sel-void':'')+'" id="rb-'+i+'-VOID" onclick="setResult('+i+',\'VOID\')" style="'+(isVoid?'background:#3d0000;border-color:var(--red);color:var(--red);':'')+'">Void</button>'
+      +'<div class="rr-score">'
+        +'<input type="number" id="sc-h-'+i+'" class="score-input" placeholder="H" value="'+esc(sh)+'" min="0" max="99"/>'
+        +'<span style="color:var(--text3)">-</span>'
+        +'<input type="number" id="sc-a-'+i+'" class="score-input" placeholder="A" value="'+esc(sa)+'" min="0" max="99"/>'
       +'</div>'
       +'</div>';
   }).join('');
   document.getElementById('results-editor').innerHTML=html;
 }
 
-var _currentResults=[];
 function setResult(idx,val){
-  while(_currentResults.length<=idx) _currentResults.push(null);
   if(!_currentResults[idx]) _currentResults[idx]={};
   _currentResults[idx].result=val;
-  // Update button UI
   ['1','X','2','VOID'].forEach(function(v){
-    var el=document.getElementById('rb-'+idx+'-'+v);
-    if(!el) return;
-    var base='res-btn';
-    if(v===val){
-      if(v==='1')     el.className=base+' sel-1';
-      else if(v==='X')el.className=base+' sel-x';
-      else if(v==='2')el.className=base+' sel-2';
-      else            el.className=base;
-      if(v==='VOID'){el.style.background='#3d0000';el.style.borderColor='var(--red)';el.style.color='var(--red)';}
-    } else {
-      el.className=base;
-      if(v==='VOID'){el.style.background='';el.style.borderColor='';el.style.color='';}
-    }
+    var el=document.getElementById('rb-'+idx+'-'+v); if(!el)return;
+    el.className='res-btn'+(v===val?' sel-'+v.toLowerCase():'');
+    if(v==='VOID'){ el.style.background=v===val?'#3d0000':''; el.style.borderColor=v===val?'var(--red)':''; el.style.color=v===val?'var(--red)':''; }
   });
 }
 
-function saveResults(){
+async function saveResults(){
   var matches=getMatches();
-  var saved=getResults()||[];
+  var saved=_cache.results||[];
   var final=[];
   for(var i=0;i<14;i++){
-    var res=(_currentResults[i]&&_currentResults[i].result)||
-            (saved[i]&&(typeof saved[i]==='object'?saved[i].result:saved[i]))||'';
-    var scoreH=document.getElementById('sc-h-'+i);
-    var scoreA=document.getElementById('sc-a-'+i);
-    var sh=scoreH?scoreH.value:'';
-    var sa=scoreA?scoreA.value:'';
-    final.push({result:res,scoreHome:sh,scoreAway:sa,home:matches[i]?matches[i].home:'',away:matches[i]?matches[i].away:'',time:matches[i]?matches[i].time:''});
+    var res=(_currentResults[i]&&_currentResults[i].result)||(saved[i]&&(typeof saved[i]==='object'?saved[i].result:saved[i]))||'';
+    var sh=document.getElementById('sc-h-'+i); var sa=document.getElementById('sc-a-'+i);
+    final.push({result:res,scoreHome:sh?sh.value:'',scoreAway:sa?sa.value:'',home:matches[i]?matches[i].home:'',away:matches[i]?matches[i].away:'',time:matches[i]?matches[i].time:''});
   }
   var missing=final.filter(function(r){return !r.result;}).length;
-  if(missing>0){
-    document.getElementById('results-save-msg').innerHTML='<span style="color:var(--red)">⚠️ '+missing+' match(es) still need a result (1, X, 2 or Void).</span>';
-    return;
+  if(missing>0){ document.getElementById('results-save-msg').innerHTML='<span style="color:var(--red)">⚠️ '+missing+' match(es) still need a result.</span>'; return; }
+  _cache.results=final;
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){
+    try{
+      await window._F.setDoc(window._F.doc(window._db,'app_settings','current_results'),
+        {results:final,updatedAt:new Date().toISOString()},{merge:true});
+      document.getElementById('results-save-msg').innerHTML='<span style="color:var(--green)">✅ Results saved to Firebase! Click Scan to find winners.</span>';
+    }catch(e){
+      document.getElementById('results-save-msg').innerHTML='<span style="color:var(--red)">Firebase save failed: '+e.message+'</span>';
+    }
   }
-  saveResults2(final);
-  addLog('Match results saved','admin');
-  document.getElementById('results-save-msg').innerHTML='<span style="color:var(--green)">✅ Results saved! Now click Scan to find winners, then publish.</span>';
+  await addLog('Match results saved','admin');
   setTimeout(function(){document.getElementById('results-save-msg').textContent='';},5000);
   toast('✅ Results saved');
 }
 
-/* ════════════════════════════════════════
-   TICKET SCANNER
-════════════════════════════════════════ */
+// ── TICKET SCANNER ──
+function pickToVal(p){ p=(p||'').toLowerCase(); if(p==='home'||p==='1')return '1'; if(p==='draw'||p==='x')return 'X'; if(p==='away'||p==='2')return '2'; return p.toUpperCase(); }
+function resultToVal(r){ r=(r||'').toString().toUpperCase().trim(); if(r==='VOID')return 'VOID'; return r; }
+
 function scanAllTickets(){
-  var results=getResults();
-  if(!results||results.length<14){
-    toast('⚠️ Save all 14 results first before scanning.','t-err');return;
-  }
-  var tickets=getTickets();
-  if(!tickets.length){
-    document.getElementById('scan-results').innerHTML='<div class="tbl-empty">No tickets to scan this round.</div>';
-    document.getElementById('scan-summary').style.display='grid';
-    setText('sc-total','0');setText('sc-14','0');setText('sc-13','0');setText('sc-12','0');
-    document.getElementById('publish-section').style.display='block';
-    return;
-  }
-
+  var results=_cache.results;
+  if(!results||results.length<14){ toast('⚠️ Save all 14 results first before scanning.','t-err'); return; }
+  var tickets=_cache.tickets;
+  if(!tickets.length){ document.getElementById('scan-results').innerHTML='<div class="tbl-empty">No tickets to scan this round.</div>'; document.getElementById('scan-summary').style.display='grid'; setText('sc-total','0'); setText('sc-14','0'); setText('sc-13','0'); setText('sc-12','0'); document.getElementById('publish-section').style.display='block'; return; }
   var w14=[],w13=[],w12=[],others=[];
-
   tickets.forEach(function(t){
     var correct=0;
     t.selections.forEach(function(s,i){
-      // result can be string or object {result:'1',...}
-      var rawRes=results[i];
-      var resVal=typeof rawRes==='object'?(rawRes.result||''):rawRes;
-      var res=resultToVal(resVal);
-      if(res==='VOID') return; // void matches don't count for or against
+      var rawRes=results[i]; var resVal=typeof rawRes==='object'?(rawRes.result||''):rawRes;
+      var res=resultToVal(resVal); if(res==='VOID')return;
       var picks=(s.picks||[]).map(function(p){return pickToVal(p);});
-      if(res && picks.indexOf(res)!==-1) correct++;
+      if(res&&picks.indexOf(res)!==-1) correct++;
     });
     t._correct=correct;
-    if(correct===14)      w14.push(t);
-    else if(correct===13) w13.push(t);
-    else if(correct===12) w12.push(t);
-    else                  others.push(t);
+    if(correct===14) w14.push(t); else if(correct===13) w13.push(t); else if(correct===12) w12.push(t); else others.push(t);
   });
-
   document.getElementById('scan-summary').style.display='grid';
-  setText('sc-total',tickets.length);
-  setText('sc-14',w14.length);
-  setText('sc-13',w13.length);
-  setText('sc-12',w12.length);
-
-  // Alarm
+  setText('sc-total',tickets.length); setText('sc-14',w14.length); setText('sc-13',w13.length); setText('sc-12',w12.length);
   var hasWinners=w14.length>0||w13.length>0||w12.length>0;
   var alarmBanner=document.getElementById('alarm-banner');
   if(hasWinners){
     alarmBanner.classList.add('show');
-    var msgs=[];
-    if(w14.length>0) msgs.push(w14.length+' JACKPOT WINNER(S)!');
-    if(w13.length>0) msgs.push(w13.length+' 2nd Prize Winner(s)');
-    if(w12.length>0) msgs.push(w12.length+' 3rd Prize Winner(s)');
-    setText('alarm-text','🔔 '+msgs.join(' · '));
-    setText('alarm-sub','Check winners below — fill in the winners table and publish results to users.');
-    try{
-      var ctx=new(window.AudioContext||window.webkitAudioContext)();
-      var osc=ctx.createOscillator();osc.connect(ctx.destination);
-      osc.frequency.value=880;osc.start();osc.stop(ctx.currentTime+0.4);
-    }catch(e){}
-  } else {
-    alarmBanner.classList.remove('show');
-  }
-
-  // Pre-fill winners count from scan
-  if(w14.length){ var el=document.getElementById('wn-14-tickets'); if(el&&!el.value) el.value=w14.length; }
-  if(w13.length){ var el=document.getElementById('wn-13-tickets'); if(el&&!el.value) el.value=w13.length; }
-  if(w12.length){ var el=document.getElementById('wn-12-tickets'); if(el&&!el.value) el.value=w12.length; }
-
-  // Build winner HTML
+    var msgs=[]; if(w14.length>0)msgs.push(w14.length+' JACKPOT WINNER(S)!'); if(w13.length>0)msgs.push(w13.length+' 2nd Prize Winner(s)'); if(w12.length>0)msgs.push(w12.length+' 3rd Prize Winner(s)');
+    setText('alarm-text','🔔 '+msgs.join(' · ')); setText('alarm-sub','Check winners below — fill in the winners table and publish results to users.');
+    try{ var ctx=new(window.AudioContext||window.webkitAudioContext)(); var osc=ctx.createOscillator(); osc.connect(ctx.destination); osc.frequency.value=880; osc.start(); osc.stop(ctx.currentTime+0.4); }catch(e){}
+  } else { alarmBanner.classList.remove('show'); }
+  if(w14.length){ var el=document.getElementById('wn-14-tickets'); if(el&&!el.value)el.value=w14.length; }
+  if(w13.length){ var el=document.getElementById('wn-13-tickets'); if(el&&!el.value)el.value=w13.length; }
+  if(w12.length){ var el=document.getElementById('wn-12-tickets'); if(el&&!el.value)el.value=w12.length; }
   var html='';
-  if(w14.length){
-    html+='<div class="winner-section">'
-      +'<div class="winner-section-title ws-14">🟢 14 CORRECT — SUPER JACKPOT WINNERS ('+w14.length+')</div>'
-      +w14.map(function(t){ return winnerCard(t,'wc-14'); }).join('')
-      +'</div>';
-  }
-  if(w13.length){
-    html+='<div class="winner-section">'
-      +'<div class="winner-section-title ws-13">🔵 13 CORRECT — 2ND PRIZE ('+w13.length+')</div>'
-      +w13.map(function(t){ return winnerCard(t,'wc-13'); }).join('')
-      +'</div>';
-  }
-  if(w12.length){
-    html+='<div class="winner-section">'
-      +'<div class="winner-section-title ws-12">🟡 12 CORRECT — 3RD PRIZE ('+w12.length+')</div>'
-      +w12.map(function(t){ return winnerCard(t,'wc-12'); }).join('')
-      +'</div>';
-  }
-  if(others.length){
-    html+='<div class="winner-section">'
-      +'<div class="winner-section-title ws-red">🔴 NO PRIZE — '+others.length+' Ticket(s)</div>'
-      +'</div>';
-  }
-
+  if(w14.length) html+='<div class="winner-section"><div class="winner-section-title ws-14">🟢 14 CORRECT — SUPER JACKPOT WINNERS ('+w14.length+')</div>'+w14.map(function(t){return winnerCard(t,'wc-14');}).join('')+'</div>';
+  if(w13.length) html+='<div class="winner-section"><div class="winner-section-title ws-13">🔵 13 CORRECT — 2ND PRIZE ('+w13.length+')</div>'+w13.map(function(t){return winnerCard(t,'wc-13');}).join('')+'</div>';
+  if(w12.length) html+='<div class="winner-section"><div class="winner-section-title ws-12">🟡 12 CORRECT — 3RD PRIZE ('+w12.length+')</div>'+w12.map(function(t){return winnerCard(t,'wc-12');}).join('')+'</div>';
+  if(others.length) html+='<div class="winner-section"><div class="winner-section-title ws-red">🔴 NO PRIZE — '+others.length+' Ticket(s)</div></div>';
   document.getElementById('scan-results').innerHTML=html;
-  // Show publish section
   document.getElementById('publish-section').style.display='block';
   document.getElementById('new-round-box').style.display='block';
-  _scanDone=true;
-  addLog('Tickets scanned. 14:'+w14.length+' 13:'+w13.length+' 12:'+w12.length,'admin');
+  await addLog('Tickets scanned. 14:'+w14.length+' 13:'+w13.length+' 12:'+w12.length,'admin');
 }
 
 function winnerCard(t,cls){
-  var users=getUsers();
-  var u=users[t.user]||{};
-  var msg=encodeURIComponent(
-    '🏆 Congratulations from GoalRush Jackpot!\n\n'
-    +'You got '+t._correct+'/14 correct this round.\n'
-    +'Ticket Ref: '+t.id+'\n'
-    +'Your account: '+t.user+'\n\n'
-    +'Please reply to claim your prize. Well done! ⚽'
-  );
-  return '<div class="winner-card '+cls+'">'
-    +'<div class="winner-info">'
-      +'<div class="wi-phone">'+esc(t.user)+'</div>'
-      +'<div style="font-size:11px;color:var(--text2)">Name: '+esc(u.name||'—')+'</div>'
-      +'<div class="wi-ticket">Ref: '+esc(t.id||'—')+' · Stake: ₦'+t.stake.toLocaleString()+'</div>'
-      +'<div class="wi-correct" style="color:'+(t._correct===14?'var(--green)':t._correct===13?'var(--blue)':'var(--yellow)')+'">'+t._correct+'/14 Correct</div>'
-    +'</div>'
-    +'<a class="wa-btn" href="https://wa.me/'+esc(t.user.replace(/[^0-9]/g,''))+'?text='+msg+'" target="_blank">📲 WhatsApp</a>'
-    +'</div>';
+  var u=_cache.users[t.user]||{};
+  var msg=encodeURIComponent('🏆 Congratulations from GoalRush Jackpot!\n\nYou got '+t._correct+'/14 correct this round.\nTicket Ref: '+t.id+'\nYour account: '+t.user+'\n\nPlease reply to claim your prize. Well done! ⚽');
+  return '<div class="winner-card '+cls+'"><div class="winner-info"><div class="wi-phone">'+esc(t.user)+'</div><div style="font-size:11px;color:var(--text2)">Name: '+esc(u.name||u.fullName||'—')+'</div><div class="wi-ticket">Ref: '+esc(t.id||'—')+' · Stake: ₦'+t.stake.toLocaleString()+'</div><div class="wi-correct" style="color:'+(t._correct===14?'var(--green)':t._correct===13?'var(--blue)':'var(--yellow)')+'">'+t._correct+'/14 Correct</div></div><a class="wa-btn" href="https://wa.me/'+esc(t.user.replace(/[^0-9]/g,''))+'?text='+msg+'" target="_blank">📲 WhatsApp</a></div>';
 }
 
-/* ── PUBLISH RESULTS TO USERS ── */
+// ── PUBLISH ──
 async function publishResults(){
   var roundId=document.getElementById('pub-round-id').value.trim();
   if(!roundId){ toast('Enter a Round label e.g. 20260024','t-err'); return; }
-
-  var results=getResults();
+  var results=_cache.results;
   if(!results||results.length<14){ toast('Save match results first','t-err'); return; }
-
   var matches=getMatches();
-
   var winners={};
   [['14','wn-14'],['13','wn-13'],['12','wn-12'],['11','wn-11']].forEach(function(p){
-    var tier=p[0],prefix=p[1];
-    var tEl=document.getElementById(prefix+'-tickets');
-    var pEl=document.getElementById(prefix+'-prize');
-    var tickets=tEl?parseInt(tEl.value||'0'):0;
-    var prize=pEl?parseInt(pEl.value||'0'):0;
-    if(tickets>0) winners[tier]={tickets:tickets,prize:prize};
+    var tEl=document.getElementById(p[1]+'-tickets'); var pEl=document.getElementById(p[1]+'-prize');
+    var tickets=tEl?parseInt(tEl.value||'0'):0; var prize=pEl?parseInt(pEl.value||'0'):0;
+    if(tickets>0) winners[p[0]]={tickets:tickets,prize:prize};
   });
-
   var matchList=matches.map(function(m,i){
     var r=results[i]||{};
-    return {
-      home:      m.home,
-      away:      m.away,
-      time:      m.time||'',
-      result:    typeof r==='object'?r.result:r,
-      scoreHome: typeof r==='object'?r.scoreHome:'',
-      scoreAway: typeof r==='object'?r.scoreAway:''
-    };
+    return {home:m.home,away:m.away,time:m.time||'',result:typeof r==='object'?r.result:r,scoreHome:typeof r==='object'?r.scoreHome:'',scoreAway:typeof r==='object'?r.scoreAway:''};
   });
-
   var now=new Date();
-  var savedAt=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
-    +' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-
-  var round={
-    id:      roundId,
-    roundId: roundId,
-    savedAt: savedAt,
-    winners: winners,
-    matches: matchList,
-    results: results
-  };
-
-  var rounds=JSON.parse(localStorage.getItem('grj_published_rounds')||'[]');
-  var idx=rounds.findIndex(function(r){return r.id===roundId;});
-  if(idx>=0) rounds[idx]=round;
-  else rounds.push(round);
-  localStorage.setItem('grj_published_rounds',JSON.stringify(rounds));
-
-  // Sync to Firebase so users on ALL devices see results
-  var fbOk = await window._fbReady;
-  if(fbOk && window._db){
+  var savedAt=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  var round={id:roundId,roundId:roundId,savedAt:savedAt,winners:winners,matches:matchList,results:results};
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){
     try{
-      await window._fbSetDoc(window._fbDoc(window._db,'published_rounds',roundId), round);
-      toast('📢 Results published to users + Firebase!','t-gold');
+      await window._F.setDoc(window._F.doc(window._db,'published_rounds',roundId),round);
+      // Update cache
+      var idx=_cache.publishedRounds.findIndex(function(r){return r.id===roundId;});
+      if(idx>=0) _cache.publishedRounds[idx]=round; else _cache.publishedRounds.push(round);
+      document.getElementById('publish-save-msg').innerHTML='<span style="color:var(--green)">✅ Round '+esc(roundId)+' published to ALL devices via Firebase!</span>';
+      toast('📢 Results published to all users via Firebase!','t-gold');
     }catch(e){
-      console.warn('Firebase publish error:',e);
-      toast('📢 Results published locally (Firebase sync failed)','t-gold');
+      document.getElementById('publish-save-msg').innerHTML='<span style="color:var(--red)">Firebase publish failed: '+e.message+'</span>';
+      toast('Firebase publish failed: '+e.message,'t-err');
     }
-  } else {
-    toast('📢 Results published to users!','t-gold');
-  }
-
-  addLog('Results published — Round '+roundId,'admin');
-  document.getElementById('publish-save-msg').innerHTML=
-    '<span style="color:var(--green)">✅ Round '+esc(roundId)+' published! Users will see results in their Bets tab and Results tab immediately.</span>';
+  } else { toast('Firebase not connected.','t-err'); }
+  await addLog('Results published — Round '+roundId,'admin');
   setTimeout(function(){document.getElementById('publish-save-msg').textContent='';},6000);
 }
 
-/* ── NEW ROUND ── */
-function startNewRound(){ /* triggered by inline button in publish-section */ }
-
-function confirmNewRound(){
-  var clearTickets = document.getElementById('nr-clear-tickets') && document.getElementById('nr-clear-tickets').checked;
-  var clearResults = document.getElementById('nr-clear-results') && document.getElementById('nr-clear-results').checked;
-  var resetCd      = document.getElementById('nr-reset-cd')      && document.getElementById('nr-reset-cd').checked;
-  if(!clearTickets && !clearResults && !resetCd){
-    toast('Select at least one option to proceed.','t-err'); return;
-  }
+// ── NEW ROUND ──
+async function confirmNewRound(){
+  var clearTickets=document.getElementById('nr-clear-tickets')&&document.getElementById('nr-clear-tickets').checked;
+  var clearResults=document.getElementById('nr-clear-results')&&document.getElementById('nr-clear-results').checked;
+  var resetCd=document.getElementById('nr-reset-cd')&&document.getElementById('nr-reset-cd').checked;
+  if(!clearTickets&&!clearResults&&!resetCd){ toast('Select at least one option to proceed.','t-err'); return; }
   showLoad('Starting new round...');
-  setTimeout(function(){
-    var actions=[];
-
-    if(clearTickets){
-      saveTickets([]);
-      actions.push('tickets cleared');
+  var fbOk=await window._fbReady;
+  var actions=[]; var newRoundId='round_'+Date.now();
+  if(clearTickets){
+    if(fbOk&&window._db){
+      // Delete all tickets from Firestore
+      try{
+        var snap=await window._F.getDocs(window._F.collection(window._db,'tickets'));
+        var delPromises=[]; snap.forEach(function(d){ delPromises.push(window._F.deleteDoc(window._F.doc(window._db,'tickets',d.id))); });
+        await Promise.all(delPromises);
+      }catch(e){}
     }
-
-    if(clearResults){
-      saveResults2([]);
-      _currentResults=[];
-      renderResultsEditor();
-      actions.push('results cleared');
-    }
-
-    if(resetCd){
-      clearCountdown();
-      loadCurrentCountdown();
-      actions.push('countdown reset');
-    }
-
-    /* ── KEY FIX: Generate a fresh roundId so new tickets get stamped
-       with a new ID and don't match old published results ── */
-    var newRoundId = 'round_' + Date.now();
-    localStorage.setItem('grj_current_round_id', newRoundId);
-    actions.push('new round ID: ' + newRoundId);
-
-    /* Reset pre-fill inputs */
-    ['wn-14-tickets','wn-14-prize','wn-13-tickets','wn-13-prize',
-     'wn-12-tickets','wn-12-prize','wn-11-tickets','wn-11-prize',
-     'pub-round-id'].forEach(function(id){
-      var el=document.getElementById(id); if(el) el.value='';
-    });
-
-    /* Hide scan / publish UI */
-    document.getElementById('scan-results').innerHTML='';
-    var ss=document.getElementById('scan-summary');       if(ss) ss.style.display='none';
-    var ps=document.getElementById('publish-section');    if(ps) ps.style.display='none';
-    var nrb=document.getElementById('new-round-box');     if(nrb) nrb.style.display='none';
-    var ab=document.getElementById('alarm-banner');       if(ab) ab.classList.remove('show');
-
-    updateStats();
-    addLog('New round started — '+actions.join(', '),'admin');
-    hideLoad();
-    toast('🔄 New round started! ('+actions.join(', ')+')','t-gold');
-  },1000);
+    _cache.tickets=[]; actions.push('tickets cleared');
+  }
+  if(clearResults){
+    _cache.results=null; _currentResults=[];
+    if(fbOk&&window._db){ try{ await window._F.setDoc(window._F.doc(window._db,'app_settings','current_results'),{results:[],updatedAt:new Date().toISOString()}); }catch(e){} }
+    renderResultsEditor(); actions.push('results cleared');
+  }
+  if(resetCd){
+    _cache.countdown=null;
+    if(fbOk&&window._db){ try{ await window._F.deleteDoc(window._F.doc(window._db,'app_settings','countdown')); }catch(e){} }
+    loadCurrentCountdown(); actions.push('countdown reset');
+  }
+  // Save new round ID to Firestore
+  _cache.currentRoundId=newRoundId;
+  if(fbOk&&window._db){ try{ await window._F.setDoc(window._F.doc(window._db,'app_settings','current_round'),{roundId:newRoundId,setAt:new Date().toISOString()}); }catch(e){} }
+  actions.push('new round ID: '+newRoundId);
+  ['wn-14-tickets','wn-14-prize','wn-13-tickets','wn-13-prize','wn-12-tickets','wn-12-prize','wn-11-tickets','wn-11-prize','pub-round-id'].forEach(function(id){ var el=document.getElementById(id); if(el)el.value=''; });
+  document.getElementById('scan-results').innerHTML='';
+  var ss=document.getElementById('scan-summary'); if(ss)ss.style.display='none';
+  var ps=document.getElementById('publish-section'); if(ps)ps.style.display='none';
+  var nrb=document.getElementById('new-round-box'); if(nrb)nrb.style.display='none';
+  var ab=document.getElementById('alarm-banner'); if(ab)ab.classList.remove('show');
+  await addLog('New round started — '+actions.join(', '),'admin');
+  updateStats(); hideLoad();
+  toast('🔄 New round started! ('+actions.join(', ')+')','t-gold');
 }
+function startNewRound(){}
 
-/* ════════════════════════════════════════
-   PRIZES
-════════════════════════════════════════ */
+// ════════════════════════════════════════════════════════
+//  PRIZES
+// ════════════════════════════════════════════════════════
 function loadPrizesForm(){
-  var p=getPrizes();
-  if(!p)return;
-  var f14=document.getElementById('prize-14');
-  var f13=document.getElementById('prize-13');
-  var f12=document.getElementById('prize-12');
-  if(f14&&p.jackpot) f14.value=p.jackpot;
-  if(f13&&p.second)  f13.value=p.second;
-  if(f12&&p.third)   f12.value=p.third;
+  var p=_cache.prizes; if(!p)return;
+  var f14=document.getElementById('prize-14'); var f13=document.getElementById('prize-13'); var f12=document.getElementById('prize-12');
+  if(f14&&p.jackpot)f14.value=p.jackpot; if(f13&&p.second)f13.value=p.second; if(f12&&p.third)f12.value=p.third;
 }
 async function savePrizes(){
-  var j=Number(document.getElementById('prize-14').value);
-  var s=Number(document.getElementById('prize-13').value);
-  var t=Number(document.getElementById('prize-12').value);
-  if(!j){
-    document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--red)">Enter the Super Jackpot (14 correct) amount.</span>';
-    return;
-  }
-  var prizeData={jackpot:j,second:s,third:t};
-  savePrizesData(prizeData);
-  addLog('Prize settings updated — Jackpot: ₦'+j.toLocaleString(),'admin');
-  // Sync to Firestore
-  var fbOk = await window._fbReady;
-  if(fbOk && window._db){
+  var j=Number(document.getElementById('prize-14').value); var s=Number(document.getElementById('prize-13').value); var t=Number(document.getElementById('prize-12').value);
+  if(!j){ document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--red)">Enter the Super Jackpot amount.</span>'; return; }
+  var prizeData={jackpot:j,second:s,third:t,updatedAt:new Date().toISOString()};
+  _cache.prizes=prizeData;
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){
     try{
-      await window._fbSetDoc(window._fbDoc(window._db,'app_settings','prizes'),
-        Object.assign({},prizeData,{updatedAt:new Date().toISOString()}),{merge:true});
-    }catch(e){ console.warn('Prize sync:',e); }
+      await window._F.setDoc(window._F.doc(window._db,'app_settings','prizes'),prizeData,{merge:true});
+      document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--green)">✅ Prize settings saved on ALL devices!</span>';
+    }catch(e){ document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--red)">Failed: '+e.message+'</span>'; }
   }
-  document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--green)">✅ Prize settings saved on all devices! Game page now shows ₦'+j.toLocaleString()+'</span>';
+  await addLog('Prize settings updated — Jackpot: ₦'+j.toLocaleString(),'admin');
   setTimeout(function(){document.getElementById('prizes-save-msg').textContent='';},5000);
-  toast('🏆 Prize settings saved on all devices');
+  toast('🏆 Prize settings saved');
 }
 
-/* ════════════════════════════════════════
-   MATCHES EDITOR
-════════════════════════════════════════ */
+// ════════════════════════════════════════════════════════
+//  MATCHES EDITOR
+// ════════════════════════════════════════════════════════
+function loadMatchesEditor(){ renderMatchesEditor(); }
 function renderMatchesEditor(){
   var matches=getMatches();
-  var html=matches.map(function(m,i){
-    return '<div class="match-edit-row">'
-      +'<div class="match-num-badge">'+(i+1)+'</div>'
-      +'<div class="match-inputs">'
-        +'<input class="mi-field" id="mh-'+i+'" value="'+esc(m.home||'')+'" placeholder="Home Team"/>'
-        +'<input class="mi-field" id="ma-'+i+'" value="'+esc(m.away||'')+'" placeholder="Away Team"/>'
-        +'<input class="mi-field" id="mt-'+i+'" value="'+esc(m.time||'')+'" placeholder="Date/Time e.g. 2025-09-06 14:00" style="min-width:180px"/>'
-      +'</div>'
-      +'</div>';
+  document.getElementById('matches-editor').innerHTML=matches.map(function(m,i){
+    return '<div class="match-edit-row"><div class="match-num-badge">'+(i+1)+'</div><div class="match-inputs">'
+      +'<input class="mi-field" id="mh-'+i+'" value="'+esc(m.home||'')+'" placeholder="Home Team"/>'
+      +'<input class="mi-field" id="ma-'+i+'" value="'+esc(m.away||'')+'" placeholder="Away Team"/>'
+      +'<input class="mi-field" id="mt-'+i+'" value="'+esc(m.time||'')+'" placeholder="Date/Time e.g. 2025-09-06 14:00" style="min-width:180px"/>'
+      +'</div></div>';
   }).join('');
-  document.getElementById('matches-editor').innerHTML=html;
 }
-
 async function saveMatches(){
-  var matches=[];
+  var matches=[]; var msgEl=document.getElementById('matches-save-msg');
   for(var i=0;i<14;i++){
-    var h=document.getElementById('mh-'+i);
-    var a=document.getElementById('ma-'+i);
-    var t=document.getElementById('mt-'+i);
+    var h=document.getElementById('mh-'+i); var a=document.getElementById('ma-'+i); var t=document.getElementById('mt-'+i);
     if(!h||!a||!t)continue;
     var home=h.value.trim(),away=a.value.trim(),time=t.value.trim();
-    if(!home||!away){
-      document.getElementById('matches-save-msg').innerHTML='<span style="color:var(--red)">Match '+(i+1)+': both team names are required.</span>';
-      return;
-    }
+    if(!home||!away){ msgEl.innerHTML='<span style="color:var(--red)">Match '+(i+1)+': both team names required.</span>'; return; }
     matches.push({home:home,away:away,time:time||'TBD'});
   }
-  saveMatchData(matches);
-  addLog('Matches updated','admin');
-  // Save to Firestore so ALL devices instantly get updated teams
-  var fbOk = await window._fbReady;
-  if(fbOk && window._db){
+  _cache.matches=matches;
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){
     try{
-      await window._fbSetDoc(window._fbDoc(window._db,'app_settings','matches'),
-        {matches:matches, updatedAt:new Date().toISOString()}, {merge:true});
-      document.getElementById('matches-save-msg').innerHTML='<span style="color:var(--green)">✅ All 14 matches saved — live on ALL devices now.</span>';
-    }catch(e){
-      document.getElementById('matches-save-msg').innerHTML='<span style="color:var(--gold)">✅ Saved locally. Firebase sync failed: '+e.message+'</span>';
-    }
-  } else {
-    document.getElementById('matches-save-msg').innerHTML='<span style="color:var(--green)">✅ All 14 matches saved — live on game page now.</span>';
+      await window._F.setDoc(window._F.doc(window._db,'app_settings','matches'),{matches:matches,updatedAt:new Date().toISOString()},{merge:true});
+      msgEl.innerHTML='<span style="color:var(--green)">✅ All 14 matches saved to Firebase — live on ALL devices NOW!</span>';
+      toast('⚽ Matches updated on all devices');
+    }catch(e){ msgEl.innerHTML='<span style="color:var(--red)">Firebase save failed: '+e.message+'</span>'; }
   }
-  setTimeout(function(){document.getElementById('matches-save-msg').textContent='';},4000);
-  toast('⚽ Matches updated on all devices');
+  await addLog('Matches updated','admin');
+  setTimeout(function(){msgEl.textContent='';},4000);
 }
 
-/* ════════════════════════════════════════
-   COUNTDOWN (real-time accurate)
-════════════════════════════════════════ */
+// ════════════════════════════════════════════════════════
+//  COUNTDOWN
+// ════════════════════════════════════════════════════════
 async function startCountdown(){
   var d=Number(document.getElementById('cd-days').value)||0;
   var h=Number(document.getElementById('cd-hours').value)||0;
@@ -2050,256 +1743,139 @@ async function startCountdown(){
   var total=d*86400+h*3600+m*60+s;
   if(total<=0){toast('Enter a duration first.','t-err');return;}
   var cfg={days:d,hours:h,minutes:m,seconds:s,totalSeconds:total,setAt:Date.now(),target:Date.now()+total*1000};
-  saveCountdown(cfg);
+  _cache.countdown=cfg;
   loadCurrentCountdown();
-  addLog('Countdown set: '+d+'d '+h+'h '+m+'m '+s+'s','admin');
-  // Sync to Firestore so all devices show same countdown
-  var fbOk = await window._fbReady;
-  if(fbOk && window._db){
-    try{
-      await window._fbSetDoc(window._fbDoc(window._db,'app_settings','countdown'),cfg,{merge:true});
-    }catch(e){ console.warn('Countdown sync:',e); }
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){
+    try{ await window._F.setDoc(window._F.doc(window._db,'app_settings','countdown'),cfg,{merge:true}); }catch(e){}
   }
+  await addLog('Countdown set: '+d+'d '+h+'h '+m+'m '+s+'s','admin');
   toast('⏱ Countdown started on all devices — '+d+'d '+h+'h '+m+'m '+s+'s');
 }
-
-function resetCountdown(){
-  clearCountdown();
+async function resetCountdown(){
+  _cache.countdown=null;
   loadCurrentCountdown();
-  addLog('Countdown reset — betting open','admin');
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){ try{ await window._F.deleteDoc(window._F.doc(window._db,'app_settings','countdown')); }catch(e){} }
+  await addLog('Countdown reset — betting open','admin');
   toast('↺ Countdown reset — betting is now open','t-gold');
 }
-
 function loadCurrentCountdown(){
-  var cfg=getCountdown();
+  var cfg=_cache.countdown;
   var el=document.getElementById('cd-current');
-  if(!cfg){el.textContent='⚪ No countdown active — betting is currently open.';el.style.color='var(--green)';return;}
+  if(!cfg){el.textContent='⚪ No countdown active — betting is open.';el.style.color='var(--green)';return;}
   var elapsed=Math.floor((Date.now()-(cfg.setAt||Date.now()))/1000);
   var remaining=Math.max(0,(cfg.totalSeconds||0)-elapsed);
-  var d=Math.floor(remaining/86400),r=remaining%86400;
-  var h=Math.floor(r/3600);r%=3600;
-  var m=Math.floor(r/60);var s=r%60;
-  if(remaining>0){
-    el.innerHTML='⏱ Remaining: <span style="color:var(--gold)">'+d+'d '+h+'h '+m+'m '+s+'s</span>';
-    el.style.color='var(--text)';
-  }else{
-    el.innerHTML='🔴 <span style="color:var(--red)">Countdown has expired — betting is CLOSED</span>';
-  }
+  var d=Math.floor(remaining/86400),r=remaining%86400,h=Math.floor(r/3600);r%=3600;var m=Math.floor(r/60),s=r%60;
+  if(remaining>0){ el.innerHTML='⏱ Remaining: <span style="color:var(--gold)">'+d+'d '+h+'h '+m+'m '+s+'s</span>'; el.style.color='var(--text)'; }
+  else{ el.innerHTML='🔴 <span style="color:var(--red)">Countdown expired — betting CLOSED</span>'; }
 }
 
-/* ════════════════════════════════════════
-   BET ID SEARCH
-════════════════════════════════════════ */
+// ── BET ID SEARCH ──
 function searchBetId(){
   var input=document.getElementById('betid-input').value.trim().toUpperCase();
   var resultDiv=document.getElementById('betid-result');
-  if(!input){
-    resultDiv.innerHTML='<div class="tbl-empty" style="color:var(--red);">Please enter a Ticket ID.</div>';
-    return;
+  if(!input){ resultDiv.innerHTML='<div class="tbl-empty" style="color:var(--red);">Please enter a Ticket ID.</div>'; return; }
+  var ticket=_cache.tickets.find(function(t){return (t.id||'').toUpperCase()===input;});
+  if(!ticket){ resultDiv.innerHTML='<div style="background:#1a0000;border:1px solid var(--red);border-radius:12px;padding:20px;text-align:center;"><div style="font-size:32px;margin-bottom:10px;">❌</div><div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:6px;">Ticket Not Found</div><div style="font-size:13px;color:var(--text3);">No bet with ID <span style="font-family:monospace;color:var(--gold)">'+esc(input)+'</span> exists.</div></div>'; return; }
+  var u=_cache.users[ticket.user]||{};
+  var matchedRound=_cache.publishedRounds.find(function(r){return r.roundId===ticket.roundId||r.id===ticket.roundId;})||null;
+  if(!matchedRound&&ticket.selections&&ticket.selections.length>=3){
+    matchedRound=_cache.publishedRounds.find(function(r){
+      var rm=r.matches||[];if(rm.length<3)return false;var hits=0;
+      for(var x=0;x<Math.min(4,ticket.selections.length,rm.length);x++){
+        var s=ticket.selections[x],m=rm[x];if(!s||!m)continue;
+        if((s.home||'').toLowerCase().trim()===(m.home||'').toLowerCase().trim()&&(s.away||'').toLowerCase().trim()===(m.away||'').toLowerCase().trim())hits++;
+      }
+      return hits>=3;
+    })||null;
   }
-  var allTickets=getTickets();
-  var ticket=null;
-  for(var i=0;i<allTickets.length;i++){
-    if((allTickets[i].id||'').toUpperCase()===input){
-      ticket=allTickets[i];break;
-    }
-  }
-  if(!ticket){
-    resultDiv.innerHTML=
-      '<div style="background:#1a0000;border:1px solid var(--red);border-radius:12px;padding:20px;text-align:center;">'
-      +'<div style="font-size:32px;margin-bottom:10px;">❌</div>'
-      +'<div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:6px;">Ticket Not Found</div>'
-      +'<div style="font-size:13px;color:var(--text3);">No bet with ID <span style="font-family:monospace;color:var(--gold)">'+esc(input)+'</span> exists on this platform.</div>'
-      +'</div>';
-    return;
-  }
-
-  /* Found — build full receipt */
-  var users=getUsers();
-  var u=users[ticket.user]||{};
-  var results=getResults();
-  var publishedRounds=JSON.parse(localStorage.getItem('grj_published_rounds')||'[]');
-  var activeRound=publishedRounds.length>0?publishedRounds[publishedRounds.length-1]:null;
-  var roundResults=activeRound?activeRound.matches:null;
-
-  var totalCorrect=0;
-  var totalVoid=0;
-
+  var roundResults=matchedRound?matchedRound.matches:null;
+  var totalCorrect=0,totalVoid=0;
   var matchRows=ticket.selections.map(function(s,idx){
     var pick=s.code||'';
     var matchResult=roundResults?roundResults[idx]:null;
     var resVal=matchResult?(matchResult.result||'').toString().trim().toUpperCase():'';
-    var isVoid=resVal==='VOID';
-    var hasResult=resVal!=='';
-    var userPickVals=(s.picks||[]).map(function(p){
-      p=(p||'').toLowerCase();
-      if(p==='home'||p==='1') return '1';
-      if(p==='draw'||p==='x') return 'X';
-      if(p==='away'||p==='2') return '2';
-      return '';
-    });
+    var isVoid=resVal==='VOID';var hasResult=resVal!=='';
+    var userPickVals=(s.picks||[]).map(function(p){p=(p||'').toLowerCase();if(p==='home'||p==='1')return '1';if(p==='draw'||p==='x')return 'X';if(p==='away'||p==='2')return '2';return '';});
     var isWin=hasResult&&!isVoid&&userPickVals.indexOf(resVal)!==-1;
-    if(isVoid) totalVoid++;
-    if(isWin)  totalCorrect++;
-    var score='';
-    if(matchResult&&matchResult.scoreHome!==undefined&&matchResult.scoreAway!==undefined&&!isVoid){
-      score=' <span style="font-size:10px;color:var(--text3)">('+matchResult.scoreHome+'-'+matchResult.scoreAway+')</span>';
-    }
-    var indicator=!hasResult
-      ?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right;">—</span>'
-      :isVoid
-        ?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right;">void</span>'
-        :isWin
-          ?'<span style="color:var(--green);font-size:13px;font-weight:800;min-width:40px;text-align:right;">✅ Won</span>'
-          :'<span style="color:var(--red);font-size:13px;font-weight:700;min-width:40px;text-align:right;">❌ Lost</span>';
-
-    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">'
-      +'<span style="color:var(--text3);width:24px;font-size:11px;font-weight:700;flex-shrink:0;">'+s.matchIndex+'</span>'
-      +'<span style="flex:1;font-size:12px;color:var(--text2);">'+esc(s.home||'—')+' v '+esc(s.away||'—')+score+'</span>'
-      +'<span style="color:var(--green);font-weight:700;font-size:13px;min-width:28px;text-align:center;">'+esc(pick)+'</span>'
-      +indicator
-      +'</div>';
+    if(isVoid)totalVoid++;if(isWin)totalCorrect++;
+    var score='';if(matchResult&&matchResult.scoreHome!==undefined&&!isVoid)score=' <span style="font-size:10px;color:var(--text3)">('+matchResult.scoreHome+'-'+matchResult.scoreAway+')</span>';
+    var indicator=!hasResult?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right;">—</span>':isVoid?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right;">void</span>':isWin?'<span style="color:var(--green);font-size:13px;font-weight:800;min-width:40px;text-align:right;">✅ Won</span>':'<span style="color:var(--red);font-size:13px;font-weight:700;min-width:40px;text-align:right;">❌ Lost</span>';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text3);width:24px;font-size:11px;font-weight:700;flex-shrink:0;">'+s.matchIndex+'</span><span style="flex:1;font-size:12px;color:var(--text2);">'+esc(s.home||'—')+' v '+esc(s.away||'—')+score+'</span><span style="color:var(--green);font-weight:700;font-size:13px;min-width:28px;text-align:center;">'+esc(pick)+'</span>'+indicator+'</div>';
   }).join('');
-
-  var statusColor=!roundResults?'var(--text3)':totalCorrect===14?'var(--green)':totalCorrect>=13?'var(--blue)':totalCorrect>=12?'var(--yellow)':'var(--red)';
-  var statusLabel=!roundResults?'— Awaiting results':(totalCorrect+' correct'+(totalVoid?' ('+totalVoid+' void)':''));
-
-  resultDiv.innerHTML=
-    '<div style="background:var(--card);border:2px solid var(--green);border-radius:14px;padding:18px;">'
-
-      /* Header */
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">'
-        +'<div>'
-          +'<div style="font-size:14px;font-weight:800;color:var(--gold);">🎫 Ticket Found</div>'
-          +'<div style="font-family:monospace;font-size:12px;color:var(--green);margin-top:4px;">ID: '+esc(ticket.id||'—')+'</div>'
-        +'</div>'
-        +'<span style="font-size:10px;color:var(--text3);">'+fmtDate(ticket.created)+'</span>'
-      +'</div>'
-
-      /* User info */
-      +'<div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:14px;">'
-        +'<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Account Info</div>'
-        +'<div style="font-size:14px;font-weight:700;color:var(--green);">'+esc(u.name||ticket.user)+'</div>'
-        +'<div style="font-size:12px;color:var(--text2);margin-top:2px;">Phone: '+esc(ticket.user)+'</div>'
-        +'<div style="font-size:12px;color:var(--text2);">Email: '+esc(u.email||'—')+'</div>'
-        +'<div style="font-size:12px;color:var(--gold);margin-top:4px;">Balance: ₦'+Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2})+'</div>'
-      +'</div>'
-
-      /* Bet info */
-      +'<div style="display:flex;gap:6px;margin-bottom:10px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding-bottom:6px;border-bottom:1px solid var(--border);">'
-        +'<span style="width:24px;">#</span>'
-        +'<span style="flex:1;">Match</span>'
-        +'<span style="min-width:28px;text-align:center;">Pick</span>'
-        +'<span style="min-width:40px;text-align:right;">Result</span>'
-      +'</div>'
-      +matchRows
-
-      /* Overall result */
-      +'<div style="margin-top:12px;padding:10px 12px;background:var(--bg3);border-radius:9px;display:flex;justify-content:space-between;align-items:center;">'
-        +'<span style="font-size:12px;color:var(--text3);">Overall</span>'
-        +'<span style="font-size:14px;font-weight:800;color:'+statusColor+';">'+statusLabel+'</span>'
-      +'</div>'
-
-      /* Stake footer */
-      +'<div style="margin-top:10px;font-size:13px;color:var(--text2);padding-top:10px;border-top:1px solid var(--border);">'
-        +'Combinations: <strong style="color:var(--gold);">'+ticket.combination+'</strong>'
-        +' &nbsp;|&nbsp; Stake: <strong style="color:var(--gold);">₦'+ticket.stake.toLocaleString()+'</strong>'
-      +'</div>'
-
-    +'</div>';
-
+  var sc=!roundResults?'var(--text3)':totalCorrect===14?'var(--green)':totalCorrect>=13?'var(--blue)':totalCorrect>=12?'var(--yellow)':'var(--red)';
+  var sl=!roundResults?'— Awaiting results':(totalCorrect+' correct'+(totalVoid?' ('+totalVoid+' void)':''));
+  resultDiv.innerHTML='<div style="background:var(--card);border:2px solid var(--green);border-radius:14px;padding:18px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);"><div><div style="font-size:14px;font-weight:800;color:var(--gold);">🎫 Ticket Found</div><div style="font-family:monospace;font-size:12px;color:var(--green);margin-top:4px;">ID: '+esc(ticket.id||'—')+'</div></div><span style="font-size:10px;color:var(--text3);">'+fmtDate(ticket.created)+'</span></div><div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:14px;"><div style="font-size:14px;font-weight:700;color:var(--green);">'+esc(u.name||u.fullName||ticket.user)+'</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Phone: '+esc(ticket.user)+'</div><div style="font-size:12px;color:var(--gold);margin-top:4px;">Balance: ₦'+Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2})+'</div></div>'+matchRows+'<div style="margin-top:12px;padding:10px 12px;background:var(--bg3);border-radius:9px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;color:var(--text3);">Overall</span><span style="font-size:14px;font-weight:800;color:'+sc+';">'+sl+'</span></div><div style="margin-top:10px;font-size:13px;color:var(--text2);padding-top:10px;border-top:1px solid var(--border);">Combinations: <strong style="color:var(--gold);">'+ticket.combination+'</strong> &nbsp;|&nbsp; Stake: <strong style="color:var(--gold);">₦'+ticket.stake.toLocaleString()+'</strong></div></div>';
   addLog('Bet ID searched: '+input,'admin');
 }
+
+// ── BROADCAST ──
 function loadBroadcast(){
-  try{
-    var saved=JSON.parse(localStorage.getItem('grj_broadcast_obj')||'null');
-    if(saved&&saved.message) document.getElementById('bc-msg').value=saved.message;
-  }catch(e){}
+  var bc=_cache.broadcast;
+  if(bc&&bc.message){ var el=document.getElementById('bc-msg'); if(el)el.value=bc.message; }
 }
 async function sendBroadcast(){
   var msg=document.getElementById('bc-msg').value.trim();
   if(!msg){toast('Enter a message first.','t-err');return;}
-  var obj={message:msg, sentAt:Date.now(), sentAtStr:new Date().toLocaleString()};
-  localStorage.setItem('grj_broadcast_obj', JSON.stringify(obj));
-  localStorage.setItem('grj_broadcast', msg);
-  addLog('Broadcast sent: '+msg.slice(0,60),'admin');
-  // Push to Firestore so ALL devices receive it instantly
-  var fbOk = await window._fbReady;
-  if(fbOk && window._db){
+  var obj={message:msg,sentAt:Date.now(),sentAtStr:new Date().toLocaleString()};
+  _cache.broadcast=obj;
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){
     try{
-      await window._fbSetDoc(window._fbDoc(window._db,'app_settings','broadcast'),obj,{merge:true});
-      document.getElementById('bc-status').innerHTML=
-        '✅ Broadcast sent at '+new Date().toLocaleTimeString()+
-        ' — pushed to ALL devices via Firebase.';
-    }catch(e){
-      document.getElementById('bc-status').innerHTML=
-        '✅ Broadcast saved. Firebase push failed: '+e.message;
-    }
-  } else {
-    document.getElementById('bc-status').innerHTML=
-      '✅ Broadcast sent at '+new Date().toLocaleTimeString()+
-      ' — users on same device will see it.';
+      await window._F.setDoc(window._F.doc(window._db,'app_settings','broadcast'),obj,{merge:true});
+      document.getElementById('bc-status').innerHTML='✅ Broadcast sent at '+new Date().toLocaleTimeString()+' — pushed to ALL devices via Firebase.';
+    }catch(e){ document.getElementById('bc-status').innerHTML='Failed: '+e.message; }
   }
+  await addLog('Broadcast sent: '+msg.slice(0,60),'admin');
   setTimeout(function(){document.getElementById('bc-status').textContent='';},6000);
   toast('📢 Broadcast sent to all users!');
 }
 
-/* ════════════════════════════════════════
-   LOGS
-════════════════════════════════════════ */
+// ── LOGS ──
 function loadLogs(){
-  var logs=getLogs();
-  if(!logs.length){
-    document.getElementById('logs-list').innerHTML='<div class="log-empty">No activity logged yet.</div>';
-    return;
-  }
-  document.getElementById('logs-list').innerHTML=logs.map(function(l){
-    return '<div class="log-entry">'
-      +'<div class="log-time">'+esc(l.time||'—')+'</div>'
-      +'<div><span class="log-action">'+esc(l.action||'—')+'</span>'
-      +(l.user?' — <span class="log-user">'+esc(l.user)+'</span>':'')
-      +'</div></div>';
+  var logs=_cache.logs;
+  if(!logs.length){ document.getElementById('logs-list').innerHTML='<div class="log-empty">No activity logged yet.</div>'; return; }
+  document.getElementById('logs-list').innerHTML=logs.slice(0,200).map(function(l){
+    return '<div class="log-entry"><div class="log-time">'+esc(l.time||'—')+'</div><div><span class="log-action">'+esc(l.action||'—')+'</span>'+(l.user?' — <span class="log-user">'+esc(l.user)+'</span>':'')+'</div></div>';
   }).join('');
 }
-function clearLogs(){
+async function clearLogs(){
   if(!confirm('Clear all audit logs? This cannot be undone.'))return;
-  saveLogs([]);loadLogs();
-  toast('🗑️ All logs cleared','t-err');
+  _cache.logs=[];
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){
+    try{
+      var snap=await window._F.getDocs(window._F.collection(window._db,'logs'));
+      var dels=[]; snap.forEach(function(d){dels.push(window._F.deleteDoc(window._F.doc(window._db,'logs',d.id)));});
+      await Promise.all(dels);
+    }catch(e){}
+  }
+  loadLogs(); toast('🗑️ All logs cleared','t-err');
+}
+async function addLog(action,user){
+  _cache.logs.unshift({time:new Date().toISOString(),action:action,user:user||''});
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){
+    try{ await window._F.addDoc(window._F.collection(window._db,'logs'),{time:new Date().toISOString(),action:action,user:user||''}); }catch(e){}
+  }
 }
 
-/* ════════════════════════════════════════
-   MODAL HELPERS
-════════════════════════════════════════ */
-function openMo(id){ document.getElementById(id).classList.add('open'); }
-function closeMo(id){ document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.mo').forEach(function(el){
-  el.addEventListener('click',function(e){ if(e.target===this) closeMo(this.id); });
-});
+// ── MODAL HELPERS ──
+function openMo(id){document.getElementById(id).classList.add('open');}
+function closeMo(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.mo').forEach(function(el){ el.addEventListener('click',function(e){if(e.target===this)closeMo(this.id);}); });
 
-/* ── LOADING ── */
-function showLoad(txt){ setText('a-spin-txt',txt||'Processing...'); document.getElementById('a-loading').classList.add('show'); }
-function hideLoad(){ document.getElementById('a-loading').classList.remove('show'); }
+function showLoad(txt){setText('a-spin-txt',txt||'Processing...');document.getElementById('a-loading').classList.add('show');}
+function hideLoad(){document.getElementById('a-loading').classList.remove('show');}
 
-/* ── TOAST ── */
 var _tt=null;
-function toast(msg,cls){
-  var el=document.getElementById('toast');
-  el.textContent=msg; el.className='show '+(cls||'');
-  if(_tt)clearTimeout(_tt);
-  _tt=setTimeout(function(){el.className='';},3800);
-}
+function toast(msg,cls){var el=document.getElementById('toast');el.textContent=msg;el.className='show '+(cls||'');if(_tt)clearTimeout(_tt);_tt=setTimeout(function(){el.className='';},3800);}
 
-/* ── UTILS ── */
-function setText(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; }
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-function fmtDate(iso){
-  if(!iso) return '—';
-  try{
-    var d=new Date(iso);
-    if(isNaN(d.getTime())) return String(iso);
-    return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-  }catch(e){return String(iso);}
-}
+function setText(id,val){var el=document.getElementById(id);if(el)el.textContent=val;}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function fmtDate(iso){if(!iso)return '—';try{var d=new Date(iso);if(isNaN(d.getTime()))return String(iso);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}catch(e){return String(iso);}}
+
 </script>
 </body>
 </html>

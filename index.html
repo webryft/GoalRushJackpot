@@ -794,9 +794,9 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
 <div id="notif"></div>
 
 <script>
-// ══════════════════════════════════════════════════════════════
-//  🔥 FIREBASE CONFIG — same in both index.html and admin.html
-// ══════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  🔥 FIREBASE CONFIG
+// ════════════════════════════════════════════════════════
 var _FIREBASE_CONFIG = {
   apiKey: "AIzaSyDDgcOPxwXS8P5kAvmcqaRd8nTCl2a3Q4E",
   authDomain: "goalrushjackpot.firebaseapp.com",
@@ -807,8 +807,30 @@ var _FIREBASE_CONFIG = {
   measurementId: "G-FDNDS7FDCD"
 };
 
+// ── In-memory cache (replaces localStorage entirely) ──
+var _cache = {
+  cu: null,          // current user key (phone)
+  cuUid: null,       // current user Firebase UID
+  cuData: null,      // current user profile object
+  matches: null,     // array of 14 matches from Firestore
+  prizes: null,      // prize settings object
+  countdown: null,   // countdown config object
+  publishedRounds: [],// array of published result rounds
+  tickets: [],       // current user's tickets
+  broadcast: null,   // broadcast object
+};
+
+// ── Restore session from sessionStorage on reload ──
+try {
+  var _ss = sessionStorage.getItem('grj_session');
+  if(_ss){ var _sd = JSON.parse(_ss); _cache.cu = _sd.cu||null; _cache.cuUid = _sd.uid||null; }
+} catch(e){}
+
+function _saveSession(){ try{ sessionStorage.setItem('grj_session', JSON.stringify({cu:_cache.cu, uid:_cache.cuUid})); }catch(e){} }
+function _clearSession(){ _cache.cu=null; _cache.cuUid=null; _cache.cuData=null; _cache.tickets=[]; try{ sessionStorage.removeItem('grj_session'); }catch(e){} }
+
 // ════════════════════════════════════════════════════════
-//  FIREBASE INIT — _fbReady is a Promise every fn awaits
+//  FIREBASE INIT — _fbReady resolves when Firebase is up
 // ════════════════════════════════════════════════════════
 window._fbReady = (async function(){
   try{
@@ -817,229 +839,113 @@ window._fbReady = (async function(){
             signOut, onAuthStateChanged, sendPasswordResetEmail }
       = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const { getFirestore, doc, setDoc, getDoc, updateDoc,
-            collection, getDocs, addDoc, serverTimestamp, query, where }
+            collection, getDocs, addDoc, serverTimestamp, query, where, deleteDoc }
       = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
     const app  = initializeApp(_FIREBASE_CONFIG);
     const auth = getAuth(app);
     const db   = getFirestore(app);
 
-    window._FB            = true;
-    window._auth          = auth;
-    window._db            = db;
-    window._fbDoc         = doc;
-    window._fbSetDoc      = setDoc;
-    window._fbGetDoc      = getDoc;
-    window._fbUpdateDoc   = updateDoc;
-    window._fbCollection  = collection;
-    window._fbGetDocs     = getDocs;
-    window._fbAddDoc      = addDoc;
-    window._fbServerTS    = serverTimestamp;
-    window._fbQuery       = query;
-    window._fbWhere       = where;
-    window._fbCreateUser  = createUserWithEmailAndPassword;
-    window._fbSignIn      = signInWithEmailAndPassword;
-    window._fbSignOut     = signOut;
-    window._fbResetPw     = sendPasswordResetEmail;
+    window._FB   = true;
+    window._auth = auth;
+    window._db   = db;
+    window._F    = { doc, setDoc, getDoc, updateDoc, collection, getDocs,
+                     addDoc, serverTimestamp, query, where, deleteDoc,
+                     createUserWithEmailAndPassword, signInWithEmailAndPassword,
+                     signOut, onAuthStateChanged, sendPasswordResetEmail };
 
-    // ── Restore session on reload ──
+    // ── Restore session: reload profile + tickets from Firestore on page load ──
     onAuthStateChanged(auth, async function(fbUser){
       if(fbUser){
-        try{
-          var snap = await getDoc(doc(db,'users',fbUser.uid));
-          if(snap.exists()){
-            var data = snap.data();
-            data.name = data.fullName || data.name || '';
-            data.uid  = fbUser.uid;
-            // Always use phone as local key if available
-            var key = data.phone || fbUser.uid;
-            _localSet('grj_cu', key);
-            _mergeLocalUser(key, data);
-          }
-        }catch(e){ console.warn('onAuthStateChanged profile load:',e); }
-        // Re-load tickets/withdrawals/deposits from Firestore for this user
-        var cu = _localGet('grj_cu');
-        if(cu){ await _loadUserDataFromFirestore(cu); }
+        _cache.cuUid = fbUser.uid;
+        _saveSession();
+        var snap = await getDoc(doc(db,'users',fbUser.uid));
+        if(snap.exists()){
+          _cache.cuData = snap.data();
+          _cache.cu     = _cache.cuData.phone || fbUser.uid;
+          _saveSession();
+          await _loadMyTickets();
+        }
         updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
       } else {
-        _localRemove('grj_cu');
+        _clearSession();
         updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
       }
     });
 
-    console.log('✅ Firebase Auth + Firestore ready');
+    console.log('✅ Firebase ready');
     return true;
   }catch(e){
-    console.warn('Firebase init failed:', e);
+    console.error('Firebase init failed:', e);
     window._FB = false;
     return false;
   }
 })();
 
 // ════════════════════════════════════════════════════════
-//  LOCAL HELPERS (localStorage + Firestore dual-write)
+//  FIRESTORE HELPERS
 // ════════════════════════════════════════════════════════
-function _localGet(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
-function _localSet(k,v){ try{localStorage.setItem(k,v);}catch(e){} }
-function _localRemove(k){ try{localStorage.removeItem(k);}catch(e){} }
-function _localGetJSON(k,def){ try{return JSON.parse(localStorage.getItem(k)||'null')||def;}catch(e){return def;} }
-function _localSetJSON(k,v){ try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} }
+async function _db(){ await window._fbReady; return window._db; }
 
-// ── Merge a Firebase user doc into localStorage ──
-function _mergeLocalUser(key, data){
-  var users = _localGetJSON('grj_users',{});
-  users[key] = Object.assign(users[key]||{}, data);
-  _localSetJSON('grj_users', users);
-}
-
-// ════════════════════════════════════════════════════════
-//  DATA LAYER — every read/write goes to BOTH localStorage
-//  AND Firestore so all devices stay in sync
-// ════════════════════════════════════════════════════════
-
-// ── Users ──
-function getUsers(){ return _localGetJSON('grj_users',{}); }
-function saveUsers(u){ _localSetJSON('grj_users',u); }
-
-// ── Current session user key ──
-function currentUser(){ return _localGet('grj_cu')||null; }
-function setCurrentUser(key){ _localSet('grj_cu',key); }
-function logoutUser(){ _localRemove('grj_cu'); }
-
-// ── Tickets (local + Firestore) ──
-function getTickets(){ return _localGetJSON('grj_tickets',[]); }
-function saveTickets(arr){ _localSetJSON('grj_tickets',arr); }
-
-async function _saveTicketToFirestore(ticket){
-  var fbOk = await window._fbReady;
-  if(!fbOk||!window._db) return;
+// ── Load current user tickets from Firestore ──
+async function _loadMyTickets(){
+  if(!_cache.cu || !window._db) return;
   try{
-    await window._fbSetDoc(window._fbDoc(window._db,'tickets',ticket.id), ticket);
-  }catch(e){ console.warn('Ticket Firestore save:',e); }
-}
-
-async function _loadUserDataFromFirestore(userKey){
-  var fbOk = await window._fbReady;
-  if(!fbOk||!window._db) return;
-  try{
-    // Load tickets
-    var tSnap = await window._fbGetDocs(
-      window._fbQuery(window._fbCollection(window._db,'tickets'), window._fbWhere('user','==',userKey))
+    var snap = await window._F.getDocs(
+      window._F.query(window._F.collection(window._db,'tickets'),
+        window._F.where('user','==',_cache.cu))
     );
-    var fbTickets = [];
-    tSnap.forEach(function(d){ fbTickets.push(d.data()); });
-    if(fbTickets.length){
-      // Merge with local
-      var local = getTickets();
-      var localIds = new Set(local.map(function(t){return t.id;}));
-      fbTickets.forEach(function(ft){
-        if(!localIds.has(ft.id)) local.push(ft);
-      });
-      saveTickets(local);
-    }
-
-    // Load withdrawals for this user
-    var wSnap = await window._fbGetDocs(
-      window._fbQuery(window._fbCollection(window._db,'withdrawals'), window._fbWhere('user','==',userKey))
-    );
-    var fbWd = [];
-    wSnap.forEach(function(d){ fbWd.push(d.data()); });
-    if(fbWd.length){
-      var localWd = getWithdrawals();
-      var localWdIds = new Set(localWd.map(function(w){return w.id;}));
-      fbWd.forEach(function(w){ if(!localWdIds.has(w.id)) localWd.push(w); });
-      saveWithdrawals(localWd);
-    }
-
-    // Load deposits for this user
-    var dSnap = await window._fbGetDocs(
-      window._fbQuery(window._fbCollection(window._db,'deposits'), window._fbWhere('user','==',userKey))
-    );
-    var fbDep = [];
-    dSnap.forEach(function(d){ fbDep.push(d.data()); });
-    if(fbDep.length){
-      var localDep = getDepositRequests();
-      var localDepIds = new Set(localDep.map(function(d){return d.id;}));
-      fbDep.forEach(function(d){ if(!localDepIds.has(d.id)) localDep.push(d); });
-      saveDepositRequests(localDep);
-    }
-  }catch(e){ console.warn('_loadUserDataFromFirestore:',e); }
+    _cache.tickets = [];
+    snap.forEach(function(d){ _cache.tickets.push(d.data()); });
+    _cache.tickets.sort(function(a,b){ return (b.created||'').localeCompare(a.created||''); });
+  }catch(e){ console.warn('loadMyTickets:', e); }
 }
 
-// ── Withdrawals (local + Firestore) ──
-function getWithdrawals(){ return _localGetJSON('grj_withdrawals',[]); }
-function saveWithdrawals(w){ _localSetJSON('grj_withdrawals',w); }
-
-async function _saveWithdrawalToFirestore(wd){
+// ── Load app settings (matches, prizes, countdown, broadcast, rounds) ──
+async function _loadAppData(){
   var fbOk = await window._fbReady;
-  if(!fbOk||!window._db) return;
+  if(!fbOk || !window._db) return;
   try{
-    await window._fbSetDoc(window._fbDoc(window._db,'withdrawals',wd.id), wd);
-  }catch(e){ console.warn('Withdrawal Firestore save:',e); }
-}
-
-// ── Deposits (local + Firestore) ──
-function getDepositRequests(){ return _localGetJSON('grj_deposits',[]); }
-function saveDepositRequests(d){ _localSetJSON('grj_deposits',d); }
-
-async function _saveDepositToFirestore(dep){
-  var fbOk = await window._fbReady;
-  if(!fbOk||!window._db) return;
-  try{
-    await window._fbSetDoc(window._fbDoc(window._db,'deposits',dep.id), dep);
-  }catch(e){ console.warn('Deposit Firestore save:',e); }
-}
-
-// ── Logs ──
-function getLogs(){ return _localGetJSON('grj_logs',[]); }
-function saveLogs(l){ _localSetJSON('grj_logs',l); }
-function addLog(action,user){
-  var l=getLogs();
-  l.push({time:new Date().toLocaleString(),action:action,user:user});
-  saveLogs(l);
-}
-
-// ── Countdown ──
-function getCountdown(){ return _localGetJSON('grj_countdown',null); }
-
-// ── Matches ──
-function getMatches(){
-  var m = _localGetJSON('grj_matches',null);
-  return m || DEFAULT_MATCHES;
-}
-
-// ── Published rounds ──
-function getPublishedRounds(){ return _localGetJSON('grj_published_rounds',[]); }
-
-// ── Update user balance in Firestore ──
-async function _syncUserBalanceToFirestore(userKey, balance){
-  var fbOk = await window._fbReady;
-  if(!fbOk||!window._db) return;
-  try{
-    // Find user doc by phone
-    var snap = await window._fbGetDocs(
-      window._fbQuery(window._fbCollection(window._db,'users'), window._fbWhere('phone','==',userKey))
-    );
-    if(!snap.empty){
-      var uid = snap.docs[0].id;
-      await window._fbSetDoc(window._fbDoc(window._db,'users',uid),
-        {balance:balance, lastUpdated:new Date().toISOString()},{merge:true});
+    // Matches
+    var ms = await window._F.getDoc(window._F.doc(window._db,'app_settings','matches'));
+    if(ms.exists() && ms.data().matches && ms.data().matches.length){
+      _cache.matches = ms.data().matches;
+      renderMatches();
     }
-  }catch(e){ console.warn('Balance sync:',e); }
+    // Prizes
+    var ps = await window._F.getDoc(window._F.doc(window._db,'app_settings','prizes'));
+    if(ps.exists()){ _cache.prizes = ps.data(); loadCoverPrize(); }
+    // Countdown
+    var cs = await window._F.getDoc(window._F.doc(window._db,'app_settings','countdown'));
+    if(cs.exists()){ _cache.countdown = cs.data(); startCountdown(); }
+    // Broadcast
+    var bs = await window._F.getDoc(window._F.doc(window._db,'app_settings','broadcast'));
+    if(bs.exists() && bs.data().message){ _cache.broadcast = bs.data(); checkBroadcast(); }
+    // Published rounds
+    var rs = await window._F.getDocs(window._F.collection(window._db,'published_rounds'));
+    _cache.publishedRounds = [];
+    rs.forEach(function(d){ _cache.publishedRounds.push(d.data()); });
+    _cache.publishedRounds.sort(function(a,b){ return (a.savedAt||'').localeCompare(b.savedAt||''); });
+    _renderRoundsDropdown(_cache.publishedRounds);
+    // Also refresh current user balance
+    if(_cache.cu && _cache.cuUid && window._db){
+      var us = await window._F.getDoc(window._F.doc(window._db,'users',_cache.cuUid));
+      if(us.exists()){ _cache.cuData = us.data(); updateHeaderBalance(); }
+    }
+  }catch(e){ console.warn('_loadAppData:', e); }
 }
 
-// ── CRYPTO RATE ──
-async function getNGNperUSDT(){ return 1550; }
+// ── Sync user balance to Firestore ──
+async function _syncBalance(newBalance){
+  if(!_cache.cuUid || !window._db) return;
+  try{
+    await window._F.setDoc(window._F.doc(window._db,'users',_cache.cuUid),
+      {balance:newBalance, lastUpdated:new Date().toISOString()},{merge:true});
+    if(_cache.cuData) _cache.cuData.balance = newBalance;
+  }catch(e){ console.warn('syncBalance:', e); }
+}
 
-// ── CONSTANTS ──
-var SUPPORT_WA = '17404061406';
-var KUDA_ACCT  = '2040541530';
-var KUDA_NAME  = 'Victor Mmeri';
-var OPAY_ACCT  = '7031935351';
-var CRYPTO_ADDR= '0x8DA564f9F125aa5E7C5DaC070cbF4B0bad756c0e';
-var CRYPTO_NET = 'BEP20 (Binance Smart Chain)';
-var PAYSTACK_KEY='pk_live_4ff37d15381d1d12c78fd66f7bc86beb64c59415';
-
+// ── Get matches (from cache, or default) ──
 var DEFAULT_MATCHES = [
   {time:'2025-09-03 06:34',home:'Bournemouth',away:'Brighton'},
   {time:'2025-09-03 01:20',home:'Arsenal',away:'Liverpool'},
@@ -1056,6 +962,13 @@ var DEFAULT_MATCHES = [
   {time:'2025-09-03 14:00',home:'Celtic',away:'Rangers'},
   {time:'2025-09-03 14:00',home:'PSG',away:'Marseille'},
 ];
+function getMatches(){ return _cache.matches || DEFAULT_MATCHES; }
+
+// ── CONSTANTS ──
+var SUPPORT_WA = '17404061406';
+var CRYPTO_ADDR= '0x8DA564f9F125aa5E7C5DaC070cbF4B0bad756c0e';
+var CRYPTO_NET = 'BEP20 (Binance Smart Chain)';
+var PAYSTACK_KEY='pk_live_4ff37d15381d1d12c78fd66f7bc86beb64c59415';
 
 // ── STATE ──
 var _combo=0,_stake=0,_allSel=false;
@@ -1067,7 +980,7 @@ var _cdInterval=null,_cdSecs=0;
 //  BOOT
 // ════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',function(){
-  renderMatches();
+  renderMatches(); // show defaults immediately
   updateMenuItems();
   updateHeaderBalance();
   updateSlipBadge();
@@ -1075,121 +988,64 @@ document.addEventListener('DOMContentLoaded',function(){
   loadCoverPrize();
   loadResultsRounds();
   checkBroadcast();
-  setInterval(checkBroadcast,30000);
-  setInterval(function(){ loadSharedDataFromFirebase(); },60000); // refresh every 60s
-  document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible'){ checkBroadcast(); loadSharedDataFromFirebase(); }
+  // Load everything from Firestore
+  _loadAppData().then(function(){
+    startCountdown(); // restart with Firebase countdown
+    updateMenuItems();
+    updateHeaderBalance();
+    updateSlipBadge();
+    if(_cache.cu) _loadMyTickets();
   });
-  loadSharedDataFromFirebase();
+  // Refresh every 60s and on tab focus
+  setInterval(_loadAppData, 60000);
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible') _loadAppData();
+  });
 });
-
-// ── Pull all admin-controlled shared data from Firestore ──
-async function loadSharedDataFromFirebase(){
-  var fbOk = await window._fbReady;
-  if(!fbOk||!window._db) return;
-  try{
-    // Matches
-    var mSnap = await window._fbGetDoc(window._fbDoc(window._db,'app_settings','matches'));
-    if(mSnap.exists()){
-      var md = mSnap.data();
-      if(md.matches&&md.matches.length){ _localSetJSON('grj_matches',md.matches); renderMatches(); }
-    }
-    // Prizes
-    var pSnap = await window._fbGetDoc(window._fbDoc(window._db,'app_settings','prizes'));
-    if(pSnap.exists()){ _localSetJSON('grj_prizes',pSnap.data()); loadCoverPrize(); }
-    // Countdown
-    var cdSnap = await window._fbGetDoc(window._fbDoc(window._db,'app_settings','countdown'));
-    if(cdSnap.exists()){
-      var cd = cdSnap.data();
-      if(cd.target){ _localSetJSON('grj_countdown',cd); startCountdown(); }
-    }
-    // Broadcast
-    var bcSnap = await window._fbGetDoc(window._fbDoc(window._db,'app_settings','broadcast'));
-    if(bcSnap.exists()){
-      var bc = bcSnap.data();
-      if(bc.message){ _localSetJSON('grj_broadcast_obj',bc); checkBroadcast(); }
-    }
-    // Published rounds
-    var rSnap = await window._fbGetDocs(window._fbCollection(window._db,'published_rounds'));
-    if(!rSnap.empty){
-      var local = getPublishedRounds();
-      rSnap.forEach(function(d){
-        var fr=d.data();
-        var idx=local.findIndex(function(r){return r.id===fr.id;});
-        if(idx>=0) local[idx]=fr; else local.push(fr);
-      });
-      local.sort(function(a,b){return (a.savedAt||'').localeCompare(b.savedAt||'');});
-      _localSetJSON('grj_published_rounds',local);
-      _renderRoundsDropdown(local);
-    }
-    // Also sync current user balance from Firestore
-    var cu = currentUser();
-    if(cu){
-      var uSnap = await window._fbGetDocs(
-        window._fbQuery(window._fbCollection(window._db,'users'), window._fbWhere('phone','==',cu))
-      );
-      if(!uSnap.empty){
-        var uData = uSnap.docs[0].data();
-        _mergeLocalUser(cu, uData);
-        updateHeaderBalance();
-      }
-    }
-  }catch(e){ console.warn('loadSharedDataFromFirebase:',e); }
-}
 
 // ── PRIZE DISPLAY ──
 function loadCoverPrize(){
-  var p = _localGetJSON('grj_prizes',null);
-  var el = document.getElementById('cover-prize-amount');
-  if(el){
-    el.textContent = (p&&p.jackpot&&Number(p.jackpot)>0)
-      ? 'NGN '+Number(p.jackpot).toLocaleString()
-      : 'NGN 200,000,000';
-  }
+  var el=document.getElementById('cover-prize-amount');
+  if(!el) return;
+  var j = _cache.prizes && _cache.prizes.jackpot ? Number(_cache.prizes.jackpot) : 0;
+  el.textContent = j>0 ? 'NGN '+j.toLocaleString() : 'NGN 200,000,000';
 }
 
 // ── BROADCAST ──
 var _lastBroadcastSeen=0;
 function checkBroadcast(){
-  var obj = _localGetJSON('grj_broadcast_obj',null);
-  if(!obj||!obj.message||!obj.sentAt) return;
-  if(obj.sentAt<=_lastBroadcastSeen) return;
-  _lastBroadcastSeen=obj.sentAt;
-  showBroadcastBanner(obj.message);
+  var bc = _cache.broadcast;
+  if(!bc||!bc.message||!bc.sentAt) return;
+  if(bc.sentAt <= _lastBroadcastSeen) return;
+  _lastBroadcastSeen = bc.sentAt;
+  showBroadcastBanner(bc.message);
 }
 function showBroadcastBanner(msg){
-  var banner=document.getElementById('broadcast-banner');
-  if(!banner) return;
+  var b=document.getElementById('broadcast-banner');
+  if(!b) return;
   document.getElementById('broadcast-banner-text').textContent=msg;
-  banner.style.display='flex';
+  b.style.display='flex';
   setTimeout(function(){closeBroadcastBanner();},12000);
 }
 function closeBroadcastBanner(){
-  var b=document.getElementById('broadcast-banner');
-  if(b) b.style.display='none';
+  var b=document.getElementById('broadcast-banner'); if(b) b.style.display='none';
 }
 
 // ── RESULTS ROUNDS ──
 async function loadResultsRounds(){
-  _renderRoundsDropdown(getPublishedRounds());
-  // Full sync handled by loadSharedDataFromFirebase
+  _renderRoundsDropdown(_cache.publishedRounds);
 }
 function _renderRoundsDropdown(rounds){
-  var sel=document.getElementById('results-round-sel');
-  if(!sel) return;
+  var sel=document.getElementById('results-round-sel'); if(!sel) return;
   var prev=sel.value;
   sel.innerHTML='<option value="">[ Select a Round to view results ]</option>';
   rounds.slice().reverse().forEach(function(r){
     var opt=document.createElement('option');
-    opt.value=r.id;
-    opt.textContent='Round '+r.id+' (GoalRush 14) — '+r.savedAt;
+    opt.value=r.id; opt.textContent='Round '+r.id+' (GoalRush 14) — '+r.savedAt;
     sel.appendChild(opt);
   });
   if(prev) sel.value=prev;
-  if(rounds.length>0&&!sel.value){
-    sel.value=rounds[rounds.length-1].id;
-    renderSelectedRound();
-  }
+  if(rounds.length>0 && !sel.value){ sel.value=rounds[rounds.length-1].id; renderSelectedRound(); }
 }
 
 function renderSelectedRound(){
@@ -1197,48 +1053,38 @@ function renderSelectedRound(){
   var roundId=sel?sel.value:'';
   var display=document.getElementById('results-display');
   if(!display) return;
-  if(!roundId){
-    display.innerHTML='<div style="text-align:center;color:var(--text3);padding:30px;font-size:13px;">Select a round above to view results.</div>';
-    return;
-  }
-  var rounds=getPublishedRounds();
-  var round=rounds.find(function(r){return r.id===roundId;});
-  if(!round){
-    display.innerHTML='<div style="text-align:center;color:var(--text3);padding:30px;">Round not found.</div>';
-    return;
-  }
+  if(!roundId){ display.innerHTML='<div style="text-align:center;color:var(--text3);padding:30px;font-size:13px;">Select a round above to view results.</div>'; return; }
+  var round=_cache.publishedRounds.find(function(r){return r.id===roundId;});
+  if(!round){ display.innerHTML='<div style="text-align:center;color:var(--text3);padding:30px;">Round not found.</div>'; return; }
   var tiers=[{key:'14',label:'14 out of 14'},{key:'13',label:'13 out of 14'},{key:'12',label:'12 out of 14'},{key:'11',label:'11 out of 14'}];
   var winnersRows='',hasWinners=false;
   tiers.forEach(function(t){
     var entry=round.winners&&round.winners[t.key];
     if(!entry||!entry.tickets||Number(entry.tickets)===0) return;
     hasWinners=true;
-    var prizeNum=Number(entry.prize||0);
-    var perTicket=prizeNum>0?'<strong style="color:var(--gold);font-size:14px;">₦'+prizeNum.toLocaleString()+'</strong>':'<span style="color:var(--text3)">—</span>';
+    var p=Number(entry.prize||0);
+    var perTicket=p>0?'<strong style="color:var(--gold);font-size:14px;">₦'+p.toLocaleString()+'</strong>':'<span style="color:var(--text3)">—</span>';
     winnersRows+='<tr>'
       +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);"><span style="display:inline-block;width:4px;height:32px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px;"></span><span style="font-size:13px;font-weight:600;color:var(--text)">'+t.label+'</span></td>'
       +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--green);font-size:15px;">'+Number(entry.tickets).toLocaleString()+'</td>'
       +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;">'+perTicket+'</td>'
       +'</tr>';
   });
-  var winnersTable=hasWinners
-    ?'<table style="width:100%;border-collapse:collapse;margin-bottom:22px;"><thead><tr>'
-        +'<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Correct Events</th>'
-        +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">No. Tickets</th>'
-        +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Winning per Ticket</th>'
-        +'</tr></thead><tbody>'+winnersRows+'</tbody></table>'
-    :'';
+  var winnersTable=hasWinners?'<table style="width:100%;border-collapse:collapse;margin-bottom:22px;"><thead><tr>'
+    +'<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Correct Events</th>'
+    +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">No. Tickets</th>'
+    +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Winning per Ticket</th>'
+    +'</tr></thead><tbody>'+winnersRows+'</tbody></table>':'';
   var matchRows='',matches=round.matches||[];
-  if(!matches.length){
-    matchRows='<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">No match data found.</div>';
-  }else{
+  if(!matches.length){ matchRows='<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">No match data found.</div>'; }
+  else{
     matches.forEach(function(m,i){
       var resVal=(m.result||'').toString().trim().toUpperCase();
       var isVoid=resVal==='VOID';
-      var resDisplay=isVoid?'<span style="color:var(--text3);font-size:12px;">void</span>':resVal?'<strong style="color:var(--gold);font-size:15px;">'+esc(resVal)+'</strong>':'<span style="color:var(--text3);">—</span>';
+      var resDisp=isVoid?'<span style="color:var(--text3);font-size:12px;">void</span>':resVal?'<strong style="color:var(--gold);font-size:15px;">'+esc(resVal)+'</strong>':'<span style="color:var(--text3);">—</span>';
       var sh=m.scoreHome!==undefined&&m.scoreHome!==null&&m.scoreHome!==''?String(m.scoreHome):'';
       var sa=m.scoreAway!==undefined&&m.scoreAway!==null&&m.scoreAway!==''?String(m.scoreAway):'';
-      var scoreHtml=(sh!==''&&sa!==''&&!isVoid)
+      var scoreHtml=(sh&&sa&&!isVoid)
         ?'<span style="font-size:15px;font-weight:700;color:var(--text);">'+esc(sh)+'</span><span style="color:var(--text3);margin:0 3px;">-</span><span style="font-size:15px;font-weight:700;color:var(--text);">'+esc(sa)+'</span>'
         :isVoid?'<span style="color:var(--text3);font-size:12px;">void</span>':'<span style="color:var(--text3);">—</span>';
       matchRows+='<div style="border-bottom:1px solid var(--border);padding:12px 0;">'
@@ -1246,7 +1092,7 @@ function renderSelectedRound(){
         +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
           +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(m.home||'—')+'</div><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(m.away||'—')+'</div></div>'
           +'<div style="text-align:center;min-width:58px;flex-shrink:0;">'+scoreHtml+'</div>'
-          +'<div style="text-align:right;min-width:36px;flex-shrink:0;">'+resDisplay+'</div>'
+          +'<div style="text-align:right;min-width:36px;flex-shrink:0;">'+resDisp+'</div>'
         +'</div></div>';
     });
   }
@@ -1261,13 +1107,12 @@ function renderSelectedRound(){
 function openMenu(){document.getElementById('menu-overlay').classList.add('open');document.getElementById('menu-panel').classList.add('open');}
 function closeMenu(){document.getElementById('menu-overlay').classList.remove('open');document.getElementById('menu-panel').classList.remove('open');}
 function updateMenuItems(){
-  var cu=currentUser();
+  var cu=_cache.cu;
   var ub=document.getElementById('menu-user-block');
   var mi=document.getElementById('menu-items');
-  if(cu){
-    var u=(getUsers()[cu]||{});
+  if(cu && _cache.cuData){
     ub.style.display='block';
-    document.getElementById('menu-user-name').textContent=(u.name||u.fullName||cu);
+    document.getElementById('menu-user-name').textContent=(_cache.cuData.fullName||_cache.cuData.name||cu);
     mi.innerHTML=
       menuItem('💰','Deposit',function(){closeMenu();openDeposit();})+
       menuItem('💸','Withdraw',function(){closeMenu();openWithdraw();})+
@@ -1304,7 +1149,7 @@ function renderMatches(){
   var html=matches.map(function(m,i){
     return '<div class="match-card" id="mc-'+i+'">'
       +'<div class="match-num">Match '+(i+1)+' of 14</div>'
-      +'<div class="match-time">'+m.time+'</div>'
+      +'<div class="match-time">'+esc(m.time||'')+'</div>'
       +'<div class="match-teams">'+esc(m.home)+' vs '+esc(m.away)+'</div>'
       +'<div class="match-opts">'
         +'<button class="opt-btn" data-mi="'+i+'" data-val="home" onclick="toggleOpt(this)">1<span class="opt-label">Home</span></button>'
@@ -1318,8 +1163,7 @@ function renderMatches(){
 }
 function toggleOpt(btn){
   if(isBettingLocked()){showNotif('Betting is closed for this round','err');return;}
-  btn.classList.toggle('active');
-  updateStake();
+  btn.classList.toggle('active'); updateStake();
 }
 function updateStake(){
   var matches=document.querySelectorAll('.match-card');
@@ -1339,9 +1183,9 @@ function goalRushPick(){
   clearAll();
   document.querySelectorAll('.match-card').forEach(function(mc){
     var btns=mc.querySelectorAll('.opt-btn');
-    if(btns.length){btns[Math.floor(Math.random()*btns.length)].classList.add('active');}
+    if(btns.length)btns[Math.floor(Math.random()*btns.length)].classList.add('active');
   });
-  updateStake();showNotif('🎲 Random picks selected!');
+  updateStake(); showNotif('🎲 Random picks selected!');
 }
 function clearAll(){document.querySelectorAll('.opt-btn').forEach(function(b){b.classList.remove('active');});updateStake();}
 
@@ -1349,10 +1193,8 @@ function clearAll(){document.querySelectorAll('.opt-btn').forEach(function(b){b.
 function placeBet(){
   if(isBettingLocked()){showNotif('Betting is closed for this round','err');return;}
   if(!_allSel||_combo===0){showNotif('Select at least one option for each of the 14 matches','err');return;}
-  var cu=currentUser();
-  if(!cu){openModal('auth-gate-modal');return;}
-  var u=(getUsers()[cu]||{});
-  var bal=Number(u.balance||0);
+  if(!_cache.cu){openModal('auth-gate-modal');return;}
+  var bal=Number((_cache.cuData||{}).balance||0);
   if(bal<_stake){showNotif('Insufficient balance. Please deposit first.','err');setTimeout(function(){openDeposit();},1000);return;}
   document.getElementById('cb-combo').textContent=_combo;
   document.getElementById('cb-stake').textContent='₦'+_stake.toLocaleString();
@@ -1364,10 +1206,9 @@ function placeBet(){
 async function doPlaceBet(){
   closeModal('confirm-bet-modal');
   showLoading('Placing your bet...');
-  var cu=currentUser();
-  var users=getUsers();
-  var u=users[cu]||{};
-  var bal=Number(u.balance||0);
+  var fbOk = await window._fbReady;
+  if(!fbOk||!window._db||!_cache.cu||!_cache.cuUid){hideLoading();showNotif('Not logged in','err');return;}
+  var bal=Number((_cache.cuData||{}).balance||0);
   if(bal<_stake){hideLoading();showNotif('Insufficient balance','err');return;}
   var matches=getMatches();
   var sels=[];
@@ -1375,34 +1216,35 @@ async function doPlaceBet(){
     var picks=Array.from(mc.querySelectorAll('.opt-btn.active')).map(function(b){return b.dataset.val;});
     sels.push({matchIndex:i+1,home:matches[i].home,away:matches[i].away,picks:picks,code:picksToCode(picks)});
   });
+  // Get current roundId from Firestore app_settings
+  var roundId = 'round_default';
+  try{
+    var rid = await window._F.getDoc(window._F.doc(window._db,'app_settings','current_round'));
+    if(rid.exists()) roundId = rid.data().roundId || roundId;
+  }catch(e){}
 
   var ticket={
     id:          genRef(),
     created:     new Date().toISOString(),
-    user:        cu,
-    roundId:     _localGet('grj_current_round_id')||('round_'+Date.now()),
+    user:        _cache.cu,
+    userUid:     _cache.cuUid,
+    roundId:     roundId,
     selections:  sels,
     combination: _combo,
     stake:       _stake
   };
-
-  // Deduct balance locally and in Firestore
-  u.balance = bal - _stake;
-  users[cu] = u;
-  saveUsers(users);
-  _syncUserBalanceToFirestore(cu, u.balance);
-
-  // Save ticket locally and to Firestore
-  var tickets = getTickets();
-  tickets.push(ticket);
-  saveTickets(tickets);
-  _saveTicketToFirestore(ticket);
-
-  addLog('Placed bet ₦'+_stake, cu);
-  updateHeaderBalance();
-  updateSlipBadge();
-  clearAll();
-  hideLoading();
+  // Save ticket to Firestore
+  try{
+    await window._F.setDoc(window._F.doc(window._db,'tickets',ticket.id), ticket);
+    _cache.tickets.unshift(ticket);
+  }catch(e){ hideLoading(); showNotif('Failed to save bet. Try again.','err'); return; }
+  // Deduct balance
+  var newBal = bal - _stake;
+  _cache.cuData.balance = newBal;
+  _syncBalance(newBal);
+  // Log
+  await _addLog('Placed bet ₦'+_stake, _cache.cu);
+  updateHeaderBalance(); updateSlipBadge(); clearAll(); hideLoading();
   showSuccess('✅','Bet Placed!','Your bet of ₦'+_stake.toLocaleString()+' has been placed. Good luck!');
 }
 
@@ -1415,10 +1257,8 @@ function picksToCode(picks){
 
 // ── BET SLIP ──
 function openSlip(){
-  var cu=currentUser();
-  var tickets=getTickets();
-  var myTickets=cu?tickets.filter(function(t){return t.user===cu;}):[];
-  var publishedRounds=getPublishedRounds();
+  var myTickets=_cache.tickets||[];
+  var publishedRounds=_cache.publishedRounds||[];
   var html=myTickets.length===0
     ?'<p style="text-align:center;color:var(--text3);padding:20px">No bets placed yet. Make your selections and place a bet!</p>'
     :myTickets.map(function(t,i){
@@ -1454,9 +1294,8 @@ function openSlip(){
         var isWin=hasResult&&!isVoid&&userPickVals.indexOf(resVal)!==-1;
         if(isVoid)totalVoid++;if(isWin)totalCorrect++;
         var score='';
-        if(matchResult&&matchResult.scoreHome!==undefined&&matchResult.scoreHome!==''&&!isVoid){
+        if(matchResult&&matchResult.scoreHome!==undefined&&matchResult.scoreHome!==''&&!isVoid)
           score='<span style="font-size:10px;color:var(--text3)"> ('+matchResult.scoreHome+'-'+matchResult.scoreAway+')</span>';
-        }
         var indicator=!hasResult
           ?'<span style="color:var(--text3);font-size:13px;min-width:40px;text-align:right;font-weight:600">—</span>'
           :isVoid?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right">void</span>'
@@ -1470,24 +1309,21 @@ function openSlip(){
       }).join('');
       var overallStatus='';
       if(roundResults){
-        var statusColor=totalCorrect===14?'var(--green)':totalCorrect>=13?'var(--blue)':totalCorrect>=12?'var(--yellow)':'var(--red)';
-        var prizeEntry=roundWinners[String(totalCorrect)];
+        var sc=totalCorrect===14?'var(--green)':totalCorrect>=13?'var(--blue)':totalCorrect>=12?'var(--yellow)':'var(--red)';
+        var pe=roundWinners[String(totalCorrect)];
         var prizeHtml='';
-        if(prizeEntry&&Number(prizeEntry.prize||0)>0){
+        if(pe&&Number(pe.prize||0)>0)
           prizeHtml='<div style="margin-top:6px;padding:8px 10px;background:linear-gradient(135deg,#0a2010,#071407);border:1px solid var(--green);border-radius:8px;text-align:center;">'
             +'<span style="font-size:12px;color:var(--text2)">🏆 Winning per Ticket: </span>'
-            +'<span style="font-size:15px;font-weight:900;color:var(--gold)">₦'+Number(prizeEntry.prize).toLocaleString()+'</span>'
-            +'</div>';
-        }
+            +'<span style="font-size:15px;font-weight:900;color:var(--gold)">₦'+Number(pe.prize).toLocaleString()+'</span></div>';
         overallStatus='<div style="margin-top:8px;padding:8px 10px;background:#111827;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'
           +'<span style="font-size:11px;color:var(--text3)">Result</span>'
-          +'<span style="font-size:13px;font-weight:800;color:'+statusColor+'">'+totalCorrect+' correct'+(totalVoid>0?' ('+totalVoid+' void)':'')+'</span>'
+          +'<span style="font-size:13px;font-weight:800;color:'+sc+'">'+totalCorrect+' correct'+(totalVoid>0?' ('+totalVoid+' void)':'')+'</span>'
           +'</div>'+prizeHtml;
       }else{
         overallStatus='<div style="margin-top:8px;padding:8px 10px;background:#111827;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'
           +'<span style="font-size:11px;color:var(--text3)">Result</span>'
-          +'<span style="font-size:13px;font-weight:700;color:var(--text3)">⏳ Awaiting results</span>'
-          +'</div>';
+          +'<span style="font-size:13px;font-weight:700;color:var(--text3)">⏳ Awaiting results</span></div>';
       }
       return '<div class="ticket-card">'
         +'<div class="tc-header"><div><span class="tc-title">Ticket '+(i+1)+' — '+date+'</span>'
@@ -1503,16 +1339,20 @@ function openSlip(){
   openModal('slip-modal');
 }
 
-function deleteTicket(id){
-  var tickets=getTickets();
-  var idx=tickets.findIndex(function(t){return t.id===id;});
+async function deleteTicket(id){
+  var idx=_cache.tickets.findIndex(function(t){return t.id===id;});
   if(idx<0)return;
-  tickets.splice(idx,1);saveTickets(tickets);
-  updateSlipBadge();openSlip();
+  _cache.tickets.splice(idx,1);
+  // Delete from Firestore
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){
+    try{ await window._F.deleteDoc(window._F.doc(window._db,'tickets',id)); }catch(e){}
+  }
+  updateSlipBadge(); openSlip();
 }
+
 function updateSlipBadge(){
-  var cu=currentUser();
-  var count=cu?getTickets().filter(function(t){return t.user===cu;}).length:0;
+  var count=(_cache.tickets||[]).length;
   var badge=document.getElementById('slip-badge');
   var txt=document.getElementById('slip-count-txt');
   if(count>0){badge.textContent=count;badge.classList.add('show');txt.textContent='Bets ('+count+')';}
@@ -1521,16 +1361,14 @@ function updateSlipBadge(){
 
 // ── HEADER BALANCE ──
 function updateHeaderBalance(){
-  var cu=currentUser();
-  var bal=0;
-  if(cu){var u=(getUsers()[cu]||{});bal=Number(u.balance||0);}
+  var bal=Number((_cache.cuData||{}).balance||0);
   document.getElementById('hdr-bal').textContent=bal.toLocaleString('en',{minimumFractionDigits:2});
 }
 
 // ── COUNTDOWN ──
 function startCountdown(){
   if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
-  var cfg=getCountdown();
+  var cfg=_cache.countdown;
   if(!cfg){renderCD(0);updateLockState();return;}
   var elapsed=Math.floor((Date.now()-(cfg.setAt||Date.now()))/1000);
   _cdSecs=Math.max(0,(cfg.totalSeconds||0)-elapsed);
@@ -1552,7 +1390,7 @@ function renderCD(s){
   document.getElementById('cd-m').textContent=p(m);
   document.getElementById('cd-s').textContent=p(sec);
 }
-function isBettingLocked(){return _cdSecs<=0&&getCountdown()!==null;}
+function isBettingLocked(){return _cdSecs<=0 && _cache.countdown!==null;}
 function updateLockState(){
   var locked=isBettingLocked();
   var banner=document.getElementById('betting-closed-banner');
@@ -1561,7 +1399,7 @@ function updateLockState(){
   else{banner.style.display='none';lockOv.classList.remove('show');}
 }
 
-// ── AUTH FUNCTIONS ──
+// ── AUTH ──
 async function doSignup(){
   var name=gv('ca-name').trim(),email=gv('ca-email').trim().toLowerCase(),
       phone=gv('ca-phone').trim(),pw=gv('ca-pw'),pw2=gv('ca-pw2'),
@@ -1571,39 +1409,35 @@ async function doSignup(){
   if(!/\S+@\S+\.\S+/.test(email)){setMsg(msg,'Enter a valid email address','err');return;}
   if(!/^\+\d{7,15}$/.test(phone)){setMsg(msg,'Phone must start with + e.g. +2348012345678','err');return;}
   if(isNaN(age)||age<1||age>120){setMsg(msg,'Enter a valid age','err');return;}
-  if(age<18){setMsg(msg,'⛔ You must be 18 or older to create an account','err');return;}
+  if(age<18){setMsg(msg,'⛔ You must be 18 or older','err');return;}
   if(pw.length<6){setMsg(msg,'Password must be at least 6 characters','err');return;}
   if(pw!==pw2){setMsg(msg,'❌ Passwords do not match','err');return;}
   setMsg(msg,'Connecting...','ok');
   var fbOk=await window._fbReady;
-  if(!fbOk||!window._auth||!window._db){setMsg(msg,'Server connection failed. Check your internet and try again.','err');return;}
+  if(!fbOk||!window._auth||!window._db){setMsg(msg,'Server connection failed. Check your internet.','err');return;}
   setMsg(msg,'Creating your account...','ok');
   try{
-    var uc=await window._fbCreateUser(window._auth,email,pw);
+    var uc=await window._F.createUserWithEmailAndPassword(window._auth,email,pw);
     var uid=uc.user.uid;
-    var profile={
-      uid:uid,fullName:name,name:name,email:email,phone:phone,
+    var profile={uid:uid,fullName:name,name:name,email:email,phone:phone,
       age:age,gender:gender,balance:0,role:'user',status:'active',
-      disabled:false,archived:false,createdAt:window._fbServerTS()
-    };
-    await window._fbSetDoc(window._fbDoc(window._db,'users',uid),profile);
-    // Set current round ID for new user
-    _localSet('grj_current_round_id','round_'+Date.now());
-    var profileLocal=Object.assign({},profile,{createdAt:new Date().toISOString(),created:new Date().toISOString()});
-    _mergeLocalUser(phone,profileLocal);
-    setCurrentUser(phone);
+      disabled:false,archived:false,createdAt:window._F.serverTimestamp()};
+    await window._F.setDoc(window._F.doc(window._db,'users',uid),profile);
+    _cache.cuUid=uid; _cache.cu=phone;
+    _cache.cuData=Object.assign({},profile,{balance:0,createdAt:new Date().toISOString()});
+    _cache.tickets=[]; _saveSession();
     closeModal('create-modal');
     ['ca-name','ca-email','ca-phone','ca-age','ca-pw','ca-pw2'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
     updateMenuItems();updateHeaderBalance();updateSlipBadge();
     showSuccess('🎉','Welcome, '+name+'!','Your account has been created. You can now deposit and place bets!');
-    addLog('Account created (Firebase Auth)',phone);
+    await _addLog('Account created',phone);
   }catch(e){
-    var errMsg='Registration failed. Please try again.';
-    if(e.code==='auth/email-already-in-use') errMsg='This email is already registered. Please login instead.';
-    else if(e.code==='auth/invalid-email')   errMsg='Invalid email address format.';
-    else if(e.code==='auth/weak-password')   errMsg='Password is too weak. Use at least 6 characters.';
-    else if(e.code==='auth/network-request-failed') errMsg='Network error. Check your internet connection.';
-    setMsg(msg,errMsg,'err');
+    var em='Registration failed. Please try again.';
+    if(e.code==='auth/email-already-in-use') em='This email is already registered. Please login instead.';
+    else if(e.code==='auth/invalid-email')   em='Invalid email address format.';
+    else if(e.code==='auth/weak-password')   em='Password too weak. Use at least 6 characters.';
+    else if(e.code==='auth/network-request-failed') em='Network error. Check your internet connection.';
+    setMsg(msg,em,'err');
   }
 }
 
@@ -1613,45 +1447,38 @@ async function doLogin(){
   if(!email||!pw){setMsg(msg,'Email and password required','err');return;}
   setMsg(msg,'Connecting...','ok');
   var fbOk=await window._fbReady;
-  if(!fbOk||!window._auth||!window._db){setMsg(msg,'Server connection failed. Check your internet and try again.','err');return;}
+  if(!fbOk||!window._auth||!window._db){setMsg(msg,'Server connection failed. Check your internet.','err');return;}
   setMsg(msg,'Signing in...','ok');
   try{
-    var uc=await window._fbSignIn(window._auth,email,pw);
+    var uc=await window._F.signInWithEmailAndPassword(window._auth,email,pw);
     var uid=uc.user.uid;
-    var snap=await window._fbGetDoc(window._fbDoc(window._db,'users',uid));
+    var snap=await window._F.getDoc(window._F.doc(window._db,'users',uid));
     if(!snap.exists()){setMsg(msg,'Account profile not found. Contact support.','err');return;}
     var data=snap.data();
-    if(data.archived||data.status==='banned'){setMsg(msg,'This account has been suspended. Contact support.','err');await window._fbSignOut(window._auth);return;}
-    if(data.disabled){setMsg(msg,'This account has been disabled. Contact support.','err');await window._fbSignOut(window._auth);return;}
-    var key=data.phone||uid;
-    data.name=data.fullName||data.name||'';
-    data.uid=uid;
-    _mergeLocalUser(key,data);
-    document.getElementById('li-email').value='';
-    document.getElementById('li-pw').value='';
-    setCurrentUser(key);
-    // Load this user's Firestore data (tickets, deposits, withdrawals)
-    await _loadUserDataFromFirestore(key);
+    if(data.archived||data.status==='banned'){setMsg(msg,'This account has been suspended.','err');await window._F.signOut(window._auth);return;}
+    if(data.disabled){setMsg(msg,'This account has been disabled.','err');await window._F.signOut(window._auth);return;}
+    _cache.cuUid=uid; _cache.cu=data.phone||uid; _cache.cuData=data; _saveSession();
+    document.getElementById('li-email').value=''; document.getElementById('li-pw').value='';
+    await _loadMyTickets();
     closeModal('login-modal');
-    updateMenuItems();updateHeaderBalance();updateSlipBadge();loadResultsRounds();
+    updateMenuItems();updateHeaderBalance();updateSlipBadge();
+    _renderRoundsDropdown(_cache.publishedRounds);
     showNotif('Welcome back, '+(data.fullName||data.name||email)+'! ⚽');
-    addLog('Login (Firebase Auth)',key);
+    await _addLog('Login',_cache.cu);
   }catch(e){
-    var errMsg='Login failed. Please try again.';
-    if(e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential')
-      errMsg='Incorrect email or password. Please try again.';
-    else if(e.code==='auth/invalid-email')   errMsg='Invalid email address.';
-    else if(e.code==='auth/too-many-requests') errMsg='Too many attempts. Please wait and try again.';
-    else if(e.code==='auth/network-request-failed') errMsg='Network error. Check your internet connection.';
-    setMsg(msg,errMsg,'err');
-    document.getElementById('li-pw').value='';
+    var em='Login failed. Please try again.';
+    if(e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential') em='Incorrect email or password.';
+    else if(e.code==='auth/invalid-email') em='Invalid email address.';
+    else if(e.code==='auth/too-many-requests') em='Too many attempts. Please wait.';
+    else if(e.code==='auth/network-request-failed') em='Network error. Check your internet.';
+    setMsg(msg,em,'err'); document.getElementById('li-pw').value='';
   }
 }
 
 async function doLogout(){
   var fbOk=await window._fbReady;
-  if(fbOk&&window._auth){try{await window._fbSignOut(window._auth);}catch(e){}}
-  logoutUser();updateMenuItems();updateHeaderBalance();updateSlipBadge();
+  if(fbOk&&window._auth){ try{await window._F.signOut(window._auth);}catch(e){} }
+  _clearSession(); updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
   showNotif('Logged out successfully.');
 }
 
@@ -1661,17 +1488,16 @@ async function doResetPw(){
   if(!email){setMsg(msg,'Enter your email address','err');return;}
   setMsg(msg,'Connecting...','ok');
   var fbOk=await window._fbReady;
-  if(!fbOk||!window._auth){setMsg(msg,'Server connection failed. Check your internet and try again.','err');return;}
+  if(!fbOk||!window._auth){setMsg(msg,'Server connection failed.','err');return;}
   try{
-    await window._fbResetPw(window._auth,email);
+    await window._F.sendPasswordResetEmail(window._auth,email);
     setMsg(msg,'✅ Password reset email sent! Check your inbox.','ok');
     setTimeout(function(){closeModal('forgot-modal');},3000);
   }catch(e){
-    var errMsg='Could not send reset email. Please try again.';
-    if(e.code==='auth/user-not-found') errMsg='No account found with this email.';
-    else if(e.code==='auth/invalid-email') errMsg='Invalid email address.';
-    else if(e.code==='auth/network-request-failed') errMsg='Network error. Check your internet.';
-    setMsg(msg,errMsg,'err');
+    var em='Could not send reset email.';
+    if(e.code==='auth/user-not-found') em='No account found with this email.';
+    else if(e.code==='auth/invalid-email') em='Invalid email address.';
+    setMsg(msg,em,'err');
   }
 }
 
@@ -1679,18 +1505,28 @@ function openForgot(){closeModal('login-modal');openModal('forgot-modal');}
 function switchToLogin(){closeModal('create-modal');openModal('login-modal');}
 function switchToSignup(){closeModal('login-modal');openModal('create-modal');}
 
+// ── LOGS (Firestore) ──
+async function _addLog(action, user){
+  var fbOk=await window._fbReady;
+  if(!fbOk||!window._db) return;
+  try{
+    await window._F.addDoc(window._F.collection(window._db,'logs'),
+      {time:new Date().toISOString(),action:action,user:user||''});
+  }catch(e){}
+}
+
 // ── DEPOSIT ──
 function openDeposit(){
-  if(!currentUser()){openModal('auth-gate-modal');return;}
-  _payMethod=null;clearPayMethodSelect();
+  if(!_cache.cu){openModal('auth-gate-modal');return;}
+  _payMethod=null; clearPayMethodSelect();
   document.getElementById('dep-msg').textContent='';
   document.getElementById('dep-amount').value='';
   openModal('deposit-method-modal');
 }
 function selectPayMethod(m){
-  _payMethod=m;clearPayMethodSelect();
+  _payMethod=m; clearPayMethodSelect();
   document.querySelectorAll('.pay-card').forEach(function(c){
-    if(c.getAttribute('onclick')==="selectPayMethod('"+m+"')") c.classList.add('selected');
+    if(c.getAttribute('onclick')==="selectPayMethod('"+m+"')")c.classList.add('selected');
   });
 }
 function clearPayMethodSelect(){document.querySelectorAll('.pay-card').forEach(function(c){c.classList.remove('selected');});}
@@ -1701,10 +1537,9 @@ async function proceedDeposit(){
   var amt=Number(document.getElementById('dep-amount').value);
   if(!_payMethod){setMsg(msg,'Please select a payment method','err');return;}
   if(!amt||amt<100||amt>100000000){setMsg(msg,'Enter amount between ₦100 and ₦100,000,000','err');return;}
-  _depAmount=amt;closeModal('deposit-method-modal');
+  _depAmount=amt; closeModal('deposit-method-modal');
   if(_payMethod==='crypto'){
-    var rate=await getNGNperUSDT();
-    var usdtAmt=(amt/rate).toFixed(4);
+    var usdtAmt=(amt/1550).toFixed(4);
     document.getElementById('pay-modal-title').textContent='₿ Send USDT (BEP20)';
     document.getElementById('pay-amount-display').textContent=usdtAmt+' USDT ≈ ₦'+amt.toLocaleString();
     document.getElementById('pay-detail-box').innerHTML=
@@ -1713,10 +1548,12 @@ async function proceedDeposit(){
       pdRow('Amount',usdtAmt+' USDT');
     document.getElementById('pay-confirm-btn').textContent='✅ I Have Paid — Confirm';
     document.getElementById('pay-confirm-btn').onclick=confirmCryptoPayment;
-    startPayTimer();openModal('deposit-pay-modal');return;
+    startPayTimer(); openModal('deposit-pay-modal'); return;
   }
-  var cu=currentUser();var u=(getUsers()[cu]||{});
-  var email=u.email||cu+'@goalrush.com';
+  var fbOk=await window._fbReady;
+  if(!fbOk||!window._db){showNotif('Network error. Try again.','err');return;}
+  var data=_cache.cuData||{};
+  var email=data.email||_cache.cu+'@goalrush.com';
   var methodLabel={transfer:'Bank Transfer',kuda:'Kuda Bank',opay:'Opay',card:'Card Payment'}[_payMethod]||_payMethod;
   var ref='GRJ-'+Date.now()+'-'+Math.random().toString(36).slice(2,7).toUpperCase();
   showLoading('Opening payment gateway...');
@@ -1725,12 +1562,12 @@ async function proceedDeposit(){
     var handler=PaystackPop.setup({
       key:PAYSTACK_KEY,email:email,amount:amt*100,currency:'NGN',ref:ref,
       metadata:{custom_fields:[
-        {display_name:'Phone',variable_name:'phone',value:cu},
+        {display_name:'Phone',variable_name:'phone',value:_cache.cu},
         {display_name:'Method',variable_name:'method',value:methodLabel},
         {display_name:'Platform',variable_name:'platform',value:'GoalRush Jackpot'}
       ]},
       channels:_payMethod==='card'?['card']:_payMethod==='kuda'||_payMethod==='opay'?['bank_transfer']:['bank_transfer','card'],
-      callback:function(response){ verifyAndCreditPaystack(response.reference,amt,methodLabel,cu); },
+      callback:function(response){ verifyAndCreditPaystack(response.reference,amt,methodLabel,_cache.cu); },
       onClose:function(){ showNotif('Payment window closed. Your account was not charged.','err'); }
     });
     handler.openIframe();
@@ -1743,49 +1580,58 @@ function verifyAndCreditPaystack(reference,amt,method,phone){
     method:'GET',headers:{'Authorization':'Bearer '+PAYSTACK_KEY,'Content-Type':'application/json'}
   })
   .then(function(r){return r.json();})
-  .then(function(data){
+  .then(async function(data){
     hideLoading();
     if(data.status&&data.data&&data.data.status==='success'){
-      _creditUserBalance(phone,amt);
-      var dep={id:reference,user:phone,amount:amt,method:method,time:new Date().toISOString(),status:'approved',verified:true,ref:reference};
-      var deps=getDepositRequests();deps.push(dep);saveDepositRequests(deps);
-      _saveDepositToFirestore(dep);
-      addLog('Deposit verified ₦'+amt.toLocaleString()+' via '+method+' ref:'+reference,phone);
-      showSuccess('✅','Payment Successful!','₦'+amt.toLocaleString()+' has been credited. New balance: ₦'+Number(getUsers()[phone].balance||0).toLocaleString()+'.');
+      var newBal = Number((_cache.cuData||{}).balance||0)+amt;
+      if(_cache.cuData) _cache.cuData.balance=newBal;
+      await _syncBalance(newBal);
+      // Save deposit to Firestore
+      var fbOk=await window._fbReady;
+      if(fbOk&&window._db){
+        try{
+          await window._F.setDoc(window._F.doc(window._db,'deposits',reference),
+            {id:reference,user:phone,userUid:_cache.cuUid||'',amount:amt,method:method,
+             time:new Date().toISOString(),status:'approved',verified:true,ref:reference});
+        }catch(e){}
+      }
+      updateHeaderBalance();
+      await _addLog('Deposit ₦'+amt.toLocaleString()+' via '+method+' ref:'+reference,phone);
+      showSuccess('✅','Payment Successful!','₦'+amt.toLocaleString()+' has been credited. New balance: ₦'+newBal.toLocaleString()+'.');
     }else{
       showNotif('⚠️ Payment could not be verified. Contact support with ref: '+reference,'err');
     }
   })
-  .catch(function(){
+  .catch(async function(){
     hideLoading();
-    var dep={id:reference,user:phone,amount:amt,method:method,time:new Date().toISOString(),status:'pending',verified:false,ref:reference,note:'Verify failed — pending manual review'};
-    var deps=getDepositRequests();deps.push(dep);saveDepositRequests(deps);
-    _saveDepositToFirestore(dep);
-    showNotif('Payment received but verification had a network error. Admin will credit your account shortly. Ref: '+reference,'err');
+    var fbOk=await window._fbReady;
+    if(fbOk&&window._db){
+      try{
+        await window._F.setDoc(window._F.doc(window._db,'deposits',reference),
+          {id:reference,user:phone,userUid:_cache.cuUid||'',amount:amt,method:method,
+           time:new Date().toISOString(),status:'pending',verified:false,ref:reference,note:'Verify failed'});
+      }catch(e){}
+    }
+    showNotif('Payment received but verification failed. Admin will credit you shortly. Ref: '+reference,'err');
   });
 }
 
-function _creditUserBalance(userKey, amt){
-  var users=getUsers();
-  var u=users[userKey]||{};
-  u.balance=Number(u.balance||0)+amt;
-  users[userKey]=u;
-  saveUsers(users);
-  updateHeaderBalance();
-  _syncUserBalanceToFirestore(userKey, u.balance);
-}
-
-function confirmCryptoPayment(){
+async function confirmCryptoPayment(){
   if(_payTimerInterval){clearInterval(_payTimerInterval);}
-  var cu=currentUser();
   var usdtAmt=(_depAmount/1550).toFixed(4);
-  var msg=encodeURIComponent('Hello GoalRush Support! 👋\n\nI have made a crypto deposit.\n\n📱 Phone: '+cu+'\n💰 Amount: '+usdtAmt+' USDT (≈ ₦'+_depAmount.toLocaleString()+')\n🔗 Network: BEP20\n📍 Wallet: '+CRYPTO_ADDR+'\n⏰ Time: '+new Date().toLocaleString()+'\n\nPlease credit my account. Screenshot attached. Thank you!');
-  var dep={id:genRef(),user:cu,amount:_depAmount,method:'USDT BEP20',time:new Date().toISOString(),status:'pending'};
-  var deps=getDepositRequests();deps.push(dep);saveDepositRequests(deps);
-  _saveDepositToFirestore(dep);
-  addLog('Crypto deposit request ₦'+_depAmount,cu);
+  var msg=encodeURIComponent('Hello GoalRush Support! 👋\n\nCrypto deposit:\n📱 Phone: '+_cache.cu+'\n💰 '+usdtAmt+' USDT ≈ ₦'+_depAmount.toLocaleString()+'\n🔗 BEP20\n📍 Wallet: '+CRYPTO_ADDR+'\n⏰ '+new Date().toLocaleString()+'\n\nPlease credit my account. Screenshot attached. Thank you!');
+  var ref=genRef();
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){
+    try{
+      await window._F.setDoc(window._F.doc(window._db,'deposits',ref),
+        {id:ref,user:_cache.cu,userUid:_cache.cuUid||'',amount:_depAmount,
+         method:'USDT BEP20',time:new Date().toISOString(),status:'pending'});
+    }catch(e){}
+  }
+  await _addLog('Crypto deposit request ₦'+_depAmount, _cache.cu);
   window.open('https://wa.me/'+SUPPORT_WA+'?text='+msg,'_blank');
-  closeModal('deposit-pay-modal');openModal('deposit-review-modal');
+  closeModal('deposit-pay-modal'); openModal('deposit-review-modal');
 }
 
 function pdRow(label,val,action,copyVal){
@@ -1793,7 +1639,7 @@ function pdRow(label,val,action,copyVal){
   return '<div class="pd-row"><span class="pd-label">'+label+'</span><span class="pd-val">'+val+copyBtn+'</span></div>';
 }
 function startPayTimer(){
-  if(_payTimerInterval){clearInterval(_payTimerInterval);}
+  if(_payTimerInterval)clearInterval(_payTimerInterval);
   var secs=25*60+10;var el=document.getElementById('pay-timer');
   function render(){
     var m=Math.floor(secs/60),s=secs%60;
@@ -1801,15 +1647,14 @@ function startPayTimer(){
     if(secs<=60)el.style.color='var(--red)';
     if(secs<=0){clearInterval(_payTimerInterval);el.textContent='EXPIRED';el.style.color='var(--red)';}
   }
-  render();_payTimerInterval=setInterval(function(){secs--;render();},1000);
+  render(); _payTimerInterval=setInterval(function(){secs--;render();},1000);
 }
-function cancelDepositPay(){if(_payTimerInterval){clearInterval(_payTimerInterval);}closeModal('deposit-pay-modal');openModal('deposit-method-modal');}
+function cancelDepositPay(){if(_payTimerInterval)clearInterval(_payTimerInterval);closeModal('deposit-pay-modal');openModal('deposit-method-modal');}
 
 // ── WITHDRAW ──
 function openWithdraw(){
-  if(!currentUser()){openModal('auth-gate-modal');return;}
-  var cu=currentUser();var u=(getUsers()[cu]||{});
-  var bal=Number(u.balance||0);
+  if(!_cache.cu){openModal('auth-gate-modal');return;}
+  var bal=Number((_cache.cuData||{}).balance||0);
   document.getElementById('wd-balance').textContent='₦'+bal.toLocaleString('en',{minimumFractionDigits:2});
   document.getElementById('wd-msg').textContent='';
   document.getElementById('wd-bank').value='';
@@ -1820,25 +1665,28 @@ function openWithdraw(){
 async function doWithdraw(){
   var bank=gv('wd-bank').trim(),acct=gv('wd-account').trim(),amt=Number(gv('wd-amount'));
   var msg=document.getElementById('wd-msg');msg.textContent='';
-  var cu=currentUser();var users=getUsers();var u=users[cu]||{};
-  var bal=Number(u.balance||0);
+  var bal=Number((_cache.cuData||{}).balance||0);
   if(!bank){setMsg(msg,'Enter bank name','err');return;}
   if(!acct||acct.length<6){setMsg(msg,'Enter a valid account number','err');return;}
   if(!amt||amt<100000){setMsg(msg,'Minimum withdrawal is ₦100,000','err');return;}
   if(amt>100000000){setMsg(msg,'Maximum withdrawal is ₦100,000,000','err');return;}
   if(amt>bal){setMsg(msg,'Insufficient balance','err');return;}
   showLoading('Processing withdrawal...');
-  setTimeout(async function(){
-    u.balance=bal-amt;users[cu]=u;saveUsers(users);
-    _syncUserBalanceToFirestore(cu,u.balance);
-    var ref=genRef();
-    var wd={id:ref,user:cu,amount:amt,bank:bank,account:acct,code:ref,time:new Date().toISOString(),status:'pending'};
-    var ws=getWithdrawals();ws.push(wd);saveWithdrawals(ws);
-    _saveWithdrawalToFirestore(wd);
-    addLog('Withdrawal ₦'+amt+' ref:'+ref,cu);
-    updateHeaderBalance();hideLoading();closeModal('withdraw-modal');
-    showSuccess('💸','Withdrawal Submitted!','Reference: '+ref+'\n\nAmount: ₦'+amt.toLocaleString()+'\nBank: '+bank+'\nAccount: '+acct+'\n\nYou will receive payment shortly.');
-  },1200);
+  var ref=genRef();
+  var newBal=bal-amt;
+  if(_cache.cuData) _cache.cuData.balance=newBal;
+  await _syncBalance(newBal);
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){
+    try{
+      await window._F.setDoc(window._F.doc(window._db,'withdrawals',ref),
+        {id:ref,user:_cache.cu,userUid:_cache.cuUid||'',amount:amt,bank:bank,
+         account:acct,code:ref,time:new Date().toISOString(),status:'pending'});
+    }catch(e){}
+  }
+  await _addLog('Withdrawal ₦'+amt+' ref:'+ref, _cache.cu);
+  updateHeaderBalance(); hideLoading(); closeModal('withdraw-modal');
+  showSuccess('💸','Withdrawal Submitted!','Reference: '+ref+'\n\nAmount: ₦'+amt.toLocaleString()+'\nBank: '+bank+'\nAccount: '+acct+'\n\nYou will receive payment shortly.');
 }
 
 // ── MODALS ──
@@ -1863,7 +1711,7 @@ function showSuccess(icon,title,msg){
 var _nTimer=null;
 function showNotif(msg,type){
   var el=document.getElementById('notif');
-  el.textContent=msg;el.className='';
+  el.textContent=msg; el.className='';
   if(type==='err')el.classList.add('err');
   el.classList.add('show');
   if(_nTimer)clearTimeout(_nTimer);
@@ -1876,14 +1724,16 @@ function hideLoading(){document.getElementById('loading').classList.remove('show
 
 // ── UTILS ──
 function gv(id){var el=document.getElementById(id);return el?el.value:'';}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function setMsg(el,msg,type){el.textContent=msg;el.className='modal-msg '+(type==='err'?'msg-err':'msg-ok');}
 function genRef(){return 'GRJ-'+Math.random().toString(36).substring(2,8).toUpperCase();}
 function togglePw(id,el){var f=document.getElementById(id);f.type=f.type==='password'?'text':'password';el.textContent=f.type==='password'?'👁️':'🙈';}
 function copyText(txt){
-  if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){showNotif('✅ Copied to clipboard!');}).catch(function(){showNotif('Text: '+txt);});}
-  else{showNotif('Address: '+txt);}
+  if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){showNotif('✅ Copied!');}).catch(function(){showNotif('Address: '+txt);});}
+  else showNotif('Address: '+txt);
 }
+async function getNGNperUSDT(){ return 1550; }
+
 </script>
 </body>
 </html>
