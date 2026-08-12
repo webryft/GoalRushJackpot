@@ -426,14 +426,14 @@ tbody tr:hover td{background:#0a1a0a40;}
     <div class="lc-icon">⚽</div>
     <div class="lc-title">GOALRUSH ADMIN</div>
     <div class="lc-sub">Control Panel — Authorised Access Only</div>
-    <label class="lc-lbl">Username</label>
-    <input class="lc-input" id="adm-user" type="text" placeholder="Admin username" autocomplete="off"
+    <label class="lc-lbl">Admin Email</label>
+    <input class="lc-input" id="adm-user" type="email" placeholder="admin@yourdomain.com" autocomplete="off"
       onkeydown="if(event.key==='Enter')document.getElementById('adm-pass').focus()"/>
     <label class="lc-lbl">Password</label>
     <input class="lc-input" id="adm-pass" type="password" placeholder="Admin password"
-      onkeydown="if(event.key==='Enter')doLogin()"/>
-    <button class="lc-btn" onclick="doLogin()">🔓 Enter Panel</button>
-    <div class="lc-err" id="login-err">❌ Incorrect username or password.</div>
+      onkeydown="if(event.key==='Enter')adminLogin()"/>
+    <button class="lc-btn" onclick="adminLogin()">🔓 Enter Panel</button>
+    <div class="lc-err" id="login-err" style="display:none">❌ Incorrect email or password.</div>
   </div>
 </div>
 
@@ -473,6 +473,7 @@ tbody tr:hover td{background:#0a1a0a40;}
       <button class="tab-btn" onclick="openTab('countdown')">⏱ Countdown</button>
       <button class="tab-btn" onclick="openTab('betid')">🔍 Bet ID</button>
       <button class="tab-btn" onclick="openTab('broadcast')">📢 Broadcast</button>
+      <button class="tab-btn" onclick="openTab('resets')">🔑 Password Resets</button>
       <button class="tab-btn" onclick="openTab('logs')">📋 Logs</button>
     </div>
 
@@ -733,6 +734,7 @@ tbody tr:hover td{background:#0a1a0a40;}
           </p>
           <div id="matches-editor"></div>
           <button class="save-btn" onclick="saveMatches()">💾 Save All Matches</button>
+          <button class="save-btn" style="background:linear-gradient(135deg,#880022,#550011);color:#fff;box-shadow:none;margin-top:10px" onclick="confirmClearMatches()">🗑️ Clear Current 14 Matches</button>
           <div class="save-msg" id="matches-save-msg"></div>
         </div>
       </div>
@@ -795,7 +797,8 @@ tbody tr:hover td{background:#0a1a0a40;}
           <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
             Save a message that all users will see on the game page. Use for announcements, result notifications, or reminders.
           </p>
-          <div class="bc-row">
+          <div class="bc-row" style="flex-direction:column;align-items:stretch;gap:8px">
+            <input class="bc-input" id="bc-title" placeholder="Heading (shown in the notification list)"/>
             <input class="bc-input" id="bc-msg" placeholder="Type your message to all users..."/>
             <button class="bc-send" onclick="sendBroadcast()">📢 Save &amp; Broadcast</button>
           </div>
@@ -804,7 +807,35 @@ tbody tr:hover td{background:#0a1a0a40;}
       </div>
     </div>
 
-    <!-- ══ LOGS TAB ══ -->
+    <!-- ══ PASSWORD RESETS TAB ══ -->
+    <div class="tab-content" id="tab-resets">
+      <div class="section-card">
+        <div class="sc-head">
+          <div class="sc-title">🔑 Password Reset Requests</div>
+          <button class="refresh-btn" onclick="loadResetRequests()">↺ Refresh</button>
+        </div>
+        <div class="sc-body">
+          <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+            When a user requests a reset, it shows up here as <strong>Pending</strong>. Generate a code, then email/WhatsApp it to the user yourself. Once they enter it correctly on the site, it moves to <strong>Completed</strong>.
+          </p>
+          <div id="resets-tbl-wrap"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SET RESET CODE MODAL ══ -->
+    <div class="mo" id="mo-set-code">
+      <div class="mo-box">
+        <div class="mo-title">🔑 Set 6-Digit Code</div>
+        <div class="mo-info" id="set-code-info">—</div>
+        <input class="lc-input" id="src-code-input" type="text" maxlength="6" inputmode="numeric" placeholder="e.g. 482913" style="margin:10px 0"/>
+        <button class="save-btn" style="margin-bottom:10px" onclick="genRandomCode()">🎲 Generate Random Code</button>
+        <div class="mo-btns">
+          <button class="mb-green" onclick="confirmSetResetCode()">Save Code</button>
+          <button class="mb-gray" onclick="closeMo('mo-set-code')">Cancel</button>
+        </div>
+      </div>
+    </div>
     <div class="tab-content" id="tab-logs">
       <div class="section-card">
         <div class="sc-head">
@@ -833,6 +864,33 @@ tbody tr:hover td{background:#0a1a0a40;}
     <div class="mo-btns">
       <button class="mb-green" onclick="confirmFund()">✅ Add Funds</button>
       <button class="mb-gray" onclick="closeMo('mo-fund')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT USER -->
+<div class="mo" id="mo-edit-user">
+  <div class="mo-box" style="max-width:480px">
+    <div class="mo-title">✏️ Edit User</div>
+    <div class="mo-info">
+      <strong id="eu-name">—</strong><br/>
+      📱 <span id="eu-phone">—</span> &nbsp;·&nbsp; ✉️ <span id="eu-email">—</span><br/>
+      <span style="font-size:11px;color:var(--text3)">Registered: <span id="eu-registered">—</span></span>
+    </div>
+    <div class="prize-field" style="margin-top:14px">
+      <label>Balance (₦)</label>
+      <input class="prize-input" id="eu-balance-input" type="number"/>
+    </div>
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:10px 0 16px;font-size:13px;color:var(--text2)">
+      <input type="checkbox" id="eu-disabled-toggle" style="width:18px;height:18px;accent-color:var(--red);cursor:pointer;flex-shrink:0;"/>
+      Account disabled
+    </label>
+    <div style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Activity</div>
+    <div id="eu-activity" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:14px"></div>
+    <div class="mo-err" id="eu-msg"></div>
+    <div class="mo-btns">
+      <button class="mb-green" onclick="saveEditUser()">💾 Save Changes</button>
+      <button class="mb-gray" onclick="closeMo('mo-edit-user')">Close</button>
     </div>
   </div>
 </div>
@@ -958,17 +1016,37 @@ var _cache = {
 window._fbReady = (async function(){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+    const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+      = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs,
             addDoc, serverTimestamp, query, where, deleteDoc, orderBy, limit }
       = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const { getFunctions, httpsCallable }
+      = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js");
 
-    const app = initializeApp(_FIREBASE_CONFIG);
-    const db  = getFirestore(app);
+    const app  = initializeApp(_FIREBASE_CONFIG);
+    const db   = getFirestore(app);
+    const auth = getAuth(app);
+    const fns  = getFunctions(app);
 
-    window._FB = true;
-    window._db = db;
-    window._F  = { doc, setDoc, getDoc, updateDoc, collection, getDocs,
-                   addDoc, serverTimestamp, query, where, deleteDoc, orderBy, limit };
+    window._FB   = true;
+    window._db   = db;
+    window._auth = auth;
+    window._fns  = fns;
+    window._F    = { doc, setDoc, getDoc, updateDoc, collection, getDocs,
+                     addDoc, serverTimestamp, query, where, deleteDoc, orderBy, limit,
+                     signInWithEmailAndPassword, signOut, onAuthStateChanged };
+    // Every money/admin action goes through Cloud Functions (server-checked
+    // custom claim), never a raw client-side Firestore write.
+    window._call = {
+      approveDeposit:       httpsCallable(fns,'approveDeposit'),
+      declineDeposit:       httpsCallable(fns,'declineDeposit'),
+      adminSetResetCode:    httpsCallable(fns,'adminSetResetCode'),
+      adminAdjustBalance:   httpsCallable(fns,'adminAdjustBalance'),
+      adminSetUserDisabled: httpsCallable(fns,'adminSetUserDisabled'),
+      clearMatches:         httpsCallable(fns,'clearMatches'),
+      sendBroadcast:        httpsCallable(fns,'sendBroadcast'),
+    };
 
     console.log('✅ Admin Firebase ready');
     return true;
@@ -979,18 +1057,37 @@ window._fbReady = (async function(){
   }
 })();
 
-// ── Admin password (simple protection) ──
-var ADMIN_PASS = 'goalrush2024admin';
+// ── Real admin auth: Firebase Auth + server-verified custom claim.
+//    No password is ever stored in this file. ──
+async function adminLogin(){
+  var email = document.getElementById('adm-user').value.trim();
+  var pw    = document.getElementById('adm-pass').value;
+  var errEl = document.getElementById('login-err');
+  errEl.style.display='none';
+  if(!email || !pw){ errEl.textContent='Enter your admin email and password.'; errEl.style.display='block'; return; }
 
-function adminLogin(){
-  var pw = document.getElementById('admin-pw').value;
-  if(pw === ADMIN_PASS){
+  var fbOk = await window._fbReady;
+  if(!fbOk){ errEl.textContent='Could not reach Firebase. Check your connection.'; errEl.style.display='block'; return; }
+
+  try{
+    var cred = await window._F.signInWithEmailAndPassword(window._auth, email, pw);
+    var tokenResult = await cred.user.getIdTokenResult(true); // force refresh so a just-granted claim is seen
+    if(tokenResult.claims.admin !== true){
+      await window._F.signOut(window._auth);
+      errEl.textContent='This account does not have admin access.';
+      errEl.style.display='block';
+      return;
+    }
     document.getElementById('login-screen').style.display='none';
     initAdmin();
-  } else {
-    document.getElementById('admin-login-err').textContent='❌ Wrong password.';
-    setTimeout(function(){ document.getElementById('admin-login-err').textContent=''; },2000);
+  }catch(e){
+    errEl.textContent='❌ Incorrect email or password.';
+    errEl.style.display='block';
   }
+}
+
+function adminLogout(){
+  window._F.signOut(window._auth).finally(function(){ location.reload(); });
 }
 
 async function initAdmin(){
@@ -1101,8 +1198,8 @@ var DEFAULT_MATCHES = [
 var _currentTab='users';
 function switchAdminTab(tab){
   _currentTab=tab;
-  document.querySelectorAll('.tab-link').forEach(function(l){l.classList.toggle('active',l.dataset.tab===tab);});
-  document.querySelectorAll('.tab-section').forEach(function(s){s.style.display=s.id==='tab-'+tab?'block':'none';});
+  document.querySelectorAll('.tab-btn').forEach(function(l){l.classList.toggle('active',l.getAttribute('onclick')==="openTab('"+tab+"')");});
+  document.querySelectorAll('.tab-content').forEach(function(s){s.classList.toggle('active',s.id==='tab-'+tab);});
   if(tab==='users')    { loadUsers(); }
   if(tab==='deposits') { loadDeposits(); }
   if(tab==='withdrawals'){ loadWithdrawals(); }
@@ -1113,8 +1210,10 @@ function switchAdminTab(tab){
   if(tab==='matches')  { loadMatchesEditor(); }
   if(tab==='broadcast'){ loadBroadcast(); }
   if(tab==='countdown'){ loadCurrentCountdown(); }
+  if(tab==='resets')   { loadResetRequests(); }
   if(tab==='betid')    {}
 }
+function openTab(tab){ switchAdminTab(tab); }
 
 // ── STATS ──
 function updateStats(){
@@ -1170,6 +1269,7 @@ function renderUsersTable(users){
       +'<td style="font-size:11px;color:var(--text3)">'+reg+'</td>'
       +'<td><div class="acts">'
         +'<button class="ab ab-fund" onclick="openFund(\''+key+'\')">💰 Fund</button>'
+        +'<button class="ab ab-view" onclick="openEditUser(\''+key+'\')">✏️ Edit</button>'
         +(u.disabled
           ?'<button class="ab ab-en" onclick="setDisabled(\''+key+'\',false)">✅ Enable</button>'
           :'<button class="ab ab-dis" onclick="setDisabled(\''+key+'\',true)">⛔ Disable</button>')
@@ -1181,6 +1281,60 @@ function renderUsersTable(users){
   }).join('');
   document.getElementById('users-tbl-wrap').innerHTML=
     '<table><thead><tr><th>Name / Phone</th><th>Email</th><th>Balance</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+// ── EDIT USER (full activity + editable fields) ──
+var _editUserKey=null;
+function openEditUser(key){
+  _editUserKey=key;
+  var u=_cache.users[key]||{};
+  document.getElementById('eu-name').textContent=esc(u.name||u.fullName||key);
+  document.getElementById('eu-phone').textContent=esc(u.phone||key);
+  document.getElementById('eu-email').textContent=esc(u.email||'—');
+  document.getElementById('eu-registered').textContent=esc(fmtDate(u.createdAt||u.created));
+  document.getElementById('eu-balance-input').value=Number(u.balance||0);
+  document.getElementById('eu-disabled-toggle').checked=!!u.disabled;
+  document.getElementById('eu-msg').textContent='';
+
+  var uid=u.uid||'';
+  var deposits=_cache.deposits.filter(function(d){return d.userUid===uid||d.user===key;});
+  var withdrawals=_cache.withdrawals.filter(function(w){return w.userUid===uid||w.user===key;});
+  var tickets=_cache.tickets.filter(function(t){return t.userUid===uid||t.user===key;});
+  var logs=_cache.logs.filter(function(l){return l.user===key||l.user===uid;});
+
+  var activity=[]
+    .concat(deposits.map(function(d){return {t:d.time,label:'Deposit ₦'+Number(d.amount||0).toLocaleString()+' — '+(d.status||'pending')};}))
+    .concat(withdrawals.map(function(w){return {t:w.time,label:'Withdrawal ₦'+Number(w.amount||0).toLocaleString()+' — '+(w.status||'pending')};}))
+    .concat(tickets.map(function(t){return {t:t.created,label:'Bet ticket '+(t.id||'')+' — stake ₦'+Number(t.stake||0).toLocaleString()};}))
+    .concat(logs.map(function(l){return {t:l.time,label:l.action};}));
+  activity.sort(function(a,b){return (b.t||'').localeCompare(a.t||'');});
+
+  document.getElementById('eu-activity').innerHTML = activity.length
+    ? activity.map(function(a){return '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px"><span style="color:var(--text3)">'+esc(fmtDate(a.t))+'</span> — '+esc(a.label)+'</div>';}).join('')
+    : '<div class="tbl-empty">No activity yet.</div>';
+
+  openMo('mo-edit-user');
+}
+async function saveEditUser(){
+  var u=_cache.users[_editUserKey]; if(!u){return;}
+  var newBal=Number(document.getElementById('eu-balance-input').value);
+  var disabled=document.getElementById('eu-disabled-toggle').checked;
+  var msgEl=document.getElementById('eu-msg');
+  if(isNaN(newBal)||newBal<0){ msgEl.innerHTML='<span style="color:var(--red)">Enter a valid balance.</span>'; return; }
+  showLoad('Saving...');
+  var fbOk=await window._fbReady;
+  if(!fbOk||!window._call||!u.uid){ hideLoad(); msgEl.innerHTML='<span style="color:var(--red)">Not connected / missing UID.</span>'; return; }
+  try{
+    if(newBal!==Number(u.balance||0)) await window._call.adminAdjustBalance({uid:u.uid,newBalance:newBal,note:'admin edit'});
+    if(disabled!==!!u.disabled) await window._call.adminSetUserDisabled({uid:u.uid,disabled:disabled});
+    u.balance=newBal; u.disabled=disabled; _cache.users[_editUserKey]=u;
+    renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
+    toast('✅ User updated');
+    closeMo('mo-edit-user');
+  }catch(e){
+    msgEl.innerHTML='<span style="color:var(--red)">'+(e.message||'Save failed')+'</span>';
+  }
+  hideLoad();
 }
 
 // ── Fund user ──
@@ -1198,37 +1352,36 @@ async function confirmFund(){
   showLoad('Adding funds...');
   var u=_cache.users[_pendingUser]; if(!u){hideLoad();return;}
   var newBal=Number(u.balance||0)+amt;
-  u.balance=newBal; _cache.users[_pendingUser]=u;
   var fbOk=await window._fbReady;
-  if(fbOk&&window._db&&u.uid){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'users',u.uid),
-        {balance:newBal,lastFundedAt:new Date().toISOString()},{merge:true});
-    }catch(e){ console.warn('Fund sync:',e); }
+  if(!fbOk||!window._call||!u.uid){ hideLoad(); setText('fund-err','Not connected / missing UID.'); return; }
+  try{
+    await window._call.adminAdjustBalance({uid:u.uid,newBalance:newBal,note:'admin fund'});
+    u.balance=newBal; _cache.users[_pendingUser]=u;
+    renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
+    updateStats(); closeMo('mo-fund');
+    toast('✅ ₦'+amt.toLocaleString()+' added to '+_pendingUser);
+  }catch(e){
+    setText('fund-err',e.message||'Failed to fund user.');
   }
-  await addLog('Funded ₦'+amt.toLocaleString(),_pendingUser);
-  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
-  updateStats(); hideLoad(); closeMo('mo-fund');
-  toast('✅ ₦'+amt.toLocaleString()+' added to '+_pendingUser);
+  hideLoad();
 }
 
 // ── Disable/Enable ──
 async function setDisabled(key, disabled){
   showLoad(disabled?'Disabling account...':'Enabling account...');
   var u=_cache.users[key]; if(!u){hideLoad();return;}
-  u.disabled=disabled; u.status=disabled?'disabled':'active';
-  _cache.users[key]=u;
   var fbOk=await window._fbReady;
-  if(fbOk&&window._db&&u.uid){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'users',u.uid),
-        {disabled:disabled,status:u.status},{merge:true});
-    }catch(e){}
+  if(!fbOk||!window._call||!u.uid){ hideLoad(); toast('⚠️ Not connected / missing UID.','t-err'); return; }
+  try{
+    await window._call.adminSetUserDisabled({uid:u.uid,disabled:disabled});
+    u.disabled=disabled; u.status=disabled?'disabled':'active'; _cache.users[key]=u;
+    renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
+    updateStats();
+    toast(disabled?'⛔ Account disabled':'✅ Account enabled');
+  }catch(e){
+    toast('⚠️ '+(e.message||'Failed'),'t-err');
   }
-  await addLog(disabled?'Account disabled':'Account enabled',key);
-  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
-  updateStats(); hideLoad();
-  toast(disabled?'⛔ Account disabled':'✅ Account enabled');
+  hideLoad();
 }
 
 // ── Clear balance ──
@@ -1411,32 +1564,36 @@ function openApproveDeposit(idx){ _pendingDepIdx=idx; var d=_cache.deposits[idx]
 async function confirmApproveDeposit(){
   showLoad('Crediting user...');
   var d=_cache.deposits[_pendingDepIdx]; if(!d){hideLoad();return;}
-  var u=_cache.users[d.user];
-  if(u){ u.balance=Number(u.balance||0)+Number(d.amount||0); _cache.users[d.user]=u; }
-  d.status='approved'; _cache.deposits[_pendingDepIdx]=d;
   var fbOk=await window._fbReady;
-  if(fbOk&&window._db){
-    try{
-      if(u&&u.uid) await window._F.setDoc(window._F.doc(window._db,'users',u.uid),{balance:u.balance,lastDeposit:new Date().toISOString()},{merge:true});
-      if(d.id) await window._F.setDoc(window._F.doc(window._db,'deposits',d.id),{status:'approved',approvedAt:new Date().toISOString()},{merge:true});
-    }catch(e){}
+  if(!fbOk||!window._call){ hideLoad(); toast('⚠️ Not connected to server.','t-err'); return; }
+  try{
+    var res=await window._call.approveDeposit({depositId:d.id});
+    d.status='approved'; _cache.deposits[_pendingDepIdx]=d;
+    var u=_cache.users[d.user];
+    if(u){ u.balance=res.data.newBalance; _cache.users[d.user]=u; }
+    loadDeposits();
+    renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
+    toast('✅ ₦'+Number(d.amount).toLocaleString()+' credited to '+d.user);
+  }catch(e){
+    toast('⚠️ '+(e.message||'Could not approve deposit'),'t-err');
   }
-  await addLog('Deposit approved ₦'+Number(d.amount).toLocaleString(),d.user);
-  loadDeposits();
-  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
   hideLoad(); closeMo('mo-approve-dep');
-  toast('✅ ₦'+Number(d.amount).toLocaleString()+' credited to '+d.user);
 }
 function openRejectDeposit(idx){ _pendingDepIdx=idx; var d=_cache.deposits[idx]||{}; document.getElementById('reject-dep-info').innerHTML='Reject deposit of <strong>₦'+Number(d.amount||0).toLocaleString()+'</strong> from <strong>'+esc(d.user||'—')+'</strong>?<br/>Ref: '+esc(d.id||'—'); openMo('mo-reject-dep'); }
 async function confirmRejectDeposit(){
   showLoad('Rejecting...');
   var d=_cache.deposits[_pendingDepIdx]; if(!d){hideLoad();return;}
-  d.status='rejected'; _cache.deposits[_pendingDepIdx]=d;
   var fbOk=await window._fbReady;
-  if(fbOk&&window._db&&d.id){ try{ await window._F.setDoc(window._F.doc(window._db,'deposits',d.id),{status:'rejected'},{merge:true}); }catch(e){} }
-  await addLog('Deposit rejected ₦'+Number(d.amount).toLocaleString(),d.user);
-  loadDeposits(); hideLoad(); closeMo('mo-reject-dep');
-  toast('❌ Deposit rejected','t-err');
+  if(!fbOk||!window._call){ hideLoad(); toast('⚠️ Not connected to server.','t-err'); return; }
+  try{
+    await window._call.declineDeposit({depositId:d.id});
+    d.status='declined'; _cache.deposits[_pendingDepIdx]=d;
+    loadDeposits();
+    toast('❌ Deposit declined','t-err');
+  }catch(e){
+    toast('⚠️ '+(e.message||'Could not decline deposit'),'t-err');
+  }
+  hideLoad(); closeMo('mo-reject-dep');
 }
 
 // ════════════════════════════════════════════════════════
@@ -1732,6 +1889,21 @@ async function saveMatches(){
   setTimeout(function(){msgEl.textContent='';},4000);
 }
 
+async function confirmClearMatches(){
+  if(!confirm('Clear all 14 current matches? This deletes them from Firebase immediately so the next round starts fresh — this cannot be undone.')) return;
+  showLoad('Clearing matches...');
+  var fbOk=await window._fbReady;
+  if(!fbOk||!window._call){ hideLoad(); toast('⚠️ Not connected to server.','t-err'); return; }
+  try{
+    await window._call.clearMatches();
+    _cache.matches=[]; renderMatchesEditor();
+    toast('🗑️ Matches cleared from Firebase — ready for the next round');
+  }catch(e){
+    toast('⚠️ '+(e.message||'Could not clear matches'),'t-err');
+  }
+  hideLoad();
+}
+
 // ════════════════════════════════════════════════════════
 //  COUNTDOWN
 // ════════════════════════════════════════════════════════
@@ -1816,20 +1988,73 @@ function loadBroadcast(){
   if(bc&&bc.message){ var el=document.getElementById('bc-msg'); if(el)el.value=bc.message; }
 }
 async function sendBroadcast(){
+  var title=document.getElementById('bc-title').value.trim();
   var msg=document.getElementById('bc-msg').value.trim();
+  if(!title){toast('Enter a heading first.','t-err');return;}
   if(!msg){toast('Enter a message first.','t-err');return;}
-  var obj={message:msg,sentAt:Date.now(),sentAtStr:new Date().toLocaleString()};
-  _cache.broadcast=obj;
   var fbOk=await window._fbReady;
-  if(fbOk&&window._db){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'app_settings','broadcast'),obj,{merge:true});
-      document.getElementById('bc-status').innerHTML='✅ Broadcast sent at '+new Date().toLocaleTimeString()+' — pushed to ALL devices via Firebase.';
-    }catch(e){ document.getElementById('bc-status').innerHTML='Failed: '+e.message; }
+  if(!fbOk||!window._call){toast('⚠️ Not connected to server.','t-err');return;}
+  try{
+    await window._call.sendBroadcast({title:title,message:msg});
+    _cache.broadcast={message:title+': '+msg,sentAt:Date.now()};
+    document.getElementById('bc-status').innerHTML='✅ Broadcast sent at '+new Date().toLocaleTimeString()+' — pushed to ALL devices and the notification bell.';
+    toast('📢 Broadcast sent to all users!');
+  }catch(e){
+    document.getElementById('bc-status').innerHTML='Failed: '+(e.message||'');
+    toast('⚠️ '+(e.message||'Could not send broadcast'),'t-err');
   }
-  await addLog('Broadcast sent: '+msg.slice(0,60),'admin');
   setTimeout(function(){document.getElementById('bc-status').textContent='';},6000);
-  toast('📢 Broadcast sent to all users!');
+}
+
+// ── PASSWORD RESET REQUESTS ──
+var _resetRequests=[]; var _pendingResetIdx=-1;
+async function loadResetRequests(){
+  var wrap=document.getElementById('resets-tbl-wrap');
+  wrap.innerHTML='<div class="tbl-empty">Loading...</div>';
+  var fbOk=await window._fbReady;
+  if(!fbOk||!window._db){ wrap.innerHTML='<div class="tbl-empty">Not connected.</div>'; return; }
+  try{
+    var snap=await window._F.getDocs(window._F.collection(window._db,'password_resets'));
+    _resetRequests=[]; snap.forEach(function(d){_resetRequests.push(Object.assign({id:d.id},d.data()));});
+    _resetRequests.sort(function(a,b){return (b.requestedAt||'').localeCompare(a.requestedAt||'');});
+  }catch(e){ wrap.innerHTML='<div class="tbl-empty">Failed to load: '+e.message+'</div>'; return; }
+  if(!_resetRequests.length){ wrap.innerHTML='<div class="tbl-empty">No reset requests yet.</div>'; return; }
+  var rows=_resetRequests.map(function(r,i){
+    var sb=r.status==='pending'?'<span class="sbadge sb-pend">Pending</span>'
+         :r.status==='code_sent'?'<span class="sbadge sb-pend" style="color:var(--gold)">Code Set</span>'
+         :r.status==='completed'?'<span class="sbadge sb-ok">Completed</span>'
+         :'<span class="sbadge sb-dis">Expired</span>';
+    var act=(r.status==='pending'||r.status==='code_sent')
+      ?'<button class="ab ab-approve" onclick="openSetCode('+i+')">🔑 '+(r.status==='code_sent'?'Update Code':'Set Code')+'</button>' : '';
+    return '<tr><td>'+esc(r.email||'—')+'</td><td>'+sb+'</td><td style="font-size:11px;color:var(--text3)">'+esc(fmtDate(r.requestedAt))+'</td><td><div class="acts">'+act+'</div></td></tr>';
+  }).join('');
+  wrap.innerHTML='<table><thead><tr><th>Email</th><th>Status</th><th>Requested</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+function openSetCode(idx){
+  _pendingResetIdx=idx; var r=_resetRequests[idx]||{};
+  document.getElementById('set-code-info').textContent='Set a code for '+(r.email||'—')+'. Copy it and send it to them yourself (email/WhatsApp) — it expires in 30 minutes.';
+  document.getElementById('src-code-input').value='';
+  openMo('mo-set-code');
+}
+function genRandomCode(){
+  document.getElementById('src-code-input').value=String(Math.floor(100000+Math.random()*900000));
+}
+async function confirmSetResetCode(){
+  var r=_resetRequests[_pendingResetIdx]; if(!r){return;}
+  var code=document.getElementById('src-code-input').value.trim();
+  if(!/^\d{6}$/.test(code)){ toast('Enter a valid 6-digit code','t-err'); return; }
+  showLoad('Saving code...');
+  var fbOk=await window._fbReady;
+  if(!fbOk||!window._call){ hideLoad(); toast('⚠️ Not connected to server.','t-err'); return; }
+  try{
+    await window._call.adminSetResetCode({requestId:r.id,code:code});
+    toast('✅ Code saved — now copy "'+code+'" and send it to '+r.email);
+    closeMo('mo-set-code');
+    loadResetRequests();
+  }catch(e){
+    toast('⚠️ '+(e.message||'Could not save code'),'t-err');
+  }
+  hideLoad();
 }
 
 // ── LOGS ──

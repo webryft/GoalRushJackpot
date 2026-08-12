@@ -62,6 +62,48 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
 }
 #slip-badge.show{display:flex;}
 
+/* ── NOTIFICATION BELL ── */
+#bell-row{
+  display:flex;justify-content:flex-end;
+  padding:4px 14px 0;background:var(--bg2);
+}
+#bell-btn{
+  position:relative;background:none;border:1px solid var(--border);
+  color:var(--text2);width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .2s;margin-bottom:4px;
+}
+#bell-btn:hover{border-color:var(--gold);color:var(--gold);}
+#bell-badge{
+  position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 3px;
+  background:var(--red);color:#fff;border-radius:8px;
+  font-size:10px;font-weight:700;line-height:16px;text-align:center;
+  display:none;
+}
+#bell-badge.show{display:block;}
+.notif-row{
+  display:flex;flex-direction:column;gap:3px;
+  padding:12px 10px;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .2s;
+}
+.notif-row:hover{background:#ffffff08;}
+.notif-row.unread{border-left:3px solid var(--green);}
+.notif-row-title{font-size:14px;font-weight:700;color:var(--text);}
+.notif-row-preview{font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.notif-row-time{font-size:11px;color:var(--text3);}
+
+/* ── TRANSACTION HISTORY ── */
+.tx-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 4px;border-bottom:1px solid var(--border);}
+.tx-left{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.tx-type{font-size:13px;font-weight:700;color:var(--text);}
+.tx-time{font-size:11px;color:var(--text3);}
+.tx-right{text-align:right;flex-shrink:0;}
+.tx-amt{font-size:14px;font-weight:800;color:var(--text);}
+.tx-badge{display:inline-block;margin-top:3px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.tx-badge.pending{background:#3d2e00;color:var(--gold);}
+.tx-badge.approved,.tx-badge.paid{background:#0a2e14;color:var(--green);}
+.tx-badge.declined,.tx-badge.rejected{background:#3d0000;color:#fca5a5;}
+
 /* ── SLIDE MENU ── */
 #menu-overlay{position:fixed;inset:0;background:#00000088;z-index:900;opacity:0;pointer-events:none;transition:opacity .3s;}
 #menu-overlay.open{opacity:1;pointer-events:all;}
@@ -456,6 +498,50 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
   </div>
 </div>
 
+<!-- ── NOTIFICATION BELL (sits under the Bets button) ── -->
+<div id="bell-row">
+  <button id="bell-btn" onclick="openNotifications()" aria-label="Notifications">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+    <span id="bell-badge"></span>
+  </button>
+</div>
+
+<!-- ── NOTIFICATIONS POPUP ── -->
+<div class="modal-overlay" id="notif-list-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="tc-header">
+      <div class="modal-title" style="margin:0">Notifications</div>
+      <button class="modal-btn mb-gray" style="width:auto;padding:6px 14px" onclick="closeModal('notif-list-modal')">✕</button>
+    </div>
+    <div id="notif-list-wrap" style="max-height:60vh;overflow-y:auto;margin-top:10px"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="notif-detail-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="modal-title" id="notif-detail-title"></div>
+    <div id="notif-detail-time" style="font-size:12px;color:var(--text3);margin-bottom:12px"></div>
+    <p id="notif-detail-msg" style="color:var(--text2);font-size:14px;line-height:1.7;margin-bottom:18px;white-space:pre-wrap"></p>
+    <button class="modal-btn mb-green" onclick="closeModal('notif-detail-modal');openModal('notif-list-modal')">← Back to list</button>
+  </div>
+</div>
+
+<!-- ── TRANSACTION HISTORY ── -->
+<div class="modal-overlay" id="tx-history-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="tc-header">
+      <div class="modal-title" style="margin:0">🧾 Transaction History</div>
+      <button class="modal-btn mb-gray" style="width:auto;padding:6px 14px" onclick="closeModal('tx-history-modal')">✕</button>
+    </div>
+    <div id="tx-history-wrap" style="max-height:65vh;overflow-y:auto;margin-top:10px"></div>
+  </div>
+</div>
+
 <!-- ── BROADCAST BANNER ── -->
 <div id="broadcast-banner" style="display:none;position:sticky;top:60px;z-index:799;
   background:linear-gradient(90deg,#0a2000,#142800);
@@ -635,16 +721,30 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
   </div>
 </div>
 
-<!-- FORGOT PASSWORD -->
+<!-- FORGOT PASSWORD — step 1: email -->
 <div class="modal-overlay" id="forgot-modal">
   <div class="modal-sheet">
     <div class="sheet-handle"></div>
     <div class="modal-title">🔑 Reset Password</div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;text-align:center;line-height:1.6">Enter your registered email address. We'll send you a password reset link.</p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;text-align:center;line-height:1.6">Enter your registered email. Our team will send you a 6-digit code to confirm your identity.</p>
     <input class="modal-input" id="fp-email" placeholder="Email Address" type="email"/>
-    <button class="modal-btn mb-gold" onclick="doResetPw()">Send Reset Email</button>
+    <button class="modal-btn mb-gold" onclick="doGetCode()">Get Code</button>
     <button class="modal-btn mb-gray" onclick="closeModal('forgot-modal')">Cancel</button>
     <div class="modal-msg" id="fp-msg"></div>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD — step 2: enter code + new password -->
+<div class="modal-overlay" id="reset-code-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="modal-title">📩 Enter Your Code</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;text-align:center;line-height:1.6">We've received your request. Our team will email you a 6-digit code shortly — enter it below along with your new password.</p>
+    <input class="modal-input" id="rc-code" placeholder="6-digit code" type="text" maxlength="6" inputmode="numeric"/>
+    <input class="modal-input" id="rc-newpw" placeholder="New Password (min 6 chars)" type="password"/>
+    <button class="modal-btn mb-gold" onclick="doConfirmCode()">Confirm Code &amp; Reset</button>
+    <button class="modal-btn mb-gray" onclick="closeModal('reset-code-modal')">Cancel</button>
+    <div class="modal-msg" id="rc-msg"></div>
   </div>
 </div>
 
@@ -662,42 +762,16 @@ body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Ari
   </div>
 </div>
 
-<!-- DEPOSIT — STEP 1: Choose method -->
+<!-- DEPOSIT — amount only; Paystack presents the payment methods -->
 <div class="modal-overlay" id="deposit-method-modal">
   <div class="modal-sheet">
     <div class="sheet-handle"></div>
-    <div class="modal-title">💰 Choose Payment Method</div>
-    <div class="pay-grid">
-      <div class="pay-card" onclick="selectPayMethod('transfer')">
-        <div class="pay-icon">🏦</div>
-        <div class="pay-name">Transfer</div>
-        <div class="pay-sub">Bank Transfer</div>
-      </div>
-      <div class="pay-card" onclick="selectPayMethod('kuda')">
-        <img src="icon.png" width="30">
-        <div class="pay-name">Kuda</div>
-        <div class="pay-sub">Kuda Bank</div>
-      </div>
-      <div class="pay-card" onclick="selectPayMethod('opay')">
-        <img src="icon1.png" width="30">
-        <div class="pay-name">Opay</div>
-        <div class="pay-sub">Opay Wallet</div>
-      </div>
-      <div class="pay-card" onclick="selectPayMethod('crypto')">
-        <div class="pay-icon">₿</div>
-        <div class="pay-name">Crypto</div>
-        <div class="pay-sub">USDT BEP20</div>
-      </div>
-      <div class="pay-card coming-soon" onclick="showComingSoon()">
-        <div class="pay-cs-badge">SOON</div>
-        <div class="pay-icon">💳</div>
-        <div class="pay-name">Card</div>
-        <div class="pay-sub">Debit/Credit</div>
-      </div>
-    </div>
+    <div class="modal-title">💰 Deposit</div>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:12px">Enter an amount, then continue — you'll choose card, bank transfer, or USSD on the next screen.</p>
     <input class="modal-input" id="dep-amount" placeholder="Amount (₦)" type="number"/>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Min ₦100 · Max ₦100,000,000</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Min ₦1,000 · Max ₦100,000,000</div>
     <button class="modal-btn mb-green" onclick="proceedDeposit()">Continue →</button>
+    <button class="modal-btn mb-gray" onclick="openCryptoDeposit()" style="margin-top:6px">Pay with Crypto (USDT) instead</button>
     <button class="modal-btn mb-gray" onclick="closeModal('deposit-method-modal')">Cancel</button>
     <div class="modal-msg" id="dep-msg"></div>
   </div>
@@ -839,20 +913,30 @@ window._fbReady = (async function(){
             signOut, onAuthStateChanged, sendPasswordResetEmail }
       = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const { getFirestore, doc, setDoc, getDoc, updateDoc,
-            collection, getDocs, addDoc, serverTimestamp, query, where, deleteDoc }
+            collection, getDocs, addDoc, serverTimestamp, query, where, deleteDoc,
+            orderBy, limit }
       = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const { getFunctions, httpsCallable }
+      = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js");
 
     const app  = initializeApp(_FIREBASE_CONFIG);
     const auth = getAuth(app);
     const db   = getFirestore(app);
+    const fns  = getFunctions(app);
 
     window._FB   = true;
     window._auth = auth;
     window._db   = db;
+    window._fns  = fns;
     window._F    = { doc, setDoc, getDoc, updateDoc, collection, getDocs,
-                     addDoc, serverTimestamp, query, where, deleteDoc,
+                     addDoc, serverTimestamp, query, where, deleteDoc, orderBy, limit,
                      createUserWithEmailAndPassword, signInWithEmailAndPassword,
                      signOut, onAuthStateChanged, sendPasswordResetEmail };
+    // Callable wrappers for the trusted backend (Cloud Functions)
+    window._call = {
+      requestPasswordReset: httpsCallable(fns,'requestPasswordReset'),
+      confirmResetCode:     httpsCallable(fns,'confirmResetCode'),
+    };
 
     // ── Restore session: reload profile + tickets from Firestore on page load ──
     onAuthStateChanged(auth, async function(fbUser){
@@ -988,6 +1072,7 @@ document.addEventListener('DOMContentLoaded',function(){
   loadCoverPrize();
   loadResultsRounds();
   checkBroadcast();
+  loadNotifications();
   // Load everything from Firestore
   _loadAppData().then(function(){
     startCountdown(); // restart with Firebase countdown
@@ -1117,7 +1202,9 @@ function updateMenuItems(){
       menuItem('💰','Deposit',function(){closeMenu();openDeposit();})+
       menuItem('💸','Withdraw',function(){closeMenu();openWithdraw();})+
       menuItem('🎫','My Bets',function(){closeMenu();openSlip();})+
+      menuItem('🧾','Transaction History',function(){closeMenu();openTxHistory();})+
       menuItem('📊','Results',function(){closeMenu();switchTab('results');})+
+      menuItem('💬','Chat Support',function(){closeMenu();openWhatsAppSupport();})+
       menuItem('❓','How to Play',function(){closeMenu();switchTab('howto');})+
       menuItem('🚪','Logout',function(){closeMenu();doLogout();});
   }else{
@@ -1127,8 +1214,13 @@ function updateMenuItems(){
       menuItem('🔐','Login',function(){closeMenu();openModal('login-modal');})+
       menuItem('🎫','My Bets',function(){closeMenu();openSlip();})+
       menuItem('📊','Results',function(){closeMenu();switchTab('results');})+
+      menuItem('💬','Chat Support',function(){closeMenu();openWhatsAppSupport();})+
       menuItem('❓','How to Play',function(){closeMenu();switchTab('howto');});
   }
+}
+function openWhatsAppSupport(){
+  var msg=encodeURIComponent('Hello GoalRush Support! 👋 I need help with my account.');
+  window.open('https://wa.me/'+SUPPORT_WA+'?text='+msg,'_blank');
 }
 function menuItem(ico,label,fn){
   var id='mi_'+Math.random().toString(36).slice(2);
@@ -1482,21 +1574,44 @@ async function doLogout(){
   showNotif('Logged out successfully.');
 }
 
-async function doResetPw(){
+var _resetEmail='';
+async function doGetCode(){
   var email=gv('fp-email').trim().toLowerCase();
   var msg=document.getElementById('fp-msg');msg.textContent='';
   if(!email){setMsg(msg,'Enter your email address','err');return;}
-  setMsg(msg,'Connecting...','ok');
+  setMsg(msg,'Submitting request...','ok');
   var fbOk=await window._fbReady;
-  if(!fbOk||!window._auth){setMsg(msg,'Server connection failed.','err');return;}
+  if(!fbOk||!window._call){setMsg(msg,'Server connection failed.','err');return;}
   try{
-    await window._F.sendPasswordResetEmail(window._auth,email);
-    setMsg(msg,'✅ Password reset email sent! Check your inbox.','ok');
-    setTimeout(function(){closeModal('forgot-modal');},3000);
+    await window._call.requestPasswordReset({email:email});
+    _resetEmail=email;
+    setMsg(msg,'','ok');
+    closeModal('forgot-modal');
+    document.getElementById('rc-code').value=''; document.getElementById('rc-newpw').value='';
+    document.getElementById('rc-msg').textContent='';
+    openModal('reset-code-modal');
   }catch(e){
-    var em='Could not send reset email.';
-    if(e.code==='auth/user-not-found') em='No account found with this email.';
-    else if(e.code==='auth/invalid-email') em='Invalid email address.';
+    setMsg(msg,'Could not submit request. Try again.','err');
+  }
+}
+
+async function doConfirmCode(){
+  var code=gv('rc-code').trim();
+  var newpw=gv('rc-newpw');
+  var msg=document.getElementById('rc-msg');msg.textContent='';
+  if(!/^\d{6}$/.test(code)){setMsg(msg,'Enter the 6-digit code','err');return;}
+  if(!newpw||newpw.length<6){setMsg(msg,'New password must be at least 6 characters','err');return;}
+  setMsg(msg,'Verifying...','ok');
+  var fbOk=await window._fbReady;
+  if(!fbOk||!window._call){setMsg(msg,'Server connection failed.','err');return;}
+  try{
+    // requestId isn't shown to the user; the backend looks up the latest
+    // code_sent request for this email so the flow stays a plain 2-field form.
+    await window._call.confirmResetCode({email:_resetEmail,code:code,newPassword:newpw});
+    setMsg(msg,'✅ Password reset! You can log in now.','ok');
+    setTimeout(function(){closeModal('reset-code-modal');openModal('login-modal');},2000);
+  }catch(e){
+    var em=(e&&e.message)?e.message:'Incorrect or expired code.';
     setMsg(msg,em,'err');
   }
 }
@@ -1516,28 +1631,29 @@ async function _addLog(action, user){
 }
 
 // ── DEPOSIT ──
+var MIN_DEPOSIT=1000;
+
 function openDeposit(){
   if(!_cache.cu){openModal('auth-gate-modal');return;}
-  _payMethod=null; clearPayMethodSelect();
+  _payMethod='paystack';
   document.getElementById('dep-msg').textContent='';
   document.getElementById('dep-amount').value='';
   openModal('deposit-method-modal');
 }
-function selectPayMethod(m){
-  _payMethod=m; clearPayMethodSelect();
-  document.querySelectorAll('.pay-card').forEach(function(c){
-    if(c.getAttribute('onclick')==="selectPayMethod('"+m+"')")c.classList.add('selected');
-  });
-}
-function clearPayMethodSelect(){document.querySelectorAll('.pay-card').forEach(function(c){c.classList.remove('selected');});}
-function showComingSoon(){showNotif('💳 Card payments coming soon!');}
-
-async function proceedDeposit(){
+function openCryptoDeposit(){
   var msg=document.getElementById('dep-msg');msg.textContent='';
   var amt=Number(document.getElementById('dep-amount').value);
-  if(!_payMethod){setMsg(msg,'Please select a payment method','err');return;}
-  if(!amt||amt<100||amt>100000000){setMsg(msg,'Enter amount between ₦100 and ₦100,000,000','err');return;}
-  _depAmount=amt; closeModal('deposit-method-modal');
+  if(!amt||amt<MIN_DEPOSIT||amt>100000000){setMsg(msg,'Enter amount between ₦'+MIN_DEPOSIT.toLocaleString()+' and ₦100,000,000','err');return;}
+  _payMethod='crypto'; _depAmount=amt; closeModal('deposit-method-modal');
+  proceedDeposit(true);
+}
+
+async function proceedDeposit(fromCrypto){
+  var msg=document.getElementById('dep-msg');msg.textContent='';
+  var amt=fromCrypto?_depAmount:Number(document.getElementById('dep-amount').value);
+  if(!amt||amt<MIN_DEPOSIT||amt>100000000){setMsg(msg,'Enter amount between ₦'+MIN_DEPOSIT.toLocaleString()+' and ₦100,000,000','err');return;}
+  _depAmount=amt;
+  if(!fromCrypto) closeModal('deposit-method-modal');
   if(_payMethod==='crypto'){
     var usdtAmt=(amt/1550).toFixed(4);
     document.getElementById('pay-modal-title').textContent='₿ Send USDT (BEP20)';
@@ -1554,7 +1670,6 @@ async function proceedDeposit(){
   if(!fbOk||!window._db){showNotif('Network error. Try again.','err');return;}
   var data=_cache.cuData||{};
   var email=data.email||_cache.cu+'@goalrush.com';
-  var methodLabel={transfer:'Bank Transfer',kuda:'Kuda Bank',opay:'Opay',card:'Card Payment'}[_payMethod]||_payMethod;
   var ref='GRJ-'+Date.now()+'-'+Math.random().toString(36).slice(2,7).toUpperCase();
   showLoading('Opening payment gateway...');
   setTimeout(function(){
@@ -1563,57 +1678,36 @@ async function proceedDeposit(){
       key:PAYSTACK_KEY,email:email,amount:amt*100,currency:'NGN',ref:ref,
       metadata:{custom_fields:[
         {display_name:'Phone',variable_name:'phone',value:_cache.cu},
-        {display_name:'Method',variable_name:'method',value:methodLabel},
+        {display_name:'Method',variable_name:'method',value:'Paystack'},
         {display_name:'Platform',variable_name:'platform',value:'GoalRush Jackpot'}
       ]},
-      channels:_payMethod==='card'?['card']:_payMethod==='kuda'||_payMethod==='opay'?['bank_transfer']:['bank_transfer','card'],
-      callback:function(response){ verifyAndCreditPaystack(response.reference,amt,methodLabel,_cache.cu); },
+      channels:['card','bank_transfer','bank','ussd','qr'], // Paystack shows the picker; we don't pre-choose
+      callback:function(response){ onPaystackReturn(response.reference,amt); },
       onClose:function(){ showNotif('Payment window closed. Your account was not charged.','err'); }
     });
     handler.openIframe();
   },600);
 }
 
-function verifyAndCreditPaystack(reference,amt,method,phone){
-  showLoading('Verifying payment...');
-  fetch('https://api.paystack.co/transaction/verify/'+encodeURIComponent(reference),{
-    method:'GET',headers:{'Authorization':'Bearer '+PAYSTACK_KEY,'Content-Type':'application/json'}
-  })
-  .then(function(r){return r.json();})
-  .then(async function(data){
-    hideLoading();
-    if(data.status&&data.data&&data.data.status==='success'){
-      var newBal = Number((_cache.cuData||{}).balance||0)+amt;
-      if(_cache.cuData) _cache.cuData.balance=newBal;
-      await _syncBalance(newBal);
-      // Save deposit to Firestore
-      var fbOk=await window._fbReady;
-      if(fbOk&&window._db){
-        try{
-          await window._F.setDoc(window._F.doc(window._db,'deposits',reference),
-            {id:reference,user:phone,userUid:_cache.cuUid||'',amount:amt,method:method,
-             time:new Date().toISOString(),status:'approved',verified:true,ref:reference});
-        }catch(e){}
-      }
-      updateHeaderBalance();
-      await _addLog('Deposit ₦'+amt.toLocaleString()+' via '+method+' ref:'+reference,phone);
-      showSuccess('✅','Payment Successful!','₦'+amt.toLocaleString()+' has been credited. New balance: ₦'+newBal.toLocaleString()+'.');
-    }else{
-      showNotif('⚠️ Payment could not be verified. Contact support with ref: '+reference,'err');
-    }
-  })
-  .catch(async function(){
-    hideLoading();
-    var fbOk=await window._fbReady;
-    if(fbOk&&window._db){
-      try{
-        await window._F.setDoc(window._F.doc(window._db,'deposits',reference),
-          {id:reference,user:phone,userUid:_cache.cuUid||'',amount:amt,method:method,
-           time:new Date().toISOString(),status:'pending',verified:false,ref:reference,note:'Verify failed'});
-      }catch(e){}
-    }
-    showNotif('Payment received but verification failed. Admin will credit you shortly. Ref: '+reference,'err');
-  });
+// IMPORTANT: this does NOT credit the wallet. Crediting only happens after
+// (1) our Cloud Function verifies the payment with Paystack server-side via
+// the webhook, and (2) an admin manually approves it in the admin panel.
+// This function just gives the user immediate feedback and drops a
+// "pending" row into their transaction history in case the webhook is slow.
+async function onPaystackReturn(reference,amt){
+  showLoading('Confirming with GoalRush...');
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._db){
+    try{
+      await window._F.setDoc(window._F.doc(window._db,'deposits',reference),
+        {id:reference,user:_cache.cu,userUid:_cache.cuUid||'',amount:amt,method:'Paystack',
+         time:new Date().toISOString(),status:'pending',ref:reference},{merge:true});
+    }catch(e){}
+  }
+  await _addLog('Deposit initiated ₦'+amt.toLocaleString()+' ref:'+reference,_cache.cu);
+  hideLoading();
+  showSuccess('⏳','Payment Received!','₦'+amt.toLocaleString()+' is pending confirmation. It will reflect in your wallet shortly — check Transaction History for status. Ref: '+reference);
+  if(typeof loadTxHistory==='function') loadTxHistory();
 }
 
 async function confirmCryptoPayment(){
@@ -1650,6 +1744,39 @@ function startPayTimer(){
   render(); _payTimerInterval=setInterval(function(){secs--;render();},1000);
 }
 function cancelDepositPay(){if(_payTimerInterval)clearInterval(_payTimerInterval);closeModal('deposit-pay-modal');openModal('deposit-method-modal');}
+
+// ── TRANSACTION HISTORY (deposits + withdrawals, pending/approved/declined) ──
+async function openTxHistory(){
+  if(!_cache.cu){openModal('auth-gate-modal');return;}
+  openModal('tx-history-modal');
+  await loadTxHistory();
+}
+async function loadTxHistory(){
+  var wrap=document.getElementById('tx-history-wrap');
+  wrap.innerHTML='<div class="tbl-empty" style="padding:30px 0;text-align:center;color:var(--text3)">Loading...</div>';
+  var fbOk=await window._fbReady;
+  if(!fbOk||!window._db||!_cache.cuUid){ wrap.innerHTML='<div class="tbl-empty">Could not load history.</div>'; return; }
+  var items=[];
+  try{
+    var dq=window._F.query(window._F.collection(window._db,'deposits'),window._F.where('userUid','==',_cache.cuUid));
+    var ds=await window._F.getDocs(dq);
+    ds.forEach(function(d){ var x=d.data(); items.push({type:'Deposit',amount:x.amount,status:x.status||'pending',time:x.time,ref:x.ref||x.id}); });
+  }catch(e){}
+  try{
+    var wq=window._F.query(window._F.collection(window._db,'withdrawals'),window._F.where('userUid','==',_cache.cuUid));
+    var ws=await window._F.getDocs(wq);
+    ws.forEach(function(d){ var x=d.data(); items.push({type:'Withdrawal',amount:x.amount,status:x.status||'pending',time:x.time,ref:x.id}); });
+  }catch(e){}
+  items.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
+  if(!items.length){ wrap.innerHTML='<div class="tbl-empty" style="padding:30px 0;text-align:center;color:var(--text3)">No transactions yet.</div>'; return; }
+  wrap.innerHTML=items.map(function(x){
+    var statusLabel=x.status==='paid'?'Paid':x.status.charAt(0).toUpperCase()+x.status.slice(1);
+    return '<div class="tx-row">'
+      +'<div class="tx-left"><span class="tx-type">'+esc(x.type)+'</span><span class="tx-time">'+esc(fmtNotifTime(x.time))+' · '+esc(x.ref||'')+'</span></div>'
+      +'<div class="tx-right"><span class="tx-amt">₦'+Number(x.amount||0).toLocaleString()+'</span><br/><span class="tx-badge '+esc(x.status)+'">'+esc(statusLabel)+'</span></div>'
+      +'</div>';
+  }).join('');
+}
 
 // ── WITHDRAW ──
 function openWithdraw(){
@@ -1707,7 +1834,61 @@ function showSuccess(icon,title,msg){
   _spTimer=setTimeout(function(){document.getElementById('success-popup').classList.remove('show');},5000);
 }
 
-// ── NOTIFICATIONS ──
+// ── NOTIFICATION BELL (broadcasts from admin) ──
+var _notifItems=[]; var _notifSeenCount=0;
+async function loadNotifications(){
+  var fbOk=await window._fbReady;
+  if(!fbOk||!window._db) return;
+  try{
+    var q=window._F.query(window._F.collection(window._db,'notifications'),
+      window._F.orderBy('time','desc'), window._F.limit(50));
+    var snap=await window._F.getDocs(q);
+    _notifItems=[]; snap.forEach(function(d){_notifItems.push(Object.assign({id:d.id},d.data()));});
+  }catch(e){
+    // fallback if orderBy/limit not wired up in the import list
+    try{
+      var snap2=await window._F.getDocs(window._F.collection(window._db,'notifications'));
+      _notifItems=[]; snap2.forEach(function(d){_notifItems.push(Object.assign({id:d.id},d.data()));});
+      _notifItems.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
+    }catch(e2){}
+  }
+  updateBellBadge();
+}
+function updateBellBadge(){
+  var unread=_notifItems.length-_notifSeenCount;
+  var badge=document.getElementById('bell-badge');
+  if(unread>0){badge.textContent=unread>9?'9+':unread;badge.classList.add('show');}
+  else badge.classList.remove('show');
+}
+function openNotifications(){
+  renderNotifList();
+  _notifSeenCount=_notifItems.length; updateBellBadge();
+  openModal('notif-list-modal');
+}
+function renderNotifList(){
+  var wrap=document.getElementById('notif-list-wrap');
+  if(!_notifItems.length){ wrap.innerHTML='<div class="tbl-empty" style="padding:30px 0;text-align:center;color:var(--text3)">No notifications yet.</div>'; return; }
+  wrap.innerHTML=_notifItems.map(function(n,i){
+    return '<div class="notif-row" onclick="openNotifDetail('+i+')">'
+      +'<span class="notif-row-title">'+esc(n.title||'Notice')+'</span>'
+      +'<span class="notif-row-preview">'+esc(n.message||'')+'</span>'
+      +'<span class="notif-row-time">'+esc(fmtNotifTime(n.time))+'</span>'
+      +'</div>';
+  }).join('');
+}
+function openNotifDetail(i){
+  var n=_notifItems[i]; if(!n) return;
+  document.getElementById('notif-detail-title').textContent=n.title||'Notice';
+  document.getElementById('notif-detail-time').textContent=fmtNotifTime(n.time);
+  document.getElementById('notif-detail-msg').textContent=n.message||'';
+  closeModal('notif-list-modal'); openModal('notif-detail-modal');
+}
+function fmtNotifTime(iso){
+  if(!iso) return '';
+  try{ var d=new Date(iso); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' · '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; }
+}
+
+// ── NOTIFICATIONS (toast) ──
 var _nTimer=null;
 function showNotif(msg,type){
   var el=document.getElementById('notif');
