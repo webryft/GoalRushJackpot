@@ -3,893 +3,723 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>GoalRush Admin Panel</title>
+<title>GoalRush Jackpot</title>
 <style>
-/* ════════════════════════════════════════
-   🔥 FIREBASE SPACE — paste config below
-   ════════════════════════════════════════
-   import { initializeApp } from "firebase/app";
-   const firebaseConfig = { apiKey:"", ... };
-   ════════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   🔥 FIREBASE LIVE CONFIG — see script tag
+   ═══════════════════════════════════════ */
 
 :root{
-  --bg:#030a03;--bg2:#061006;--bg3:#0a160a;--bg4:#0f1f0f;
-  --green:#22c55e;--green2:#16a34a;--g3:#0a2010;
+  --bg:#0b1120;--bg2:#111827;--bg3:#1a2235;
+  --green:#22c55e;--green2:#16a34a;
   --gold:#ffd700;--gold2:#e5b400;
-  --red:#ef4444;--orange:#f97316;--blue:#3b82f6;--yellow:#eab308;
-  --text:#f0fdf4;--text2:#86efac;--text3:#4ade80;
-  --border:#1a3020;--card:#0c1a0c;
-  --glow:0 0 20px #22c55e44;--glow-gold:0 0 20px #ffd70044;
-  --glow-red:0 0 20px #ef444444;
+  --red:#ef4444;--orange:#f97316;
+  --blue:#3b82f6;--purple:#8b5cf6;
+  --text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;
+  --border:#1e293b;--card:#111827;
+  --glow-green:0 0 20px #22c55e44;
+  --glow-gold:0 0 20px #ffd70044;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{width:100%;min-height:100vh;overflow-x:hidden;}
-body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;font-size:14px;}
-body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:radial-gradient(ellipse 80% 40% at 50% -5%,#002200 0%,transparent 60%),
-    radial-gradient(ellipse 40% 30% at 90% 100%,#001500 0%,transparent 60%);}
-::-webkit-scrollbar{width:4px;height:4px;}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;font-size:15px;}
+::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--green2);border-radius:2px;}
 
-/* ── LOGIN ── */
-#login-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);
-  display:flex;align-items:center;justify-content:center;padding:20px;}
-.login-card{
-  background:linear-gradient(145deg,var(--card),var(--bg2));
-  border:1px solid var(--border);border-radius:20px;
-  padding:40px 32px;width:100%;max-width:380px;
-  box-shadow:0 0 80px #22c55e22,0 40px 80px #00000088;
-  position:relative;z-index:1;
-}
-.lc-icon{font-size:48px;text-align:center;margin-bottom:12px;}
-.lc-title{font-size:20px;font-weight:900;color:var(--green);text-align:center;
-  text-shadow:var(--glow);letter-spacing:1px;margin-bottom:4px;}
-.lc-sub{font-size:12px;color:var(--text3);text-align:center;margin-bottom:28px;letter-spacing:1px;}
-.lc-lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;display:block;}
-.lc-input{width:100%;background:#030a03;border:1px solid var(--border);color:var(--text);
-  padding:12px 14px;border-radius:10px;font-size:14px;margin-bottom:12px;
-  outline:none;transition:border-color .2s;font-family:inherit;}
-.lc-input:focus{border-color:var(--green);}
-.lc-input::placeholder{color:#1a3020;}
-.lc-btn{width:100%;padding:14px;border-radius:10px;
-  background:linear-gradient(135deg,var(--green),var(--green2));
-  border:none;color:#000;font-weight:800;font-size:15px;cursor:pointer;
-  transition:all .25s;margin-top:4px;box-shadow:var(--glow);letter-spacing:.5px;}
-.lc-btn:hover{box-shadow:0 0 40px #22c55ecc;transform:translateY(-2px);}
-.lc-err{color:var(--red);font-size:12px;text-align:center;margin-top:10px;min-height:16px;display:none;}
-.lc-err.show{display:block;}
-
-/* ── APP ── */
-#admin-app{display:none;position:relative;z-index:1;min-height:100vh;}
-
 /* ── HEADER ── */
-#admin-header{
-  position:fixed;top:0;left:0;right:0;height:58px;
+#header{
+  position:sticky;top:0;z-index:800;
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 18px;
-  background:linear-gradient(90deg,#020802f0,#030a0390);
-  backdrop-filter:blur(16px);border-bottom:1px solid var(--border);z-index:800;
+  padding:10px 14px;
+  background:linear-gradient(90deg,#050d1a,#0b1120);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(12px);
 }
-.ah-left{display:flex;align-items:center;gap:12px;}
-.ah-logo{font-size:15px;font-weight:900;color:var(--green);text-shadow:var(--glow);letter-spacing:.5px;}
-.ah-badge{background:linear-gradient(135deg,var(--green2),var(--green));
-  color:#000;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:1px;}
-.ah-right{display:flex;align-items:center;gap:10px;}
-#ah-clock{font-size:11px;color:var(--text3);font-family:monospace;letter-spacing:.5px;}
-.logout-btn{background:none;border:1px solid var(--border);color:var(--text3);
-  padding:6px 12px;border-radius:7px;cursor:pointer;font-size:12px;transition:all .2s;}
-.logout-btn:hover{border-color:var(--red);color:var(--red);}
-
-/* ── BODY ── */
-#admin-body{padding-top:70px;padding-bottom:50px;max-width:1400px;margin:0 auto;}
-
-/* ── STAT CARDS ── */
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px 18px 6px;}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;
-  padding:16px;position:relative;overflow:hidden;transition:border-color .2s,box-shadow .2s;}
-.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0;}
-.stat-card:nth-child(1)::before{background:var(--green);}
-.stat-card:nth-child(2)::before{background:var(--gold);}
-.stat-card:nth-child(3)::before{background:var(--blue);}
-.stat-card:nth-child(4)::before{background:var(--red);}
-.stat-card:hover{border-color:var(--green);box-shadow:var(--glow);}
-.stat-num{font-size:26px;font-weight:900;margin-bottom:4px;}
-.sn-g{color:var(--green);}.sn-gold{color:var(--gold);}.sn-b{color:var(--blue);}.sn-r{color:var(--red);}
-.stat-lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
-
-/* ── SECTION CARD ── */
-.section-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:12px 18px;}
-.sc-head{display:flex;align-items:center;justify-content:space-between;
-  padding:13px 18px;background:linear-gradient(90deg,var(--bg2),var(--bg4));border-bottom:1px solid var(--border);}
-.sc-title{font-size:12px;font-weight:700;color:var(--green);letter-spacing:1.5px;text-transform:uppercase;}
-.sc-body{padding:16px 18px;}
-
-/* ── TABS ── */
-.tabs-bar{display:flex;background:var(--bg2);border-bottom:2px solid var(--border);
-  flex-wrap:wrap;padding:0 18px;overflow-x:auto;}
-.tab-btn{padding:12px 14px;border:none;background:none;color:var(--text3);
-  font-weight:700;font-size:12px;cursor:pointer;letter-spacing:.5px;
-  border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;}
-.tab-btn.active{color:var(--green);border-bottom-color:var(--green);}
-.tab-content{display:none;}.tab-content.active{display:block;}
-
-/* ── SEARCH / ROWS ── */
-.search-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
-.search-input{flex:1;min-width:180px;background:#030a03;border:1px solid var(--border);color:var(--text);
-  padding:10px 14px;border-radius:9px;font-size:13px;outline:none;transition:border-color .2s;font-family:inherit;}
-.search-input:focus{border-color:var(--green);}
-.search-input::placeholder{color:#1a3020;}
-.refresh-btn{padding:10px 16px;background:var(--bg3);border:1px solid var(--green2);
-  color:var(--green);border-radius:9px;cursor:pointer;font-size:12px;font-weight:700;transition:all .2s;white-space:nowrap;}
-.refresh-btn:hover{background:var(--g3);}
-
-/* ── TABLE ── */
-.tbl-wrap{overflow-x:auto;}
-table{width:100%;border-collapse:collapse;min-width:600px;}
-th{padding:9px 12px;text-align:left;font-size:10px;color:var(--text3);
-  text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);
-  background:var(--bg3);white-space:nowrap;}
-td{padding:12px 12px;border-bottom:1px solid #0c1a0c;font-size:13px;vertical-align:middle;}
-tr:last-child td{border-bottom:none;}
-tbody tr:hover td{background:#0a1a0a40;}
-.td-phone{font-weight:700;color:var(--green);font-size:12px;}
-.td-name{color:var(--text2);font-size:12px;}
-.td-bal{font-weight:700;color:var(--gold);font-family:monospace;font-size:12px;}
-.sbadge{display:inline-block;padding:3px 9px;border-radius:12px;font-size:10px;font-weight:700;}
-.sb-ok{background:#00e67618;color:var(--green);border:1px solid #00e67630;}
-.sb-dis{background:#ef444418;color:var(--red);border:1px solid #ef444430;}
-.sb-pend{background:#ffd70018;color:var(--gold);border:1px solid #ffd70030;}
-.sb-done{background:#3b82f618;color:var(--blue);border:1px solid #3b82f630;}
-.sb-arc{background:#f9731618;color:var(--orange);border:1px solid #f9731630;}
-
-/* ── ACTION BUTTONS ── */
-.acts{display:flex;gap:5px;flex-wrap:wrap;}
-.ab{padding:5px 9px;border-radius:6px;border:1px solid transparent;
-  cursor:pointer;font-size:10px;font-weight:700;transition:all .18s;white-space:nowrap;}
-.ab-fund{background:#22c55e18;color:var(--green);border-color:#22c55e30;}
-.ab-fund:hover{background:var(--green);color:#000;}
-.ab-dis{background:#ef444418;color:var(--red);border-color:#ef444430;}
-.ab-dis:hover{background:var(--red);color:#fff;}
-.ab-en{background:#22c55e18;color:var(--green);border-color:#22c55e30;}
-.ab-en:hover{background:var(--green);color:#000;}
-.ab-clear{background:#f9731618;color:var(--orange);border-color:#f9731630;}
-.ab-clear:hover{background:var(--orange);color:#000;}
-.ab-del{background:#ef444418;color:var(--red);border-color:#ef444430;}
-.ab-del:hover{background:var(--red);color:#fff;}
-.ab-view{background:#3b82f618;color:var(--blue);border-color:#3b82f630;}
-.ab-view:hover{background:var(--blue);color:#fff;}
-.ab-restore{background:#22c55e18;color:var(--green);border-color:#22c55e30;}
-.ab-restore:hover{background:var(--green);color:#000;}
-.ab-approve{background:#22c55e18;color:var(--green);border-color:#22c55e30;}
-.ab-approve:hover{background:var(--green);color:#000;}
-.ab-reject{background:#ef444418;color:var(--red);border-color:#ef444430;}
-.ab-reject:hover{background:var(--red);color:#fff;}
-.tbl-empty{text-align:center;padding:40px;color:var(--text3);font-size:13px;}
-
-/* ── PRIZE SETTINGS ── */
-.prize-field{margin-bottom:14px;}
-.prize-field label{display:block;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
-.prize-input{width:100%;background:#030a03;border:1px solid var(--border);color:var(--text);
-  padding:11px 14px;border-radius:9px;font-size:15px;font-weight:700;
-  outline:none;transition:border-color .2s;font-family:inherit;}
-.prize-input:focus{border-color:var(--gold);}
-
-/* ── RESULTS ENTRY ── */
-.result-row{
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:10px;padding:10px 12px;margin-bottom:8px;
+#hamburger{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:4px;}
+#hamburger span{display:block;width:22px;height:2px;background:var(--green);border-radius:2px;transition:all .3s;}
+.header-logo{font-size:16px;font-weight:800;color:var(--gold);letter-spacing:.5px;text-shadow:0 0 12px #ffd70066;}
+.header-right{display:flex;align-items:center;gap:10px;}
+#header-balance{
+  background:linear-gradient(135deg,#0f2010,#0a1a08);
+  border:1px solid var(--green2);
+  color:var(--green);padding:6px 12px;border-radius:20px;
+  font-weight:700;font-size:13px;cursor:pointer;
+  box-shadow:var(--glow-green);
 }
-.result-match-num{font-size:11px;font-weight:700;color:var(--text3);
-  width:70px;flex-shrink:0;}
-.result-match-name{flex:1;min-width:140px;font-size:13px;color:var(--text2);}
-.result-btns{display:flex;gap:6px;}
-.res-btn{padding:8px 14px;border-radius:7px;border:1px solid var(--border);
-  background:var(--bg3);color:var(--text3);font-weight:700;font-size:13px;
-  cursor:pointer;transition:all .18s;min-width:44px;text-align:center;}
-.res-btn:hover{border-color:var(--green);color:var(--green);}
-.res-btn.sel-1{background:#0a2010;border-color:var(--green);color:var(--green);}
-.res-btn.sel-x{background:#1a1a00;border-color:var(--gold);color:var(--gold);}
-.res-btn.sel-2{background:#0a0a20;border-color:var(--blue);color:var(--blue);}
+#slip-counter-btn{
+  position:relative;background:none;border:1px solid var(--border);
+  color:var(--text2);padding:6px 12px;border-radius:20px;
+  cursor:pointer;font-size:13px;transition:all .2s;
+}
+#slip-counter-btn:hover{border-color:var(--gold);color:var(--gold);}
+#slip-badge{
+  position:absolute;top:-6px;right:-6px;
+  background:var(--red);color:#fff;
+  width:18px;height:18px;border-radius:50%;
+  font-size:10px;font-weight:700;
+  display:none;align-items:center;justify-content:center;
+}
+#slip-badge.show{display:flex;}
 
-/* ── WINNER CARDS ── */
-.winner-section{margin-bottom:16px;}
-.winner-section-title{
-  display:flex;align-items:center;gap:8px;
-  font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-  margin-bottom:8px;padding:8px 12px;border-radius:8px;
+/* ── SLIDE MENU ── */
+#menu-overlay{position:fixed;inset:0;background:#00000088;z-index:900;opacity:0;pointer-events:none;transition:opacity .3s;}
+#menu-overlay.open{opacity:1;pointer-events:all;}
+#menu-panel{
+  position:fixed;top:0;left:-280px;bottom:0;width:260px;
+  background:linear-gradient(180deg,#050d1a,#0b1120);
+  border-right:1px solid var(--border);
+  z-index:901;transition:left .35s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
 }
-.ws-14{background:#00220a;border:1px solid var(--green);color:var(--green);}
-.ws-13{background:#001122;border:1px solid var(--blue);color:var(--blue);}
-.ws-12{background:#1a1400;border:1px solid var(--yellow);color:var(--yellow);}
-.ws-red{background:#1a0000;border:1px solid var(--red);color:var(--red);}
-.winner-card{
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:9px;padding:12px;margin-bottom:8px;
-  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+#menu-panel.open{left:0;}
+.menu-header{
+  padding:20px 16px 14px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
 }
-.wc-14{border-left:4px solid var(--green);}
-.wc-13{border-left:4px solid var(--blue);}
-.wc-12{border-left:4px solid var(--yellow);}
-.winner-info{font-size:12px;}
-.wi-phone{font-weight:700;color:var(--green);margin-bottom:2px;}
-.wi-ticket{font-size:11px;color:var(--text3);}
-.wi-correct{font-size:11px;font-weight:700;}
-.wa-btn{background:linear-gradient(135deg,#25d366,#128c7e);border:none;color:#fff;
-  padding:6px 12px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;transition:all .2s;}
-.wa-btn:hover{opacity:.85;}
+.menu-header h2{font-size:15px;color:var(--gold);font-weight:800;}
+#menu-close{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;}
+#menu-user-block{
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  font-size:13px;color:var(--text2);display:none;
+}
+#menu-user-block strong{color:var(--green);display:block;font-size:14px;}
+.menu-item{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;cursor:pointer;
+  border-bottom:1px solid #ffffff08;
+  font-size:14px;font-weight:600;color:var(--text);
+  transition:background .2s;
+}
+.menu-item:hover{background:#ffffff08;}
+.menu-item .ico{font-size:16px;width:20px;text-align:center;}
 
-/* ── ALARM BANNER ── */
-#alarm-banner{
-  display:none;background:linear-gradient(90deg,#002200,#003300);
-  border:2px solid var(--green);border-radius:12px;padding:14px 16px;
-  margin-bottom:14px;text-align:center;
-  box-shadow:0 0 30px #22c55e66;
-  animation:alarmPulse 1.5s ease-in-out infinite;
+/* ── COVER BANNER ── */
+#cover{
+  position:relative;
+  background:linear-gradient(135deg,#050d1a 0%,#0a1628 40%,#0f2010 100%);
+  padding:20px 16px 16px;
+  border-bottom:1px solid var(--border);
+  overflow:hidden;
 }
-@keyframes alarmPulse{0%,100%{box-shadow:0 0 20px #22c55e44;}50%{box-shadow:0 0 50px #22c55e99;}}
-#alarm-banner.show{display:block;}
-.alarm-text{font-size:14px;font-weight:800;color:var(--green);}
-.alarm-sub{font-size:12px;color:var(--text2);margin-top:4px;}
-
-/* ── SCAN SUMMARY ── */
-.scan-summary{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;
+#cover::before{
+  content:'';position:absolute;inset:0;
+  background:url('cover.jpeg') center/cover no-repeat;
+  opacity:.15;
 }
-.ss-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
-.ss-num{font-size:22px;font-weight:900;margin-bottom:3px;}
-.ss-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
+.cover-inner{position:relative;z-index:1;}
+.cover-prize{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;}
+.cover-amount{font-size:30px;font-weight:900;color:var(--gold);text-shadow:var(--glow-gold);line-height:1;}
+.cover-sub{font-size:13px;color:var(--red);margin-top:4px;font-weight:600;}
+.cover-actions{display:flex;gap:10px;margin-top:14px;}
+.cov-btn{flex:1;padding:11px;border-radius:10px;border:none;cursor:pointer;font-weight:700;font-size:14px;transition:all .2s;}
+.cov-deposit{background:linear-gradient(135deg,var(--green),var(--green2));color:#000;}
+.cov-deposit:hover{box-shadow:var(--glow-green);}
+.cov-withdraw{background:#1e293b;border:1px solid var(--border);color:var(--text);}
+.cov-withdraw:hover{border-color:var(--gold);color:var(--gold);}
 
 /* ── COUNTDOWN ── */
-.cd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
-.cd-field{display:flex;flex-direction:column;gap:5px;}
-.cd-field label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
-.cd-num-input{background:#030a03;border:1px solid var(--border);color:var(--text);
-  padding:11px 12px;border-radius:9px;font-size:16px;text-align:center;
-  outline:none;font-weight:700;transition:border-color .2s;font-family:inherit;}
-.cd-num-input:focus{border-color:var(--green);}
-.cd-actions{display:flex;gap:10px;flex-wrap:wrap;}
-.cd-btn{padding:12px 22px;border-radius:9px;border:none;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;}
-.cd-start{background:linear-gradient(135deg,var(--green),var(--green2));color:#000;box-shadow:var(--glow);}
-.cd-start:hover{box-shadow:0 0 30px #22c55ecc;transform:translateY(-1px);}
-.cd-reset{background:var(--bg3);border:1px solid var(--border);color:var(--text3);}
-.cd-reset:hover{border-color:var(--red);color:var(--red);}
-#cd-current{font-size:13px;color:var(--text3);margin-top:10px;min-height:16px;}
-
-/* ── MATCHES EDITOR ── */
-.match-edit-row{background:var(--bg3);border:1px solid var(--border);border-radius:10px;
-  padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.match-num-badge{background:var(--green2);color:#000;width:26px;height:26px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
-.match-inputs{display:flex;gap:8px;flex:1;flex-wrap:wrap;}
-.mi-field{flex:1;min-width:100px;background:#030a03;border:1px solid var(--border);color:var(--text);
-  padding:9px 10px;border-radius:8px;font-size:13px;outline:none;transition:border-color .2s;font-family:inherit;}
-.mi-field:focus{border-color:var(--green);}
-.mi-field::placeholder{color:#1a3020;}
-
-/* ── BROADCAST ── */
-.bc-row{display:flex;gap:10px;flex-wrap:wrap;}
-.bc-input{flex:1;min-width:200px;background:#030a03;border:1px solid var(--border);color:var(--text);
-  padding:11px 14px;border-radius:9px;font-size:14px;outline:none;transition:border-color .2s;font-family:inherit;}
-.bc-input:focus{border-color:var(--green);}
-.bc-input::placeholder{color:#1a3020;}
-.bc-send{padding:11px 20px;border-radius:9px;background:linear-gradient(135deg,var(--green),var(--green2));
-  border:none;color:#000;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;}
-.bc-send:hover{box-shadow:var(--glow);}
-#bc-status{font-size:12px;color:var(--green);margin-top:8px;min-height:14px;}
-
-/* ── LOGS ── */
-.log-entry{background:var(--bg3);border-left:3px solid var(--green2);border-radius:6px;
-  padding:9px 12px;margin-bottom:7px;font-size:12px;}
-.log-time{color:var(--text3);font-size:10px;margin-bottom:3px;}
-.log-action{color:var(--text2);}.log-user{color:var(--green);font-weight:700;}
-.log-empty{text-align:center;color:var(--text3);padding:30px;font-size:13px;}
-.clear-logs-btn{padding:8px 16px;background:#ef444418;border:1px solid #ef444430;
-  color:var(--red);border-radius:7px;cursor:pointer;font-size:12px;font-weight:700;transition:all .2s;}
-.clear-logs-btn:hover{background:var(--red);color:#fff;}
-
-/* ── NEW ROUND ── */
-.new-round-box{background:linear-gradient(135deg,#0a0000,#1a0000);border:1px solid var(--red);
-  border-radius:12px;padding:18px;margin-top:16px;}
-.nr-title{font-size:14px;font-weight:700;color:var(--red);margin-bottom:10px;}
-.nr-list{font-size:13px;color:var(--text2);line-height:2;margin-bottom:14px;}
-.nr-list span{color:var(--green);}
-
-/* ── SAVE BUTTONS ── */
-.save-btn{width:100%;padding:13px;border-radius:10px;margin-top:12px;
-  background:linear-gradient(135deg,var(--green),var(--green2));
-  border:none;color:#000;font-weight:700;font-size:15px;cursor:pointer;
-  transition:all .2s;box-shadow:var(--glow);}
-.save-btn:hover{box-shadow:0 0 30px #22c55ecc;transform:translateY(-1px);}
-.save-msg{font-size:12px;color:var(--green);margin-top:8px;text-align:center;min-height:14px;}
-
-/* ── MODALS ── */
-.mo{position:fixed;inset:0;background:#000000bb;backdrop-filter:blur(8px);
-  z-index:2000;display:flex;align-items:center;justify-content:center;
-  padding:16px;opacity:0;pointer-events:none;transition:opacity .3s;}
-.mo.open{opacity:1;pointer-events:all;}
-.mo-box{
-  background:linear-gradient(145deg,var(--card),var(--bg2));
-  border:1px solid var(--border);border-radius:18px;padding:26px 22px;
-  width:100%;max-width:460px;max-height:88vh;overflow-y:auto;
-  box-shadow:0 0 60px #22c55e22;
-  transform:translateY(24px) scale(.97);
-  transition:transform .3s cubic-bezier(.4,0,.2,1);
+#countdown-section{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:12px 16px;text-align:center;
 }
-.mo.open .mo-box{transform:translateY(0) scale(1);}
-.mo-title{font-size:15px;font-weight:800;color:var(--gold);margin-bottom:16px;text-align:center;}
-.mo-input{width:100%;background:#030a03;border:1px solid var(--border);color:var(--text);
-  padding:11px 13px;border-radius:9px;font-size:14px;margin-bottom:10px;outline:none;
-  transition:border-color .2s;font-family:inherit;}
-.mo-input:focus{border-color:var(--green);}
-.mo-input::placeholder{color:#1a3020;}
-.mo-info{background:var(--bg3);border:1px solid var(--border);border-radius:9px;
-  padding:12px;margin-bottom:12px;font-size:13px;color:var(--text2);line-height:1.7;}
-.mo-info strong{color:var(--green);}
-.mo-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);}
-.mo-row:last-of-type{border-bottom:none;}
-.mo-lbl{font-size:12px;color:var(--text3);}
-.mo-val{font-size:13px;font-weight:700;color:var(--text);}
-.mo-val.gold{color:var(--gold);}.mo-val.green{color:var(--green);}.mo-val.red{color:var(--red);}
-.mo-btns{display:flex;gap:10px;margin-top:16px;}
-.mb-green{flex:1;padding:12px;border-radius:9px;background:linear-gradient(135deg,var(--green),var(--green2));border:none;color:#000;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;}
-.mb-green:hover{box-shadow:var(--glow);}
-.mb-red{flex:1;padding:12px;border-radius:9px;background:linear-gradient(135deg,#880022,#550011);border:none;color:#fff;font-weight:700;font-size:14px;cursor:pointer;}
-.mb-red:hover{background:var(--red);}
-.mb-gray{flex:1;padding:12px;border-radius:9px;background:var(--bg3);border:1px solid var(--border);color:var(--text3);font-weight:600;font-size:14px;cursor:pointer;transition:all .2s;}
-.mb-gray:hover{border-color:var(--green);color:var(--text);}
-.mb-orange{flex:1;padding:12px;border-radius:9px;background:linear-gradient(135deg,#7a2e00,#5a1e00);border:none;color:#ffcc88;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;}
-.mb-orange:hover{background:var(--orange);color:#000;}
-.mo-err{font-size:12px;color:var(--red);min-height:14px;margin-bottom:6px;}
+.cd-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.cd-boxes{display:flex;justify-content:center;gap:8px;}
+.cd-box{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;padding:8px 14px;min-width:60px;text-align:center;
+}
+.cd-num{display:block;font-size:22px;font-weight:900;color:var(--gold);line-height:1;}
+.cd-unit{display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+#betting-closed-banner{
+  background:linear-gradient(90deg,#3d0000,#6b0000);
+  border:1px solid var(--red);
+  color:#fca5a5;padding:10px 16px;text-align:center;
+  font-weight:700;font-size:13px;display:none;
+}
 
-/* ── TICKET RECEIPT (in modal) ── */
-.receipt-row{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
-.receipt-row:last-of-type{border-bottom:none;}
-.rr-num{color:var(--text3);width:24px;flex-shrink:0;font-weight:700;}
-.rr-teams{flex:1;color:var(--text2);}
-.rr-pick{font-weight:700;min-width:32px;text-align:center;font-size:13px;}
-.rr-result{font-weight:700;min-width:32px;text-align:center;font-size:12px;}
-.rr-match{color:var(--green);}.rr-no{color:var(--red);}
-.ticket-summary-box{background:var(--bg3);border-radius:9px;padding:12px;margin-bottom:10px;
-  border:1px solid var(--border);}
-.ts-ref{font-size:11px;color:var(--text3);margin-bottom:4px;}
-.ts-stake{font-size:12px;color:var(--text2);}
-.ts-correct{font-size:13px;font-weight:700;margin-top:6px;}
+/* ── TABS ── */
+#tabs-bar{
+  display:flex;background:var(--bg2);border-bottom:2px solid var(--border);
+  position:sticky;top:57px;z-index:700;
+}
+.tab-btn{
+  flex:1;padding:13px 6px;border:none;background:none;
+  color:var(--text2);font-weight:700;font-size:13px;cursor:pointer;
+  border-bottom:3px solid transparent;transition:all .2s;
+  margin-bottom:-2px;
+}
+.tab-btn.active{color:var(--green);border-bottom-color:var(--green);}
 
-/* ── LOADING ── */
-#a-loading{position:fixed;inset:0;background:#000000cc;z-index:4000;
+/* ── SECTIONS ── */
+.section{display:none;padding:14px;}
+.section.active{display:block;}
+
+/* ── MATCHES ── */
+.match-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:12px 14px;margin-bottom:10px;
+  transition:border-color .2s;
+}
+.match-card:hover{border-color:var(--green2);}
+.match-num{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.match-time{font-size:11px;color:var(--text3);margin-bottom:6px;}
+.match-teams{font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px;}
+.match-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.opt-btn{
+  padding:9px 6px;border-radius:8px;border:1px solid var(--border);
+  background:var(--bg3);color:var(--text2);
+  font-size:12px;font-weight:700;cursor:pointer;
+  text-align:center;transition:all .2s;
+}
+.opt-btn:hover{border-color:var(--green);color:var(--green);}
+.opt-btn.active{
+  background:linear-gradient(135deg,var(--green),var(--green2));
+  color:#000;border-color:var(--green);
+  box-shadow:var(--glow-green);
+}
+.opt-label{display:block;font-size:10px;opacity:.7;font-weight:400;}
+
+/* ── STAKE BAR ── */
+#stake-bar{
+  position:sticky;bottom:0;z-index:700;
+  background:linear-gradient(90deg,#050d1a,#0b1120);
+  border-top:1px solid var(--border);
+  padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;
+}
+.stake-info{font-size:12px;color:var(--text2);}
+.stake-info strong{color:var(--gold);}
+.stake-actions{display:flex;gap:8px;}
+.stake-btn{
+  padding:9px 16px;border-radius:9px;border:none;
+  font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;
+}
+.sb-clear{background:var(--bg3);border:1px solid var(--border);color:var(--text2);}
+.sb-clear:hover{border-color:var(--red);color:var(--red);}
+.sb-pick{background:var(--bg3);border:1px solid var(--green2);color:var(--green);}
+.sb-pick:hover{background:#0f2010;}
+.sb-place{
+  background:linear-gradient(135deg,var(--green),var(--green2));
+  color:#000;opacity:.5;pointer-events:none;
+}
+.sb-place.ready{opacity:1;pointer-events:all;box-shadow:var(--glow-green);}
+
+/* ── HOW TO / RESULTS ── */
+.howto-box{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:18px;line-height:1.8;
+  color:var(--text2);font-size:14px;
+}
+.howto-box h2{color:var(--gold);margin-bottom:12px;font-size:16px;}
+.howto-box p{margin-bottom:12px;}
+.howto-box strong{color:var(--green);}
+.results-img{width:100%;border-radius:10px;margin-bottom:12px;border:1px solid var(--border);}
+
+/* ── LOCK OVERLAY ── */
+#lock-overlay{
+  display:none;position:fixed;inset:0;z-index:600;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;flex-direction:column;
+}
+#lock-overlay.show{display:flex;}
+.lock-box{
+  background:linear-gradient(145deg,#0f1a0f,#071207);
+  border:2px solid var(--red);border-radius:20px;
+  padding:32px 28px;text-align:center;
+  max-width:320px;width:90%;
+}
+.lock-icon{font-size:48px;margin-bottom:12px;}
+.lock-title{font-size:18px;font-weight:800;color:var(--red);margin-bottom:8px;}
+.lock-sub{font-size:13px;color:var(--text2);line-height:1.6;}
+
+/* ══════════════════════════════════════
+   MODAL SYSTEM
+══════════════════════════════════════ */
+.modal-overlay{
+  position:fixed;inset:0;background:#000000aa;
+  backdrop-filter:blur(6px);
+  z-index:1000;display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+  padding:0;
+}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-sheet{
+  background:linear-gradient(180deg,#0f1827,#0b1120);
+  border:1px solid var(--border);
+  border-radius:20px 20px 0 0;
+  padding:20px;width:100%;max-width:480px;
+  transform:translateY(100%);
+  transition:transform .4s cubic-bezier(.4,0,.2,1);
+  max-height:90vh;overflow-y:auto;
+}
+.modal-overlay.open .modal-sheet{transform:translateY(0);}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+.modal-title{font-size:17px;font-weight:800;color:var(--gold);text-align:center;margin-bottom:18px;}
+.modal-input{
+  width:100%;background:#050d1a;border:1px solid var(--border);
+  color:var(--text);padding:12px 14px;border-radius:10px;
+  font-size:15px;margin-bottom:10px;outline:none;
+  transition:border-color .2s;font-family:inherit;
+}
+.modal-input:focus{border-color:var(--green);}
+.modal-input::placeholder{color:var(--text3);}
+.pw-wrap{position:relative;}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:16px;color:var(--text3);}
+.modal-btn{
+  width:100%;padding:13px;border-radius:10px;border:none;
+  font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;margin-bottom:8px;
+  font-family:inherit;
+}
+.mb-green{background:linear-gradient(135deg,var(--green),var(--green2));color:#000;}
+.mb-green:hover{box-shadow:var(--glow-green);}
+.mb-gray{background:var(--bg3);border:1px solid var(--border);color:var(--text2);}
+.mb-gray:hover{border-color:var(--text2);}
+.mb-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;}
+.mb-gold:hover{box-shadow:var(--glow-gold);}
+.modal-link{color:var(--green);font-size:13px;cursor:pointer;text-align:center;display:block;margin-top:6px;}
+.modal-link:hover{text-decoration:underline;}
+.modal-msg{font-size:13px;text-align:center;min-height:18px;margin-top:6px;}
+.msg-ok{color:var(--green);}.msg-err{color:var(--red);}
+
+/* ── PAYMENT METHOD CARDS ── */
+.pay-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+.pay-card{
+  background:var(--bg3);border:2px solid var(--border);
+  border-radius:14px;padding:16px;text-align:center;cursor:pointer;
+  transition:all .25s;position:relative;
+}
+.pay-card:hover{border-color:var(--green);transform:translateY(-2px);}
+.pay-card.selected{border-color:var(--green);background:#0a1e0a;box-shadow:var(--glow-green);}
+.pay-card.coming-soon{opacity:.5;cursor:not-allowed;}
+.pay-icon{font-size:28px;margin-bottom:6px;}
+.pay-name{font-size:13px;font-weight:700;color:var(--text);}
+.pay-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.pay-cs-badge{
+  position:absolute;top:6px;right:6px;
+  background:var(--orange);color:#000;
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;
+}
+
+/* ── PAYMENT DETAIL BOX ── */
+.pay-detail-box{
+  background:#050d1a;border:1px solid var(--green2);
+  border-radius:12px;padding:16px;margin:12px 0;
+}
+.pd-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+.pd-row:last-child{border-bottom:none;}
+.pd-label{font-size:12px;color:var(--text3);}
+.pd-val{font-size:13px;font-weight:700;color:var(--text);}
+.pd-copy{
+  background:var(--green2);border:none;color:#fff;
+  padding:4px 10px;border-radius:6px;cursor:pointer;
+  font-size:11px;font-weight:700;margin-left:8px;
+  transition:all .2s;
+}
+.pd-copy:hover{background:var(--green);}
+.pay-amount{font-size:20px;font-weight:900;color:var(--gold);text-align:center;margin:10px 0;}
+.pay-timer{font-size:22px;font-weight:900;color:var(--red);text-align:center;margin:8px 0;}
+.screenshot-note{
+  background:#0a150a;border:1px solid var(--green2);
+  border-radius:10px;padding:12px;margin:12px 0;
+  font-size:12px;color:#86efac;line-height:1.7;
+}
+.screenshot-note strong{color:var(--green);display:block;margin-bottom:4px;}
+
+/* ── CONFIRM BET PANEL ── */
+.confirm-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.confirm-row:last-child{border-bottom:none;}
+.cr-label{font-size:13px;color:var(--text2);}
+.cr-val{font-size:13px;font-weight:700;color:var(--text);}
+.cr-val.gold{color:var(--gold);}
+.cr-val.green{color:var(--green);}
+
+/* ── BET SLIP ── */
+.ticket-card{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:10px;padding:12px;margin-bottom:10px;
+}
+.tc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.tc-title{font-size:12px;color:var(--text2);}
+.tc-delete{background:none;border:1px solid var(--border);color:var(--red);padding:3px 8px;border-radius:6px;cursor:pointer;font-size:11px;}
+.tc-row{display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid #ffffff08;font-size:12px;}
+.tc-row:last-of-type{border-bottom:none;}
+.tc-idx{color:var(--text3);width:20px;flex-shrink:0;}
+.tc-teams{flex:1;color:var(--text2);}
+.tc-code{font-weight:700;color:var(--green);min-width:36px;text-align:right;}
+.tc-footer{margin-top:8px;font-size:12px;color:var(--text2);}
+.tc-footer strong{color:var(--gold);}
+
+/* ── SUCCESS POPUP ── */
+#success-popup{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-60%) scale(.85);
+  background:linear-gradient(145deg,#0a1e0a,#071407);
+  border:1px solid var(--green);border-radius:20px;
+  padding:28px 24px;text-align:center;z-index:2000;
+  opacity:0;pointer-events:none;
+  transition:all .4s cubic-bezier(.4,0,.2,1);
+  min-width:260px;max-width:320px;
+  box-shadow:0 0 60px #22c55e44;
+}
+#success-popup.show{opacity:1;pointer-events:all;transform:translate(-50%,-50%) scale(1);}
+.sp-icon{font-size:48px;margin-bottom:10px;}
+.sp-title{font-size:16px;font-weight:800;color:var(--green);margin-bottom:6px;}
+.sp-msg{font-size:13px;color:var(--text2);line-height:1.5;}
+
+/* ── GENERAL NOTIFICATION ── */
+#notif{
+  position:fixed;top:70px;left:50%;
+  transform:translateX(-50%) translateY(-100px);
+  background:var(--card);border:1px solid var(--green);
+  border-radius:10px;padding:10px 18px;
+  font-size:13px;color:var(--text);
+  z-index:1500;transition:transform .4s cubic-bezier(.4,0,.2,1);
+  text-align:center;min-width:200px;max-width:90vw;
+  box-shadow:var(--glow-green);
+}
+#notif.show{transform:translateX(-50%) translateY(0);}
+#notif.err{border-color:var(--red);box-shadow:0 0 20px #ef444444;}
+
+/* ── LOADING SPINNER ── */
+.loading-overlay{
+  position:fixed;inset:0;background:#000000cc;z-index:3000;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .3s;}
-#a-loading.show{opacity:1;pointer-events:all;}
-.a-spin{width:50px;height:50px;border-radius:50%;border:3px solid var(--border);
-  border-top-color:var(--green);animation:spin 1s linear infinite;margin-bottom:14px;}
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.loading-overlay.show{opacity:1;pointer-events:all;}
+.spinner{
+  width:50px;height:50px;border-radius:50%;
+  border:3px solid var(--border);border-top-color:var(--green);
+  animation:spin 1s linear infinite;margin-bottom:14px;
+}
 @keyframes spin{to{transform:rotate(360deg);}}
-.a-spin-txt{font-size:13px;color:var(--text3);}
+.spin-text{font-size:13px;color:var(--text2);}
 
-/* ── TOAST ── */
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
-  background:var(--card);border:1px solid var(--green);border-radius:10px;
-  padding:11px 20px;font-size:13px;color:var(--green);z-index:5000;
-  transition:transform .4s cubic-bezier(.4,0,.2,1);min-width:200px;max-width:90vw;
-  text-align:center;box-shadow:var(--glow);font-weight:600;}
-#toast.show{transform:translateX(-50%) translateY(0);}
-#toast.t-err{border-color:var(--red);color:var(--red);box-shadow:var(--glow-red);}
-#toast.t-gold{border-color:var(--gold);color:var(--gold);box-shadow:var(--glow-gold);}
-
-@media(max-width:700px){
-  .stats-grid{grid-template-columns:repeat(2,1fr);}
-  .scan-summary{grid-template-columns:repeat(2,1fr);}
-  .section-card,.stats-grid{margin-left:10px;margin-right:10px;}
-  .cd-grid{grid-template-columns:repeat(2,1fr);}
-  .tab-btn{padding:10px 10px;font-size:11px;}
+/* ── RESPONSIVE ── */
+@media(max-width:400px){
+  .pay-grid{grid-template-columns:repeat(2,1fr);}
+  .cover-amount{font-size:24px;}
 }
 </style>
 
+
+<!-- 💳 PAYSTACK SDK -->
+<script src="https://js.paystack.co/v1/inline.js"></script>
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
-<div id="login-screen">
-  <div class="login-card">
-    <div class="lc-icon">⚽</div>
-    <div class="lc-title">GOALRUSH ADMIN</div>
-    <div class="lc-sub">Control Panel — Authorised Access Only</div>
-    <label class="lc-lbl">Username</label>
-    <input class="lc-input" id="adm-user" type="text" placeholder="Admin username" autocomplete="off"
-      onkeydown="if(event.key==='Enter')document.getElementById('adm-pass').focus()"/>
-    <label class="lc-lbl">Password</label>
-    <input class="lc-input" id="adm-pass" type="password" placeholder="Admin password"
-      onkeydown="if(event.key==='Enter')doLogin()"/>
-    <button class="lc-btn" onclick="doLogin()">🔓 Enter Panel</button>
-    <div class="lc-err" id="login-err">❌ Incorrect username or password.</div>
+<!-- ── HEADER ── -->
+<div id="header">
+  <button id="hamburger" onclick="openMenu()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="header-logo">GoalRush Jackpot</div>
+  <div class="header-right">
+    <div id="header-balance" onclick="openDeposit()">₦ <span id="hdr-bal">0.00</span></div>
+    <button id="slip-counter-btn" onclick="openSlip()">
+      🎫 <span id="slip-count-txt">Bets</span>
+      <span id="slip-badge"></span>
+    </button>
   </div>
 </div>
 
-<!-- ADMIN APP -->
-<div id="admin-app">
-
-  <div id="admin-header">
-    <div class="ah-left">
-      <div class="ah-logo">⚽ GoalRush Admin</div>
-      <div class="ah-badge">ADMIN</div>
-    </div>
-    <div class="ah-right">
-      <div id="ah-clock"></div>
-      <button class="logout-btn" onclick="doLogout()">Logout</button>
-    </div>
+<!-- ── BROADCAST BANNER ── -->
+<div id="broadcast-banner" style="display:none;position:sticky;top:60px;z-index:799;
+  background:linear-gradient(90deg,#0a2000,#142800);
+  border-bottom:2px solid var(--green);
+  padding:10px 16px;align-items:center;justify-content:space-between;gap:10px;
+  box-shadow:0 4px 20px #22c55e33;">
+  <div style="display:flex;align-items:center;gap:10px;flex:1;">
+    <span style="font-size:18px;">📢</span>
+    <span id="broadcast-banner-text" style="font-size:13px;font-weight:600;color:var(--green);line-height:1.5;"></span>
   </div>
+  <button onclick="closeBroadcastBanner()" style="background:none;border:1px solid var(--green);
+    color:var(--green);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;
+    font-weight:700;flex-shrink:0;transition:all .2s;" onmouseover="this.style.background='var(--green)';this.style.color='#000'" onmouseout="this.style.background='none';this.style.color='var(--green)'">✕ Close</button>
+</div>
 
-  <div id="admin-body">
+<!-- ── MENU OVERLAY ── -->
+<div id="menu-overlay" onclick="closeMenu()"></div>
+<div id="menu-panel">
+  <div class="menu-header">
+    <h2>⚽ GoalRush</h2>
+    <button id="menu-close" onclick="closeMenu()">✕</button>
+  </div>
+  <div id="menu-user-block">
+    <span>Logged in as</span>
+    <strong id="menu-user-name">—</strong>
+  </div>
+  <div id="menu-items"></div>
+</div>
 
-    <!-- STATS -->
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-num sn-g" id="st-users">—</div><div class="stat-lbl">Active Users</div></div>
-      <div class="stat-card"><div class="stat-num sn-gold" id="st-deposits">—</div><div class="stat-lbl">Pending Deposits</div></div>
-      <div class="stat-card"><div class="stat-num sn-b" id="st-withdrawals">—</div><div class="stat-lbl">Pending Withdrawals</div></div>
-      <div class="stat-card"><div class="stat-num sn-r" id="st-tickets">—</div><div class="stat-lbl">Total Tickets</div></div>
-    </div>
-
-    <!-- TABS -->
-    <div class="tabs-bar">
-      <button class="tab-btn active" onclick="openTab('users')">👥 Users</button>
-      <button class="tab-btn" onclick="openTab('archive')">🗂 Archive</button>
-      <button class="tab-btn" onclick="openTab('deposits')">💰 Deposits</button>
-      <button class="tab-btn" onclick="openTab('withdrawals')">💸 Withdrawals</button>
-      <button class="tab-btn" onclick="openTab('results')">📊 Results</button>
-      <button class="tab-btn" onclick="openTab('prizes')">🏆 Prizes</button>
-      <button class="tab-btn" onclick="openTab('matches')">⚽ Matches</button>
-      <button class="tab-btn" onclick="openTab('countdown')">⏱ Countdown</button>
-      <button class="tab-btn" onclick="openTab('betid')">🔍 Bet ID</button>
-      <button class="tab-btn" onclick="openTab('broadcast')">📢 Broadcast</button>
-      <button class="tab-btn" onclick="openTab('logs')">📋 Logs</button>
-    </div>
-
-    <!-- ══ USERS TAB ══ -->
-    <div class="tab-content active" id="tab-users">
-      <div class="section-card">
-        <div class="sc-head">
-          <div class="sc-title">👥 Active Users</div>
-          <button class="refresh-btn" onclick="loadUsers()">↺ Refresh</button>
-        </div>
-        <div class="sc-body">
-          <div class="search-row">
-            <input class="search-input" id="user-search" placeholder="🔍 Search by phone, name or email..." oninput="filterUsers()"/>
-          </div>
-          <div class="tbl-wrap" id="users-tbl-wrap">
-            <div class="tbl-empty">Loading users...</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ ARCHIVE TAB ══ -->
-    <div class="tab-content" id="tab-archive">
-      <div class="section-card">
-        <div class="sc-head">
-          <div class="sc-title">🗂 Archived / Deleted Users</div>
-          <button class="refresh-btn" onclick="loadArchive()">↺ Refresh</button>
-        </div>
-        <div class="sc-body">
-          <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-            Archived users cannot login or place bets. You can restore them at any time.
-          </p>
-          <div class="tbl-wrap" id="archive-tbl-wrap">
-            <div class="tbl-empty">No archived users.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ DEPOSITS TAB ══ -->
-    <div class="tab-content" id="tab-deposits">
-      <div class="section-card">
-        <div class="sc-head">
-          <div class="sc-title">💰 Deposit Requests</div>
-          <button class="refresh-btn" onclick="loadDeposits()">↺ Refresh</button>
-        </div>
-        <div class="sc-body">
-          <div class="tbl-wrap" id="deposits-tbl-wrap">
-            <div class="tbl-empty">Loading...</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ WITHDRAWALS TAB ══ -->
-    <div class="tab-content" id="tab-withdrawals">
-      <div class="section-card">
-        <div class="sc-head">
-          <div class="sc-title">💸 Withdrawal Requests</div>
-          <button class="refresh-btn" onclick="loadWithdrawals()">↺ Refresh</button>
-        </div>
-        <div class="sc-body">
-          <div class="tbl-wrap" id="withdrawals-tbl-wrap">
-            <div class="tbl-empty">Loading...</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ RESULTS TAB ══ -->
-    <div class="tab-content" id="tab-results">
-
-      <!-- STEP 1: Enter match results -->
-      <div class="section-card">
-        <div class="sc-head">
-          <div class="sc-title">📊 Step 1 — Enter Match Results</div>
-        </div>
-        <div class="sc-body">
-          <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-            For each match select <strong style="color:var(--green)">1</strong> = Home Win,
-            <strong style="color:var(--gold)">X</strong> = Draw,
-            <strong style="color:var(--blue)">2</strong> = Away Win, or
-            <strong style="color:var(--red)">Void</strong> if the match was cancelled.
-            Also enter the final score (optional).
-          </p>
-          <div id="results-editor"></div>
-          <button class="save-btn" onclick="saveResults()">💾 Save Results</button>
-          <div class="save-msg" id="results-save-msg"></div>
-        </div>
-      </div>
-
-      <!-- STEP 2: Scan tickets -->
-      <div class="section-card">
-        <div class="sc-head">
-          <div class="sc-title">🔍 Step 2 — Scan All Tickets</div>
-        </div>
-        <div class="sc-body">
-          <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-            After saving results, click Scan to check all user tickets and find winners.
-          </p>
-          <button class="save-btn" style="background:linear-gradient(135deg,#1a7aff,#0055dd)" onclick="scanAllTickets()">🔍 Scan All Tickets Now</button>
-          <div id="alarm-banner">
-            <div class="alarm-text" id="alarm-text">🏆 JACKPOT WINNER FOUND!</div>
-            <div class="alarm-sub" id="alarm-sub">Check winners below immediately.</div>
-          </div>
-          <div class="scan-summary" id="scan-summary" style="display:none;margin-top:14px;">
-            <div class="ss-card"><div class="ss-num sn-g" id="sc-total">0</div><div class="ss-lbl">Total Scanned</div></div>
-            <div class="ss-card"><div class="ss-num" style="color:var(--green)" id="sc-14">0</div><div class="ss-lbl">🟢 14 Correct</div></div>
-            <div class="ss-card"><div class="ss-num" style="color:var(--blue)" id="sc-13">0</div><div class="ss-lbl">🔵 13 Correct</div></div>
-            <div class="ss-card"><div class="ss-num" style="color:var(--yellow)" id="sc-12">0</div><div class="ss-lbl">🟡 12 Correct</div></div>
-          </div>
-          <div id="scan-results" style="margin-top:10px;"></div>
-        </div>
-      </div>
-
-      <!-- STEP 3: Set winners count & prizes, then publish -->
-      <div class="section-card" id="publish-section" style="display:none">
-        <div class="sc-head">
-          <div class="sc-title">🏆 Step 3 — Set Winners & Publish to Users</div>
-        </div>
-        <div class="sc-body">
-          <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">
-            Fill in the number of winning tickets and prize per ticket for each tier that had winners.
-            Leave blank if nobody hit that tier. Then click <strong style="color:var(--green)">Publish</strong> — users will see the results table immediately in their Results tab.
-          </p>
-
-          <!-- Round label -->
-          <div style="margin-bottom:16px;">
-            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px;">Round Label (e.g. 20260024)</label>
-            <input class="mo-input" id="pub-round-id" placeholder="e.g. 20260024" style="max-width:220px;"/>
-          </div>
-
-          <!-- Winners table entry -->
-          <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
-            <thead>
-              <tr>
-                <th style="padding:9px 12px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">Correct Events</th>
-                <th style="padding:9px 12px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">No. of Tickets</th>
-                <th style="padding:9px 12px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">Winning per Ticket (₦)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="padding:10px 12px;border-bottom:1px solid var(--border)">
-                  <span style="display:inline-block;width:4px;height:28px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px"></span>
-                  <span style="font-size:13px;font-weight:600">14 out of 14</span>
-                </td>
-                <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
-                  <input type="number" id="wn-14-tickets" class="mo-input" placeholder="0" style="width:90px;text-align:center;margin:0;"/>
-                </td>
-                <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
-                  <input type="number" id="wn-14-prize" class="mo-input" placeholder="e.g. 3000000" style="width:140px;text-align:center;margin:0;"/>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:10px 12px;border-bottom:1px solid var(--border)">
-                  <span style="display:inline-block;width:4px;height:28px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px"></span>
-                  <span style="font-size:13px;font-weight:600">13 out of 14</span>
-                </td>
-                <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
-                  <input type="number" id="wn-13-tickets" class="mo-input" placeholder="0" style="width:90px;text-align:center;margin:0;"/>
-                </td>
-                <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
-                  <input type="number" id="wn-13-prize" class="mo-input" placeholder="e.g. 15000" style="width:140px;text-align:center;margin:0;"/>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:10px 12px;border-bottom:1px solid var(--border)">
-                  <span style="display:inline-block;width:4px;height:28px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px"></span>
-                  <span style="font-size:13px;font-weight:600">12 out of 14</span>
-                </td>
-                <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
-                  <input type="number" id="wn-12-tickets" class="mo-input" placeholder="0" style="width:90px;text-align:center;margin:0;"/>
-                </td>
-                <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
-                  <input type="number" id="wn-12-prize" class="mo-input" placeholder="e.g. 5000" style="width:140px;text-align:center;margin:0;"/>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:10px 12px;">
-                  <span style="display:inline-block;width:4px;height:28px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px"></span>
-                  <span style="font-size:13px;font-weight:600">11 out of 14</span>
-                </td>
-                <td style="padding:10px 12px;text-align:center">
-                  <input type="number" id="wn-11-tickets" class="mo-input" placeholder="0" style="width:90px;text-align:center;margin:0;"/>
-                </td>
-                <td style="padding:10px 12px;text-align:center">
-                  <input type="number" id="wn-11-prize" class="mo-input" placeholder="e.g. 1000" style="width:140px;text-align:center;margin:0;"/>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          <button class="save-btn" onclick="publishResults()">📢 Publish Results to Users</button>
-          <div class="save-msg" id="publish-save-msg"></div>
-
-          <!-- NEW ROUND -->
-          <div class="new-round-box" id="new-round-box" style="display:none;margin-top:16px;">
-            <div class="nr-title">🔄 Start New Round</div>
-            <div class="nr-list" style="margin-bottom:12px;">
-              Choose what to reset:<br/><br/>
-              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px;">
-                <input type="checkbox" id="nr-clear-tickets" style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;"/>
-                <span><strong style="color:var(--green)">Clear all user bet tickets</strong><br/><span style="font-size:11px;color:var(--text3)">Uncheck to keep for record</span></span>
-              </label>
-              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px;">
-                <input type="checkbox" id="nr-clear-results" checked style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;"/>
-                <span><strong style="color:var(--green)">Clear saved match results</strong><br/><span style="font-size:11px;color:var(--text3)">Ready for new week</span></span>
-              </label>
-              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-                <input type="checkbox" id="nr-reset-cd" checked style="width:18px;height:18px;accent-color:var(--green);cursor:pointer;flex-shrink:0;"/>
-                <span><strong style="color:var(--green)">Reset countdown timer</strong><br/><span style="font-size:11px;color:var(--text3)">Open betting for next round</span></span>
-              </label>
-            </div>
-            <button class="save-btn" style="background:linear-gradient(135deg,#880022,#550011);color:#fff;box-shadow:none;" onclick="startNewRound()">🔄 Start New Round</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ PRIZES TAB ══ -->
-    <div class="tab-content" id="tab-prizes">
-      <div class="section-card">
-        <div class="sc-head">
-          <div class="sc-title">🏆 Jackpot Prize Settings</div>
-        </div>
-        <div class="sc-body">
-          <p style="font-size:13px;color:var(--text3);margin-bottom:18px;line-height:1.6">
-            Set the prize amounts. Only the <strong style="color:var(--gold)">14 Correct (Super Jackpot)</strong> prize is shown publicly to users on the game page. The 13 and 12 correct prizes are for admin reference only — the teams share them based on how many winners there are.
-          </p>
-          <div class="prize-field">
-            <label>🟢 14 Correct — Super Jackpot (shown publicly on game page)</label>
-            <input class="prize-input" id="prize-14" type="number" placeholder="e.g. 200000000" style="border-color:var(--green)"/>
-          </div>
-          <div class="prize-field">
-            <label>🔵 13 Correct — Admin Reference Only (shared among winners)</label>
-            <input class="prize-input" id="prize-13" type="number" placeholder="e.g. 5000000"/>
-          </div>
-          <div class="prize-field">
-            <label>🟡 12 Correct — Admin Reference Only (shared among winners)</label>
-            <input class="prize-input" id="prize-12" type="number" placeholder="e.g. 500000"/>
-          </div>
-          <button class="save-btn" onclick="savePrizes()">💾 Save Prize Settings</button>
-          <div class="save-msg" id="prizes-save-msg"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ MATCHES TAB ══ -->
-    <div class="tab-content" id="tab-matches">
-      <div class="section-card">
-        <div class="sc-head">
-          <div class="sc-title">⚽ Manage Matches (Edit Weekly)</div>
-        </div>
-        <div class="sc-body">
-          <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-            Update all 14 match fixtures every week. Changes go live on the game page immediately.
-          </p>
-          <div id="matches-editor"></div>
-          <button class="save-btn" onclick="saveMatches()">💾 Save All Matches</button>
-          <div class="save-msg" id="matches-save-msg"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ COUNTDOWN TAB ══ -->
-    <div class="tab-content" id="tab-countdown">
-      <div class="section-card">
-        <div class="sc-head">
-          <div class="sc-title">⏱ Betting Countdown Timer</div>
-        </div>
-        <div class="sc-body">
-          <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-            When started, the countdown is <strong style="color:var(--green)">real-time and accurate</strong> for all users — even if they leave and come back, the timer shows exactly where it should be.
-          </p>
-          <div class="cd-grid">
-            <div class="cd-field"><label>Days</label><input type="number" class="cd-num-input" id="cd-days" placeholder="0" min="0"/></div>
-            <div class="cd-field"><label>Hours</label><input type="number" class="cd-num-input" id="cd-hours" placeholder="0" min="0" max="23"/></div>
-            <div class="cd-field"><label>Minutes</label><input type="number" class="cd-num-input" id="cd-mins" placeholder="0" min="0" max="59"/></div>
-            <div class="cd-field"><label>Seconds</label><input type="number" class="cd-num-input" id="cd-secs" placeholder="0" min="0" max="59"/></div>
-          </div>
-          <div class="cd-actions">
-            <button class="cd-btn cd-start" onclick="startCountdown()">▶ Start Countdown</button>
-            <button class="cd-btn cd-reset" onclick="resetCountdown()">↺ Reset / Open Betting</button>
-          </div>
-          <div id="cd-current"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ BET ID SEARCH TAB ══ -->
-    <div class="tab-content" id="tab-betid">
-      <div class="section-card">
-        <div class="sc-head">
-          <div class="sc-title">🔍 Search Bet by Ticket ID</div>
-        </div>
-        <div class="sc-body">
-          <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">
-            Enter a user's Ticket ID (e.g. <span style="font-family:monospace;color:var(--gold)">GRJ-ABC123</span>) to retrieve their full bet receipt. Use this when a user loses or deletes their ticket.
-          </p>
-          <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-            <input class="search-input" id="betid-input"
-              placeholder="Enter Ticket ID e.g. GRJ-ABC123"
-              style="flex:1;min-width:220px;font-family:monospace;"
-              onkeydown="if(event.key==='Enter')searchBetId()"/>
-            <button class="refresh-btn" onclick="searchBetId()" style="background:linear-gradient(135deg,var(--green),var(--green2));color:#000;border:none;">
-              🔍 Search
-            </button>
-          </div>
-          <div id="betid-result"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ BROADCAST TAB ══ -->
-    <div class="tab-content" id="tab-broadcast">
-      <div class="section-card">
-        <div class="sc-head"><div class="sc-title">📢 Broadcast to All Users</div></div>
-        <div class="sc-body">
-          <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-            Save a message that all users will see on the game page. Use for announcements, result notifications, or reminders.
-          </p>
-          <div class="bc-row">
-            <input class="bc-input" id="bc-msg" placeholder="Type your message to all users..."/>
-            <button class="bc-send" onclick="sendBroadcast()">📢 Save &amp; Broadcast</button>
-          </div>
-          <div id="bc-status"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ LOGS TAB ══ -->
-    <div class="tab-content" id="tab-logs">
-      <div class="section-card">
-        <div class="sc-head">
-          <div class="sc-title">📋 Audit Logs</div>
-          <button class="clear-logs-btn" onclick="clearLogs()">🗑️ Clear All</button>
-        </div>
-        <div class="sc-body">
-          <div id="logs-list"></div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /admin-body -->
-</div><!-- /admin-app -->
-
-<!-- ══ MODALS ══ -->
-
-<!-- FUND USER -->
-<div class="mo" id="mo-fund">
-  <div class="mo-box">
-    <div class="mo-title">💰 Fund User Account</div>
-    <div class="mo-info" id="fund-info">—</div>
-    <input class="mo-input" id="fund-amount" type="number" placeholder="Amount to add (₦)"
-      onkeydown="if(event.key==='Enter')confirmFund()"/>
-    <div class="mo-err" id="fund-err"></div>
-    <div class="mo-btns">
-      <button class="mb-green" onclick="confirmFund()">✅ Add Funds</button>
-      <button class="mb-gray" onclick="closeMo('mo-fund')">Cancel</button>
+<!-- ── COVER BANNER ── -->
+<div id="cover">
+  <div class="cover-inner">
+    <div class="cover-prize">Predict 14 matches — win</div>
+    <div class="cover-amount" id="cover-prize-amount">NGN 200,000,000</div>
+    <div class="cover-sub">🏆 Consolation prizes for 13 &amp; 12 correct!</div>
+    <div class="cover-actions">
+      <button class="cov-btn cov-deposit" onclick="openDeposit()">Deposit</button>
+      <button class="cov-btn cov-withdraw" onclick="openWithdraw()">Withdraw</button>
     </div>
   </div>
 </div>
 
-<!-- CLEAR BALANCE -->
-<div class="mo" id="mo-clear">
-  <div class="mo-box">
-    <div class="mo-title">⚠️ Clear Balance</div>
-    <div class="mo-info" id="clear-info">—</div>
-    <div class="mo-btns">
-      <button class="mb-red" onclick="confirmClear()">🗑️ Yes, Clear Balance</button>
-      <button class="mb-gray" onclick="closeMo('mo-clear')">Cancel</button>
+<!-- ── COUNTDOWN ── -->
+<div id="countdown-section">
+  <div class="cd-label">⏱ Betting closes in</div>
+  <div class="cd-boxes">
+    <div class="cd-box"><span class="cd-num" id="cd-d">00</span><span class="cd-unit">Days</span></div>
+    <div class="cd-box"><span class="cd-num" id="cd-h">00</span><span class="cd-unit">Hours</span></div>
+    <div class="cd-box"><span class="cd-num" id="cd-m">00</span><span class="cd-unit">Mins</span></div>
+    <div class="cd-box"><span class="cd-num" id="cd-s">00</span><span class="cd-unit">Secs</span></div>
+  </div>
+</div>
+
+<!-- ── BETTING CLOSED BANNER ── -->
+<div id="betting-closed-banner">⛔ Betting is now CLOSED. Check back for the next round!</div>
+
+<!-- ── LOCK OVERLAY ── -->
+<div id="lock-overlay">
+  <div class="lock-box">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-title">Betting Closed</div>
+    <div class="lock-sub">This round is now closed. Results will be published on Monday. Check back soon for the next round!</div>
+  </div>
+</div>
+
+<!-- ── TABS ── -->
+<div id="tabs-bar">
+  <button class="tab-btn active" onclick="switchTab('goalrush')">GoalRush 14</button>
+  <button class="tab-btn" onclick="switchTab('results')">Previous Results</button>
+  <button class="tab-btn" onclick="switchTab('howto')">❓ How to Play</button>
+</div>
+
+<!-- ── MATCH SECTION ── -->
+<div id="goalrush" class="section active">
+  <div id="matches-list"></div>
+</div>
+
+<!-- ── RESULTS SECTION ── -->
+<div id="results" class="section">
+  <div style="font-size:16px;font-weight:800;color:var(--gold);margin-bottom:14px;">⚽ GoalRush 14</div>
+
+  <!-- Round selector -->
+  <div style="margin-bottom:16px;">
+    <select id="results-round-sel" class="modal-input" onchange="renderSelectedRound()" style="background:#111827;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;width:100%;cursor:pointer;">
+      <option value="">[ Select a Round to view results ]</option>
+    </select>
+  </div>
+
+  <!-- Results content -->
+  <div id="results-display">
+    <div style="text-align:center;color:var(--text3);padding:30px;font-size:13px;">
+      Select a round above to view results.
     </div>
   </div>
 </div>
 
-<!-- DELETE / ARCHIVE USER -->
-<div class="mo" id="mo-delete">
-  <div class="mo-box">
-    <div class="mo-title">🗂 Archive User</div>
-    <div class="mo-info" id="delete-info">—</div>
-    <div class="mo-btns">
-      <button class="mb-orange" onclick="confirmDelete()">🗂 Archive User</button>
-      <button class="mb-gray" onclick="closeMo('mo-delete')">Cancel</button>
+<!-- ── HOW TO SECTION ── -->
+<div id="howto" class="section">
+  <div class="howto-box">
+    <h2>How to Play GoalRush 14</h2>
+    <p>The GoalRush 14 Jackpot consists of predicting the results of <strong>14 matches</strong> selected every week.</p>
+    <p>To take part, register and have at least <strong>₦100</strong> in your account. Correctly predict all 14 results to win the Super Jackpot!</p>
+    <p><strong>Making selections:</strong> Choose Home, Draw, or Away for each match. Each combination costs ₦100. Multiple picks per match increase combinations and stake.</p>
+    <p><strong>Deadline:</strong> Bets must be placed before <strong>14:00 Saturday (Nigeria time)</strong>. The countdown shows the time remaining.</p>
+    <p><strong>Results:</strong> Published every <strong>Monday afternoon</strong> in the Previous Results tab.</p>
+    <p><strong>GoalRush Pick:</strong> Auto-selects one random outcome per match at ₦100 stake. You can add more selections after.</p>
+    <p><strong>Prizes:</strong> 14 correct = Super Jackpot. 13 correct = 2nd Prize. 12 correct = 3rd Prize.</p>
+  </div>
+</div>
+
+<!-- ── STAKE BAR ── -->
+<div id="stake-bar">
+  <div class="stake-info">
+    Combos: <strong id="combo-count">0</strong> &nbsp;|&nbsp;
+    Stake: <strong id="stake-amt">₦0</strong>
+  </div>
+  <div class="stake-actions">
+    <button class="stake-btn sb-pick" onclick="goalRushPick()">🎲 Pick</button>
+    <button class="stake-btn sb-clear" onclick="clearAll()">Clear</button>
+    <button class="stake-btn sb-place" id="place-btn" onclick="placeBet()">Place Bet</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODALS
+══════════════════════════════════════ -->
+
+<!-- CREATE ACCOUNT -->
+<div class="modal-overlay" id="create-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="modal-title">👤 Create Account</div>
+    <input class="modal-input" id="ca-name" placeholder="Full Name"/>
+    <input class="modal-input" id="ca-email" placeholder="Email Address" type="email"/>
+    <input class="modal-input" id="ca-phone" placeholder="Phone (+2348012345678)" type="tel"/>
+    <input class="modal-input" id="ca-age" placeholder="Your Age (must be 18 or above)" type="number" min="1" max="120"/>
+    <select class="modal-input" id="ca-gender" style="background:#050d1a;color:var(--text);">
+      <option value="" disabled selected>Gender</option>
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+      <option value="other">Other / Prefer not to say</option>
+    </select>
+    <div class="pw-wrap">
+      <input class="modal-input" id="ca-pw" placeholder="Password (min 6 chars)" type="password"/>
+      <span class="pw-toggle" onclick="togglePw('ca-pw',this)">👁️</span>
+    </div>
+    <div class="pw-wrap">
+      <input class="modal-input" id="ca-pw2" placeholder="Confirm Password" type="password"/>
+      <span class="pw-toggle" onclick="togglePw('ca-pw2',this)">👁️</span>
+    </div>
+    <button class="modal-btn mb-green" onclick="doSignup()">Create Account</button>
+    <button class="modal-btn mb-gray" onclick="closeModal('create-modal')">Cancel</button>
+    <div class="modal-msg" id="ca-msg"></div>
+    <div style="text-align:center;margin-top:8px;font-size:13px;color:var(--text2)">
+      Already have an account? <span class="modal-link" onclick="switchToLogin()">Login</span>
     </div>
   </div>
 </div>
 
-<!-- VIEW USER BETS / RECEIPT -->
-<div class="mo" id="mo-bets">
-  <div class="mo-box" style="max-width:540px;">
-    <div class="mo-title" id="mo-bets-title">🎫 User Tickets</div>
-    <div id="mo-bets-content" style="max-height:420px;overflow-y:auto;"></div>
-    <div class="mo-btns"><button class="mb-gray" onclick="closeMo('mo-bets')">Close</button></div>
-  </div>
-</div>
-
-<!-- APPROVE DEPOSIT -->
-<div class="mo" id="mo-approve-dep">
-  <div class="mo-box">
-    <div class="mo-title">✅ Approve Deposit</div>
-    <div class="mo-info" id="approve-dep-info">—</div>
-    <div class="mo-btns">
-      <button class="mb-green" onclick="confirmApproveDeposit()">✅ Approve &amp; Credit User</button>
-      <button class="mb-gray" onclick="closeMo('mo-approve-dep')">Cancel</button>
+<!-- LOGIN -->
+<div class="modal-overlay" id="login-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="modal-title">🔐 Login</div>
+    <input class="modal-input" id="li-email" placeholder="Email Address" type="email"/>
+    <div class="pw-wrap">
+      <input class="modal-input" id="li-pw" placeholder="Password" type="password"/>
+      <span class="pw-toggle" onclick="togglePw('li-pw',this)">👁️</span>
+    </div>
+    <button class="modal-btn mb-green" onclick="doLogin()">Login</button>
+    <button class="modal-btn mb-gray" onclick="closeModal('login-modal')">Cancel</button>
+    <div class="modal-msg" id="li-msg"></div>
+    <span class="modal-link" onclick="openForgot()">Forgot Password?</span>
+    <div style="text-align:center;margin-top:8px;font-size:13px;color:var(--text2)">
+      No account? <span class="modal-link" onclick="switchToSignup()">Create one</span>
     </div>
   </div>
 </div>
 
-<!-- REJECT DEPOSIT -->
-<div class="mo" id="mo-reject-dep">
-  <div class="mo-box">
-    <div class="mo-title">❌ Reject Deposit</div>
-    <div class="mo-info" id="reject-dep-info">—</div>
-    <div class="mo-btns">
-      <button class="mb-red" onclick="confirmRejectDeposit()">❌ Reject</button>
-      <button class="mb-gray" onclick="closeMo('mo-reject-dep')">Cancel</button>
+<!-- FORGOT PASSWORD -->
+<div class="modal-overlay" id="forgot-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="modal-title">🔑 Reset Password</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;text-align:center;line-height:1.6">Enter your registered email address. We'll send you a password reset link.</p>
+    <input class="modal-input" id="fp-email" placeholder="Email Address" type="email"/>
+    <button class="modal-btn mb-gold" onclick="doResetPw()">Send Reset Email</button>
+    <button class="modal-btn mb-gray" onclick="closeModal('forgot-modal')">Cancel</button>
+    <div class="modal-msg" id="fp-msg"></div>
+  </div>
+</div>
+
+<!-- AUTH GATE (when not logged in and tries to bet/deposit/withdraw) -->
+<div class="modal-overlay" id="auth-gate-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="modal-title">🎯 Almost There!</div>
+    <p style="text-align:center;color:var(--text2);font-size:14px;margin-bottom:18px;line-height:1.6">
+      Create a free account or login to place bets, deposit and withdraw funds.
+    </p>
+    <button class="modal-btn mb-green" onclick="closeModal('auth-gate-modal');openModal('create-modal')">👤 Create Account</button>
+    <button class="modal-btn mb-gray" onclick="closeModal('auth-gate-modal');openModal('login-modal')">🔐 Login</button>
+    <button class="modal-btn mb-gray" onclick="closeModal('auth-gate-modal')" style="opacity:.6">Maybe Later</button>
+  </div>
+</div>
+
+<!-- DEPOSIT (Paystack) -->
+<div class="modal-overlay" id="deposit-method-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="modal-title">💰 Deposit Funds</div>
+    <input class="modal-input" id="dep-amount" placeholder="Amount (₦)" type="number"/>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Min ₦100 · Max ₦100,000,000 · Pay by card or bank transfer via Paystack</div>
+    <button class="modal-btn mb-green" onclick="proceedDeposit()">Pay with Paystack →</button>
+    <button class="modal-btn mb-gray" onclick="closeModal('deposit-method-modal')">Cancel</button>
+    <div class="modal-msg" id="dep-msg"></div>
+    <div style="text-align:center;margin-top:8px;font-size:13px;color:var(--text2)">
+      Paid but not credited? <span class="modal-link" onclick="closeModal('deposit-method-modal');openModal('contact-modal')">Contact us</span>
     </div>
   </div>
 </div>
 
-<!-- NEW ROUND CONFIRM -->
-<div class="mo" id="mo-newround">
-  <div class="mo-box">
-    <div class="mo-title">🔄 Confirm New Round</div>
-    <div class="mo-info">
-      This will permanently:<br/>
-      ✅ Delete all bet tickets from this round<br/>
-      ✅ Clear all saved results<br/>
-      ✅ Reset the countdown to zero<br/>
-      ✅ Keep all user accounts and balances<br/><br/>
-      <strong style="color:var(--red)">⚠️ This cannot be undone. Make sure all winners have been paid first.</strong>
-    </div>
-    <div class="mo-btns">
-      <button class="mb-red" onclick="confirmNewRound()">🔄 Yes, Start New Round</button>
-      <button class="mb-gray" onclick="closeMo('mo-newround')">Cancel</button>
-    </div>
+<!-- CONTACT US -->
+<div class="modal-overlay" id="contact-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="modal-title">📧 Contact Us</div>
+    <p style="text-align:center;color:var(--text2);font-size:14px;line-height:1.7;margin-bottom:16px">
+      Problem with a deposit or your account? Email us with your registered email and payment reference and we will fix it.
+    </p>
+    <a class="modal-btn mb-green" href="mailto:goalrushjackpot@gmail.com" style="display:block;text-align:center;text-decoration:none">goalrushjackpot@gmail.com</a>
+    <button class="modal-btn mb-gray" onclick="closeModal('contact-modal')">Close</button>
   </div>
+</div>
+
+<!-- WITHDRAW -->
+<div class="modal-overlay" id="withdraw-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="modal-title">💸 Withdraw Funds</div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;text-align:center">
+      <div style="font-size:12px;color:var(--text3)">Available Balance</div>
+      <div style="font-size:22px;font-weight:900;color:var(--green)" id="wd-balance">₦0.00</div>
+    </div>
+    <input class="modal-input" id="wd-bank" placeholder="Bank Name"/>
+    <input class="modal-input" id="wd-account" placeholder="Account Number" type="tel" maxlength="10"/>
+    <input class="modal-input" id="wd-amount" placeholder="Amount (₦)" type="number"/>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Min ₦100,000 · Max ₦100,000,000</div>
+    <button class="modal-btn mb-gold" onclick="doWithdraw()">Submit Withdrawal</button>
+    <button class="modal-btn mb-gray" onclick="closeModal('withdraw-modal')">Cancel</button>
+    <div class="modal-msg" id="wd-msg"></div>
+  </div>
+</div>
+
+<!-- CONFIRM BET -->
+<div class="modal-overlay" id="confirm-bet-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="modal-title">✅ Confirm Your Bet</div>
+    <div class="confirm-row"><span class="cr-label">Combinations</span><span class="cr-val gold" id="cb-combo">0</span></div>
+    <div class="confirm-row"><span class="cr-label">Total Stake</span><span class="cr-val gold" id="cb-stake">₦0</span></div>
+    <div class="confirm-row"><span class="cr-label">Your Balance</span><span class="cr-val" id="cb-balance">₦0</span></div>
+    <div class="confirm-row"><span class="cr-label">Balance After</span><span class="cr-val green" id="cb-after">₦0</span></div>
+    <div style="margin-top:6px"></div>
+    <button class="modal-btn mb-green" onclick="doPlaceBet()">✅ Confirm &amp; Place Bet</button>
+    <button class="modal-btn mb-gray" onclick="closeModal('confirm-bet-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- MY BETS SLIP -->
+<div class="modal-overlay" id="slip-modal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="modal-title">🎫 My Bets</div>
+    <div id="slip-content"></div>
+    <button class="modal-btn mb-gray" onclick="closeModal('slip-modal')" style="margin-top:10px">Close</button>
+  </div>
+</div>
+
+<!-- SUCCESS POPUP -->
+<div id="success-popup">
+  <div class="sp-icon" id="sp-icon">✅</div>
+  <div class="sp-title" id="sp-title">Success!</div>
+  <div class="sp-msg" id="sp-msg"></div>
 </div>
 
 <!-- LOADING -->
-<div id="a-loading">
-  <div class="a-spin"></div>
-  <div class="a-spin-txt" id="a-spin-txt">Processing...</div>
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="spin-text" id="loading-text">Processing...</div>
 </div>
 
-<!-- TOAST -->
-<div id="toast"></div>
+<!-- NOTIFICATION -->
+<div id="notif"></div>
 
 <script>
 // ════════════════════════════════════════════════════════
@@ -905,162 +735,151 @@ var _FIREBASE_CONFIG = {
   measurementId: "G-FDNDS7FDCD"
 };
 
-// ── In-memory cache ──
+// ── In-memory cache (replaces localStorage entirely) ──
 var _cache = {
-  users: {},
-  tickets: [],
-  deposits: [],
-  withdrawals: [],
-  logs: [],
-  matches: null,
-  results: null,
-  prizes: null,
-  countdown: null,
-  publishedRounds: [],
-  broadcast: null,
-  currentRoundId: 'round_default',
+  cu: null,          // current user key (phone)
+  cuUid: null,       // current user Firebase UID
+  cuData: null,      // current user profile object
+  matches: null,     // array of 14 matches from Firestore
+  prizes: null,      // prize settings object
+  countdown: null,   // countdown config object
+  publishedRounds: [],// array of published result rounds
+  tickets: [],       // current user's tickets
+  broadcast: null,   // broadcast object
 };
 
+// ── Restore session from sessionStorage on reload ──
+try {
+  var _ss = sessionStorage.getItem('grj_session');
+  if(_ss){ var _sd = JSON.parse(_ss); _cache.cu = _sd.cu||null; _cache.cuUid = _sd.uid||null; }
+} catch(e){}
+
+function _saveSession(){ try{ sessionStorage.setItem('grj_session', JSON.stringify({cu:_cache.cu, uid:_cache.cuUid})); }catch(e){} }
+function _clearSession(){ _cache.cu=null; _cache.cuUid=null; _cache.cuData=null; _cache.tickets=[]; try{ sessionStorage.removeItem('grj_session'); }catch(e){} }
+
 // ════════════════════════════════════════════════════════
-//  FIREBASE INIT
+//  FIREBASE INIT — _fbReady resolves when Firebase is up
 // ════════════════════════════════════════════════════════
 window._fbReady = (async function(){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-    const { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs,
-            addDoc, serverTimestamp, query, where, deleteDoc, orderBy, limit, increment }
+    const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+            signOut, onAuthStateChanged, sendPasswordResetEmail }
+      = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+    const { getFirestore, doc, setDoc, getDoc, updateDoc,
+            collection, getDocs, addDoc, serverTimestamp, query, where, deleteDoc, increment, writeBatch }
       = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
-    const app = initializeApp(_FIREBASE_CONFIG);
-    const db  = getFirestore(app);
+    const app  = initializeApp(_FIREBASE_CONFIG);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
 
-    window._FB = true;
-    window._db = db;
-    window._F  = { doc, setDoc, getDoc, updateDoc, collection, getDocs,
-                   addDoc, serverTimestamp, query, where, deleteDoc, orderBy, limit, increment };
+    window._FB   = true;
+    window._auth = auth;
+    window._db   = db;
+    window._F    = { doc, setDoc, getDoc, updateDoc, collection, getDocs,
+                     addDoc, serverTimestamp, query, where, deleteDoc, increment, writeBatch,
+                     createUserWithEmailAndPassword, signInWithEmailAndPassword,
+                     signOut, onAuthStateChanged, sendPasswordResetEmail };
 
-    console.log('✅ Admin Firebase ready');
+    // ── Restore session: reload profile + tickets from Firestore on page load ──
+    onAuthStateChanged(auth, async function(fbUser){
+      if(fbUser){
+        _cache.cuUid = fbUser.uid;
+        _saveSession();
+        var snap = await getDoc(doc(db,'users',fbUser.uid));
+        if(snap.exists()){
+          _cache.cuData = snap.data();
+          if(_cache.cuData.archived||_cache.cuData.disabled||_cache.cuData.status==='banned'){ await signOut(auth); return; }
+          _cache.cu     = _cache.cuData.phone || fbUser.uid;
+          _saveSession();
+          await _loadMyTickets();
+        }
+        updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
+      } else {
+        _clearSession();
+        updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
+      }
+    });
+
+    console.log('✅ Firebase ready');
     return true;
   }catch(e){
-    console.error('Admin Firebase init failed:', e);
+    console.error('Firebase init failed:', e);
     window._FB = false;
     return false;
   }
 })();
 
-// ── Admin login (change these!) ──
-var ADMIN_USER = 'GOALRUSH';
-var ADMIN_PASS = 'GOALRUSH242777';
+// ════════════════════════════════════════════════════════
+//  FIRESTORE HELPERS
+// ════════════════════════════════════════════════════════
 
-function doLogin(){
-  var u=document.getElementById('adm-user').value.trim();
-  var p=document.getElementById('adm-pass').value;
-  var err=document.getElementById('login-err');
-  if(u===ADMIN_USER && p===ADMIN_PASS){
-    try{sessionStorage.setItem('grj_admin','1');}catch(e){}
-    enterAdmin();
-  } else {
-    err.style.display='block';
-    setTimeout(function(){err.style.display='none';},2500);
-  }
-}
-function enterAdmin(){
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('admin-app').style.display='block';
-  var clk=document.getElementById('ah-clock');
-  function tick(){ if(clk) clk.textContent=new Date().toLocaleString('en-GB'); }
-  tick(); setInterval(tick,30000);
-  initAdmin();
-}
-function doLogout(){
-  try{sessionStorage.removeItem('grj_admin');}catch(e){}
-  location.reload();
-}
-try{ if(sessionStorage.getItem('grj_admin')==='1') document.addEventListener('DOMContentLoaded',enterAdmin); }catch(e){}
-
-async function initAdmin(){
-  var fbOk = await window._fbReady;
-  if(!fbOk){ toast('⚠️ Firebase not connected. Check config.','t-err'); }
-  openTab('users');
-  await loadAllData();
+// ── Load current user tickets from Firestore ──
+async function _loadMyTickets(){
+  if(!_cache.cu || !window._db) return;
+  try{
+    var snap = await window._F.getDocs(
+      window._F.query(window._F.collection(window._db,'tickets'),
+        window._F.where('userUid','==',_cache.cuUid))
+    );
+    _cache.tickets = [];
+    snap.forEach(function(d){ _cache.tickets.push(d.data()); });
+    _cache.tickets.sort(function(a,b){ return (b.created||'').localeCompare(a.created||''); });
+  }catch(e){ console.warn('loadMyTickets:', e); }
 }
 
-// ── Load ALL Firestore data into memory ──
-async function loadAllData(){
+// ── Load app settings (matches, prizes, countdown, broadcast, rounds) ──
+async function _loadAppData(){
   var fbOk = await window._fbReady;
   if(!fbOk || !window._db) return;
-  showLoad('Syncing from Firebase...');
   try{
-    // Users
-    var us = await window._F.getDocs(window._F.collection(window._db,'users'));
-    _cache.users = {};
-    us.forEach(function(d){
-      var data=d.data(); var key=data.phone||d.id;
-      _cache.users[key]=Object.assign({},data,{uid:d.id});
-    });
-    // Tickets
-    var ts = await window._F.getDocs(window._F.collection(window._db,'tickets'));
-    _cache.tickets=[]; ts.forEach(function(d){_cache.tickets.push(d.data());});
-    _cache.tickets.sort(function(a,b){return (b.created||'').localeCompare(a.created||'');});
-    // Deposits
-    var ds = await window._F.getDocs(window._F.collection(window._db,'deposits'));
-    _cache.deposits=[]; ds.forEach(function(d){_cache.deposits.push(d.data());});
-    _cache.deposits.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
-    // Withdrawals
-    var ws = await window._F.getDocs(window._F.collection(window._db,'withdrawals'));
-    _cache.withdrawals=[]; ws.forEach(function(d){_cache.withdrawals.push(d.data());});
-    _cache.withdrawals.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
-    // Logs
-    var ls = await window._F.getDocs(window._F.collection(window._db,'logs'));
-    _cache.logs=[]; ls.forEach(function(d){_cache.logs.push(d.data());});
-    _cache.logs.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
-    // App settings: matches
+    // Matches
     var ms = await window._F.getDoc(window._F.doc(window._db,'app_settings','matches'));
-    if(ms.exists()&&ms.data().matches){ _cache.matches=ms.data().matches; loadMatchesEditor(); }
-    // App settings: prizes
+    if(ms.exists() && ms.data().matches && ms.data().matches.length){
+      if(JSON.stringify(ms.data().matches)!==JSON.stringify(_cache.matches)){
+        _cache.matches = ms.data().matches;
+        renderMatches();
+      }
+    }
+    // Prizes
     var ps = await window._F.getDoc(window._F.doc(window._db,'app_settings','prizes'));
-    if(ps.exists()){ _cache.prizes=ps.data(); loadPrizesForm(); }
-    // App settings: countdown
+    if(ps.exists()){ _cache.prizes = ps.data(); loadCoverPrize(); }
+    // Countdown
     var cs = await window._F.getDoc(window._F.doc(window._db,'app_settings','countdown'));
-    if(cs.exists()){ _cache.countdown=cs.data(); loadCurrentCountdown(); }
-    // App settings: broadcast
-    var bcs = await window._F.getDoc(window._F.doc(window._db,'app_settings','broadcast'));
-    if(bcs.exists()){ _cache.broadcast=bcs.data(); loadBroadcast(); }
-    // App settings: current round
-    var cr = await window._F.getDoc(window._F.doc(window._db,'app_settings','current_round'));
-    if(cr.exists()){ _cache.currentRoundId=cr.data().roundId||'round_default'; }
-    // App settings: results
-    var rs = await window._F.getDoc(window._F.doc(window._db,'app_settings','current_results'));
-    if(rs.exists()){ _cache.results=rs.data().results||null; }
+    if(cs.exists()){ _cache.countdown = cs.data(); startCountdown(); }
+    // Broadcast
+    var bs = await window._F.getDoc(window._F.doc(window._db,'app_settings','broadcast'));
+    if(bs.exists() && bs.data().message){ _cache.broadcast = bs.data(); checkBroadcast(); }
     // Published rounds
-    var prs = await window._F.getDocs(window._F.collection(window._db,'published_rounds'));
-    _cache.publishedRounds=[];
-    prs.forEach(function(d){_cache.publishedRounds.push(d.data());});
-    _cache.publishedRounds.sort(function(a,b){return (a.savedAt||'').localeCompare(b.savedAt||'');});
-
-    // Refresh UI
-    renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
-    loadDeposits(); loadWithdrawals(); loadLogs(); updateStats();
-    loadPrizesForm(); loadCurrentCountdown(); loadBroadcast();
-    renderResultsEditor();
-
-    hideLoad();
-    toast('✅ All data loaded from Firebase');
-  }catch(e){
-    hideLoad();
-    toast('Firebase load error: '+e.message,'t-err');
-    console.error(e);
-  }
+    var rs = await window._F.getDocs(window._F.collection(window._db,'published_rounds'));
+    _cache.publishedRounds = [];
+    rs.forEach(function(d){ _cache.publishedRounds.push(d.data()); });
+    _cache.publishedRounds.sort(function(a,b){ return (a.savedAt||'').localeCompare(b.savedAt||''); });
+    _renderRoundsDropdown(_cache.publishedRounds);
+    // Also refresh current user balance
+    if(_cache.cu && _cache.cuUid && window._db){
+      var us = await window._F.getDoc(window._F.doc(window._db,'users',_cache.cuUid));
+      if(us.exists()){ _cache.cuData = us.data(); updateHeaderBalance(); }
+    }
+  }catch(e){ console.warn('_loadAppData:', e); }
 }
 
-function getMatches(){ return _cache.matches || DEFAULT_MATCHES; }
-function getResults(){ return _cache.results || null; }
-function getTickets(){ return _cache.tickets || []; }
-function getDeposits(){ return _cache.deposits || []; }
-function getWithdrawals(){ return _cache.withdrawals || []; }
-function getLogs(){ return _cache.logs || []; }
-function getUsers(){ return _cache.users || {}; }
+// ── Balance helpers: atomic increment so admin funding is never overwritten ──
+async function _refreshMe(){
+  if(!_cache.cuUid||!window._db) return;
+  try{
+    var s=await window._F.getDoc(window._F.doc(window._db,'users',_cache.cuUid));
+    if(s.exists()){ _cache.cuData=s.data(); updateHeaderBalance(); }
+  }catch(e){ console.warn('refreshMe:',e); }
+}
+async function _adjustBalance(delta){
+  var F=window._F, r=F.doc(window._db,'users',_cache.cuUid);
+  await F.updateDoc(r,{balance:F.increment(delta),lastUpdated:new Date().toISOString()});
+  await _refreshMe();
+}
 
+// ── Get matches (from cache, or default) ──
 var DEFAULT_MATCHES = [
   {time:'2025-09-03 06:34',home:'Bournemouth',away:'Brighton'},
   {time:'2025-09-03 01:20',home:'Arsenal',away:'Liverpool'},
@@ -1077,785 +896,669 @@ var DEFAULT_MATCHES = [
   {time:'2025-09-03 14:00',home:'Celtic',away:'Rangers'},
   {time:'2025-09-03 14:00',home:'PSG',away:'Marseille'},
 ];
+function getMatches(){ return _cache.matches || DEFAULT_MATCHES; }
 
-// ── ADMIN TABS ──
-var _currentTab='users';
-function openTab(tab){
-  _currentTab=tab;
-  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.toggle('active',(b.getAttribute('onclick')||'').indexOf("'"+tab+"'")>-1);});
-  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.toggle('active',c.id==='tab-'+tab);});
-  if(tab==='users')    renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
-  if(tab==='deposits') loadDeposits();
-  if(tab==='withdrawals') loadWithdrawals();
-  if(tab==='results')  renderResultsEditor();
-  if(tab==='archive')  loadArchive();
-  if(tab==='logs')     loadLogs();
-  if(tab==='prizes')   loadPrizesForm();
-  if(tab==='matches')  loadMatchesEditor();
-  if(tab==='broadcast')loadBroadcast();
-  if(tab==='countdown')loadCurrentCountdown();
-}
-function switchAdminTab(t){ openTab(t); }
+// ── CONSTANTS ──
+var PAYSTACK_KEY='pk_live_4ff37d15381d1d12c78fd66f7bc86beb64c59415';
 
-// ── STATS ──
-function updateStats(){
-  var users = Object.values(_cache.users);
-  var total  = users.filter(function(u){return !u.archived;}).length;
-  var active = users.filter(function(u){return !u.archived&&!u.disabled&&u.status!=='banned';}).length;
-  var pendDeps = _cache.deposits.filter(function(d){return d.status==='pending';}).length;
-  var pendWds  = _cache.withdrawals.filter(function(d){return d.status==='pending';}).length;
-  setText('st-users',    active);
-  setText('st-deposits', pendDeps);
-  setText('st-withdrawals', pendWds);
-  setText('st-tickets',  _cache.tickets.length);
-  var lbl=document.getElementById('st-total-users-label');
-  if(lbl) lbl.textContent='Total: '+total+' · Active: '+active;
-}
+// ── STATE ──
+var _combo=0,_stake=0,_allSel=false;
+var _cdInterval=null,_cdSecs=0;
 
-// ── USERS ──
-var _allUsers=[], _pendingUser='';
-
-async function loadUsers(){
-  await loadAllData();
-}
-
-function filterUsers(){
-  var q=(document.getElementById('user-search')||{value:''}).value.toLowerCase();
-  var arr=Object.values(_cache.users).filter(function(u){return !u.archived;});
-  if(q) arr=arr.filter(function(u){
-    return (u.name||'').toLowerCase().includes(q)||(u.phone||'').includes(q)||(u.email||'').toLowerCase().includes(q);
+// ════════════════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',function(){
+  renderMatches(); // show defaults immediately
+  updateMenuItems();
+  updateHeaderBalance();
+  updateSlipBadge();
+  startCountdown();
+  loadCoverPrize();
+  loadResultsRounds();
+  checkBroadcast();
+  // Load everything from Firestore
+  _loadAppData().then(function(){
+    startCountdown(); // restart with Firebase countdown
+    updateMenuItems();
+    updateHeaderBalance();
+    updateSlipBadge();
+    if(_cache.cu) _loadMyTickets();
   });
-  renderUsersTable(arr);
-}
-
-function renderUsersTable(users){
-  users=users.slice().sort(function(a,b){return (b.createdAt||b.created||'').localeCompare(a.createdAt||a.created||'');});
-  var total=users.length;
-  var active=users.filter(function(u){return !u.disabled&&u.status!=='banned';}).length;
-  setText('st-users',active);
-  if(!users.length){ document.getElementById('users-tbl-wrap').innerHTML='<div class="tbl-empty">No users found.</div>'; return; }
-  var rows=users.map(function(u){
-    var bal=Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2});
-    var status=(u.disabled||u.status==='banned')
-      ?'<span class="sbadge sb-dis">Disabled</span>'
-      :'<span class="sbadge sb-ok">Active</span>';
-    var phone=esc(u.phone||'—'); var email=esc(u.email||'—'); var name=esc(u.name||u.fullName||'—');
-    var reg=esc(fmtDate(u.createdAt||u.created));
-    var key=esc(u.phone||u.uid||'');
-    return '<tr>'
-      +'<td><div class="td-phone">'+name+'</div><div style="font-size:11px;color:var(--text3)">📱 '+phone+'</div>'
-      +(u.age?'<div style="font-size:10px;color:var(--text3)">Age: '+esc(String(u.age))+(u.gender?' · '+esc(u.gender):'')+'</div>':'')+'</td>'
-      +'<td style="font-size:11px;color:var(--text3)">'+email+'</td>'
-      +'<td class="td-bal">₦'+bal+'</td>'
-      +'<td>'+status+'</td>'
-      +'<td style="font-size:11px;color:var(--text3)">'+reg+'</td>'
-      +'<td><div class="acts">'
-        +'<button class="ab ab-fund" onclick="openFund(\''+key+'\')">💰 Fund</button>'
-        +(u.disabled
-          ?'<button class="ab ab-en" onclick="setDisabled(\''+key+'\',false)">✅ Enable</button>'
-          :'<button class="ab ab-dis" onclick="setDisabled(\''+key+'\',true)">⛔ Disable</button>')
-        +'<button class="ab ab-clear" onclick="openClear(\''+key+'\')">🗑 Clear Bal</button>'
-        +'<button class="ab ab-view" onclick="viewUserBets(\''+key+'\')">🎫 Tickets</button>'
-        +'<button class="ab ab-del" onclick="openDelete(\''+key+'\')">🗂 Archive</button>'
-      +'</div></td>'
-      +'</tr>';
-  }).join('');
-  document.getElementById('users-tbl-wrap').innerHTML=
-    '<table><thead><tr><th>Name / Phone</th><th>Email</th><th>Balance</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>';
-}
-
-// ── Fund user ──
-async function adminAdjust(u,delta,extra){
-  var F=window._F, r=F.doc(window._db,'users',u.uid);
-  await F.updateDoc(r,Object.assign({balance:F.increment(delta)},extra||{}));
-  var snap=await F.getDoc(r);
-  if(snap.exists()) u.balance=Number(snap.data().balance||0);
-  return u.balance;
-}
-function openFund(key){
-  _pendingUser=key;
-  var u=_cache.users[key]||{};
-  document.getElementById('fund-info').innerHTML='Fund <strong>'+esc(u.name||u.fullName||key)+'</strong><br/>Current balance: <span style="color:var(--gold)">₦'+Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2})+'</span>';
-  document.getElementById('fund-amount').value=''; document.getElementById('fund-err').textContent='';
-  openMo('mo-fund');
-}
-async function confirmFund(){
-  var amt=Number(document.getElementById('fund-amount').value);
-  if(!amt||amt<=0){setText('fund-err','Enter a valid amount.');return;}
-  var u=_cache.users[_pendingUser]; if(!u||!u.uid){setText('fund-err','User not found.');return;}
-  showLoad('Adding funds...');
-  try{
-    await adminAdjust(u,amt,{lastFundedAt:new Date().toISOString()});
-  }catch(e){
-    hideLoad(); setText('fund-err','Failed: '+e.message); return;
-  }
-  await addLog('Funded ₦'+amt.toLocaleString(),_pendingUser);
-  renderUsersTable(Object.values(_cache.users).filter(function(x){return !x.archived;}));
-  updateStats(); hideLoad(); closeMo('mo-fund');
-  toast('✅ ₦'+amt.toLocaleString()+' added to '+(u.name||u.fullName||_pendingUser));
-}
-
-// ── Disable/Enable ──
-async function setDisabled(key, disabled){
-  showLoad(disabled?'Disabling account...':'Enabling account...');
-  var u=_cache.users[key]; if(!u){hideLoad();return;}
-  u.disabled=disabled; u.status=disabled?'disabled':'active';
-  _cache.users[key]=u;
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db&&u.uid){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'users',u.uid),
-        {disabled:disabled,status:u.status},{merge:true});
-    }catch(e){}
-  }
-  await addLog(disabled?'Account disabled':'Account enabled',key);
-  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
-  updateStats(); hideLoad();
-  toast(disabled?'⛔ Account disabled':'✅ Account enabled');
-}
-
-// ── Clear balance ──
-function openClear(key){
-  _pendingUser=key; var u=_cache.users[key]||{};
-  document.getElementById('clear-info').innerHTML=
-    'Zero out the balance for <strong>'+esc(u.name||u.fullName||key)+'</strong>.<br/>'
-    +'Current Balance: <span style="color:var(--gold)">₦'+Number(u.balance||0).toLocaleString()+'</span><br/><br/>'
-    +'<strong style="color:var(--red)">This cannot be undone.</strong>';
-  openMo('mo-clear');
-}
-async function confirmClear(){
-  showLoad('Clearing balance...');
-  var u=_cache.users[_pendingUser]; if(!u){hideLoad();return;}
-  u.balance=0; _cache.users[_pendingUser]=u;
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db&&u.uid){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'users',u.uid),
-        {balance:0,balanceClearedAt:new Date().toISOString()},{merge:true});
-    }catch(e){}
-  }
-  await addLog('Balance cleared',_pendingUser);
-  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
-  updateStats(); hideLoad(); closeMo('mo-clear');
-  toast('🗑️ Balance cleared','t-err');
-}
-
-// ── Archive user ──
-function openDelete(key){
-  _pendingUser=key; var u=_cache.users[key]||{};
-  document.getElementById('delete-info').innerHTML=
-    'Archive user <strong>'+esc(u.name||u.fullName||key)+'</strong>?<br/><br/>'
-    +'They will be moved to Archive and cannot login.';
-  openMo('mo-delete');
-}
-async function confirmDelete(){
-  showLoad('Archiving user...');
-  var u=_cache.users[_pendingUser]; if(!u){hideLoad();return;}
-  u.archived=true; u.archivedAt=new Date().toISOString(); u.status='archived';
-  _cache.users[_pendingUser]=u;
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db&&u.uid){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'users',u.uid),
-        {archived:true,archivedAt:u.archivedAt,status:'archived'},{merge:true});
-    }catch(e){}
-  }
-  await addLog('User archived',_pendingUser);
-  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
-  loadArchive(); updateStats(); hideLoad(); closeMo('mo-delete');
-  toast('🗂 User archived','t-gold');
-}
-
-// ── Archive tab ──
-function loadArchive(){
-  var archived=Object.values(_cache.users).filter(function(u){return u.archived;});
-  if(!archived.length){ document.getElementById('archive-tbl-wrap').innerHTML='<div class="tbl-empty">No archived users.</div>'; return; }
-  var rows=archived.map(function(u){
-    var key=esc(u.phone||u.uid||'');
-    return '<tr>'
-      +'<td><div class="td-phone">'+esc(u.phone||'—')+'</div><div class="td-name">'+esc(u.name||u.fullName||'—')+'</div></td>'
-      +'<td style="font-size:11px;color:var(--text3)">'+esc(u.email||'—')+'</td>'
-      +'<td class="td-bal">₦'+Number(u.balance||0).toLocaleString()+'</td>'
-      +'<td><span class="sbadge sb-arc">Archived</span></td>'
-      +'<td style="font-size:11px;color:var(--text3)">'+esc(fmtDate(u.archivedAt||u.created))+'</td>'
-      +'<td><div class="acts"><button class="ab ab-restore" onclick="restoreUser(\''+key+'\')">♻️ Restore</button></div></td>'
-      +'</tr>';
-  }).join('');
-  document.getElementById('archive-tbl-wrap').innerHTML=
-    '<table><thead><tr><th>Phone / Name</th><th>Email</th><th>Balance</th><th>Status</th><th>Archived On</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>';
-}
-async function restoreUser(key){
-  showLoad('Restoring user...');
-  var u=_cache.users[key]; if(!u){hideLoad();return;}
-  u.archived=false; u.archivedAt=null; u.disabled=false; u.status='active';
-  _cache.users[key]=u;
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db&&u.uid){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'users',u.uid),
-        {archived:false,archivedAt:null,disabled:false,status:'active'},{merge:true});
-    }catch(e){}
-  }
-  await addLog('User restored',key);
-  loadArchive();
-  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
-  updateStats(); hideLoad(); toast('✅ User restored');
-}
-
-// ── View User Bets ──
-function viewUserBets(userKey){
-  var u=_cache.users[userKey]||{};
-  var tickets=_cache.tickets.filter(function(t){return t.user===userKey;});
-  setText('mo-bets-title','🎫 Tickets — '+esc(u.name||u.fullName||userKey));
-  var balBox='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:14px;">'
-    +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Balance</div>'
-    +'<div style="font-size:20px;font-weight:900;color:var(--gold)">₦'+Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2})+'</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">📱 '+esc(u.phone||'—')+' · 📧 '+esc(u.email||'—')+'</div>'
-    +'</div>';
-  if(!tickets.length){ document.getElementById('mo-bets-content').innerHTML=balBox+'<div class="tbl-empty">No tickets placed.</div>'; openMo('mo-bets'); return; }
-  var html=balBox+tickets.map(function(t,ti){
-    var matchedRound=null;
-    if(t.roundId){ matchedRound=_cache.publishedRounds.find(function(r){return r.roundId===t.roundId||r.id===t.roundId;})||null; }
-    if(!matchedRound&&t.selections&&t.selections.length>=3){
-      matchedRound=_cache.publishedRounds.find(function(r){
-        var rm=r.matches||[]; if(rm.length<3)return false; var hits=0;
-        for(var x=0;x<Math.min(4,t.selections.length,rm.length);x++){
-          var s=t.selections[x],m=rm[x]; if(!s||!m)continue;
-          if((s.home||'').toLowerCase().trim()===(m.home||'').toLowerCase().trim()
-          &&(s.away||'').toLowerCase().trim()===(m.away||'').toLowerCase().trim()) hits++;
-        }
-        return hits>=3;
-      })||null;
-    }
-    var roundResults=matchedRound?matchedRound.matches:null;
-    var roundWinners=matchedRound?(matchedRound.winners||{}):{};
-    var correctCount=0,voidCount=0;
-    var rows=t.selections.map(function(s,i){
-      var matchResult=roundResults?roundResults[i]:null;
-      var resVal=matchResult?(typeof matchResult==='object'?(matchResult.result||''):matchResult):'';
-      resVal=(resVal||'').toString().toUpperCase().trim();
-      var isVoid=resVal==='VOID'; var hasResult=resVal!=='';
-      var picks=(s.picks||[]).map(function(p){ p=(p||'').toLowerCase(); if(p==='home'||p==='1')return '1'; if(p==='draw'||p==='x')return 'X'; if(p==='away'||p==='2')return '2'; return ''; });
-      var isMatch=hasResult&&!isVoid&&picks.indexOf(resVal)!==-1;
-      if(isVoid) voidCount++; if(isMatch) correctCount++;
-      var matchIcon=''; if(hasResult){ matchIcon=isVoid?'<span style="color:var(--text3);font-size:11px">void</span>':isMatch?'<span style="color:var(--green)">✅</span>':'<span style="color:var(--red)">❌</span>'; }
-      var score=''; if(matchResult&&typeof matchResult==='object'&&matchResult.scoreHome!==''&&matchResult.scoreHome!==undefined&&!isVoid){ score='<span style="color:var(--text2);font-size:11px">'+matchResult.scoreHome+'-'+matchResult.scoreAway+'</span> '; }
-      return '<div class="receipt-row">'
-        +'<span class="rr-num">'+s.matchIndex+'</span>'
-        +'<span class="rr-teams">'+esc(s.home||'—')+' v '+esc(s.away||'—')+'</span>'
-        +'<span class="rr-pick" style="color:var(--green)">'+esc(s.code||'')+'</span>'
-        +(hasResult?'<span class="rr-result">'+score+esc(isVoid?'void':resVal)+'</span>':'')
-        +matchIcon+'</div>';
-    }).join('');
-    var tc=!roundResults?'var(--text3)':correctCount===14?'var(--green)':correctCount===13?'var(--blue)':correctCount===12?'var(--yellow)':'var(--red)';
-    var tl=!roundResults?'⏳ Awaiting results':correctCount===14?'🟢 JACKPOT — 14/14':correctCount===13?'🔵 2nd — 13/14':correctCount===12?'🟡 3rd — 12/14':'🔴 '+correctCount+'/14 Correct';
-    if(voidCount>0&&roundResults) tl+=' ('+voidCount+' void)';
-    var prizeHtml='';
-    if(roundResults&&roundWinners[String(correctCount)]&&Number(roundWinners[String(correctCount)].prize||0)>0)
-      prizeHtml='<div style="margin-top:4px;font-size:12px;color:var(--gold);font-weight:700">🏆 Winning per Ticket: ₦'+Number(roundWinners[String(correctCount)].prize).toLocaleString()+'</div>';
-    return '<div class="ticket-summary-box">'
-      +'<div class="ts-ref">Ticket '+(ti+1)+' · Ref: '+esc(t.id||'—')+' · '+fmtDate(t.created)+'</div>'
-      +'<div class="ts-stake">Combos: '+t.combination+' · Stake: ₦'+t.stake.toLocaleString()+'</div>'
-      +'<div class="ts-correct" style="color:'+tc+'">'+tl+'</div>'
-      +prizeHtml+'<div style="margin-top:10px">'+rows+'</div>'
-      +'</div>';
-  }).join('');
-  document.getElementById('mo-bets-content').innerHTML=html;
-  openMo('mo-bets');
-}
-
-// ════════════════════════════════════════════════════════
-//  DEPOSITS
-// ════════════════════════════════════════════════════════
-function loadDeposits(){
-  var deps=_cache.deposits;
-  if(!deps.length){ document.getElementById('deposits-tbl-wrap').innerHTML='<div class="tbl-empty">No deposit requests yet.</div>'; updateStats(); return; }
-  var rows=deps.map(function(d,i){
-    var sb=d.status==='pending'?'<span class="sbadge sb-pend">Pending</span>':d.status==='approved'?'<span class="sbadge sb-ok">Approved</span>':'<span class="sbadge sb-dis">Rejected</span>';
-    var acts=d.status==='pending'
-      ?'<button class="ab ab-approve" onclick="openApproveDeposit('+i+')">✅ Approve</button><button class="ab ab-reject" onclick="openRejectDeposit('+i+')">❌ Reject</button>':'';
-    return '<tr>'
-      +'<td class="td-phone">'+esc(d.user||'—')+'</td>'
-      +'<td class="td-bal">₦'+Number(d.amount||0).toLocaleString()+'</td>'
-      +'<td style="font-size:12px">'+esc(d.method||'—')+'</td>'
-      +'<td>'+sb+'</td>'
-      +'<td style="font-size:11px;color:var(--text3)">'+esc(fmtDate(d.time))+'</td>'
-      +'<td style="font-size:11px;color:var(--text3);font-family:monospace">'+esc(d.id||'—')+'</td>'
-      +'<td><div class="acts">'+acts+'</div></td>'
-      +'</tr>';
-  }).join('');
-  document.getElementById('deposits-tbl-wrap').innerHTML=
-    '<table><thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Status</th><th>Time</th><th>Ref</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>';
-  updateStats();
-}
-
-var _pendingDepIdx=-1;
-function openApproveDeposit(idx){ _pendingDepIdx=idx; var d=_cache.deposits[idx]||{}; document.getElementById('approve-dep-info').innerHTML='Approve and credit <strong>₦'+Number(d.amount||0).toLocaleString()+'</strong> to <strong>'+esc(d.user||'—')+'</strong>?<br/>Method: '+esc(d.method||'—')+'&nbsp;·&nbsp;Ref: '+esc(d.id||'—'); openMo('mo-approve-dep'); }
-async function confirmApproveDeposit(){
-  var d=_cache.deposits[_pendingDepIdx]; if(!d){return;}
-  var u=_cache.users[d.user]||Object.values(_cache.users).find(function(x){return x.uid===d.userUid;});
-  if(!u||!u.uid){toast('User not found for this deposit','t-err');return;}
-  if(d.status!=='pending'){toast('Already processed','t-err');closeMo('mo-approve-dep');return;}
-  showLoad('Crediting user...');
-  try{
-    await adminAdjust(u,Number(d.amount||0),{lastDeposit:new Date().toISOString()});
-    if(d.id) await window._F.setDoc(window._F.doc(window._db,'deposits',d.id),{status:'approved',approvedAt:new Date().toISOString()},{merge:true});
-  }catch(e){ hideLoad(); toast('Failed: '+e.message,'t-err'); return; }
-  d.status='approved';
-  await addLog('Deposit approved ₦'+Number(d.amount).toLocaleString(),d.user);
-  loadDeposits();
-  renderUsersTable(Object.values(_cache.users).filter(function(x){return !x.archived;}));
-  hideLoad(); closeMo('mo-approve-dep');
-  toast('✅ ₦'+Number(d.amount).toLocaleString()+' credited to '+d.user);
-}
-function openRejectDeposit(idx){ _pendingDepIdx=idx; var d=_cache.deposits[idx]||{}; document.getElementById('reject-dep-info').innerHTML='Reject deposit of <strong>₦'+Number(d.amount||0).toLocaleString()+'</strong> from <strong>'+esc(d.user||'—')+'</strong>?<br/>Ref: '+esc(d.id||'—'); openMo('mo-reject-dep'); }
-async function confirmRejectDeposit(){
-  showLoad('Rejecting...');
-  var d=_cache.deposits[_pendingDepIdx]; if(!d){hideLoad();return;}
-  d.status='rejected'; _cache.deposits[_pendingDepIdx]=d;
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db&&d.id){ try{ await window._F.setDoc(window._F.doc(window._db,'deposits',d.id),{status:'rejected'},{merge:true}); }catch(e){} }
-  await addLog('Deposit rejected ₦'+Number(d.amount).toLocaleString(),d.user);
-  loadDeposits(); hideLoad(); closeMo('mo-reject-dep');
-  toast('❌ Deposit rejected','t-err');
-}
-
-// ════════════════════════════════════════════════════════
-//  WITHDRAWALS
-// ════════════════════════════════════════════════════════
-function loadWithdrawals(){
-  var wds=_cache.withdrawals;
-  if(!wds.length){ document.getElementById('withdrawals-tbl-wrap').innerHTML='<div class="tbl-empty">No withdrawal requests yet.</div>'; updateStats(); return; }
-  var rows=wds.map(function(w){
-    var sb=w.status==='pending'?'<span class="sbadge sb-pend">Pending</span>':'<span class="sbadge sb-done">Paid</span>';
-    var acts=w.status==='pending'?'<button class="ab ab-approve" onclick="markWdPaid(\''+esc(w.id||w.code)+'\')">✅ Mark Paid</button>':'';
-    return '<tr><td class="td-phone">'+esc(w.user||'—')+'</td><td class="td-bal">₦'+Number(w.amount||0).toLocaleString()+'</td><td style="font-size:12px">'+esc(w.bank||'—')+'</td><td style="font-family:monospace;font-size:12px">'+esc(w.account||'—')+'</td><td>'+sb+'</td><td style="font-size:11px;color:var(--text3)">'+esc(fmtDate(w.time))+'</td><td style="font-size:11px;color:var(--gold);font-family:monospace">'+esc(w.code||w.id||'—')+'</td><td><div class="acts">'+acts+'</div></td></tr>';
-  }).join('');
-  document.getElementById('withdrawals-tbl-wrap').innerHTML=
-    '<table><thead><tr><th>User</th><th>Amount</th><th>Bank</th><th>Account</th><th>Status</th><th>Time</th><th>Ref Code</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>';
-  updateStats();
-}
-async function markWdPaid(id){
-  showLoad('Marking as paid...');
-  var w=_cache.withdrawals.find(function(x){return x.id===id||x.code===id;});
-  if(w){ w.status='paid'; w.paidAt=new Date().toISOString(); }
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db&&id){ try{ await window._F.setDoc(window._F.doc(window._db,'withdrawals',id),{status:'paid',paidAt:new Date().toISOString()},{merge:true}); }catch(e){} }
-  await addLog('Withdrawal paid ref:'+id, w?w.user:'');
-  loadWithdrawals(); hideLoad(); toast('✅ Withdrawal marked as paid');
-}
-
-// ════════════════════════════════════════════════════════
-//  RESULTS
-// ════════════════════════════════════════════════════════
-var _currentResults=[];
-
-function renderResultsEditor(){
-  var matches=getMatches();
-  var saved=_cache.results||[];
-  var html=matches.map(function(m,i){
-    var r=saved[i]||{};
-    var res=typeof r==='object'?r.result||'':r||'';
-    var sh=typeof r==='object'?r.scoreHome||'':'';
-    var sa=typeof r==='object'?r.scoreAway||'':'';
-    _currentResults[i]=_currentResults[i]||{result:res};
-    if(res&&!_currentResults[i].result) _currentResults[i].result=res;
-    var mk=function(v,label,sel){
-      var s=sel?'res-btn sel-'+v.toLowerCase():'res-btn';
-      var st=v==='VOID'&&sel?'background:#3d0000;border-color:var(--red);color:var(--red);':'';
-      return '<button class="'+s+'" id="rb-'+i+'-'+v+'" onclick="setResult('+i+',\''+v+'\')" style="'+st+'">'+label+'</button>';
-    };
-    return '<div class="result-row">'
-      +'<div class="rr-match"><span style="color:var(--text3);font-size:11px;">'+(i+1)+'.</span> <strong>'+esc(m.home)+'</strong> vs <strong>'+esc(m.away)+'</strong></div>'
-      +'<div class="rr-btns">'
-        +mk('1','1 Home',res==='1')+mk('X','X Draw',res==='X')+mk('2','2 Away',res==='2')+mk('VOID','Void',res==='VOID')
-      +'</div>'
-      +'<div class="rr-score">'
-        +'<input type="number" id="sc-h-'+i+'" class="score-input" placeholder="H" value="'+esc(sh)+'" min="0" max="99"/>'
-        +'<span style="color:var(--text3)">-</span>'
-        +'<input type="number" id="sc-a-'+i+'" class="score-input" placeholder="A" value="'+esc(sa)+'" min="0" max="99"/>'
-      +'</div>'
-      +'</div>';
-  }).join('');
-  document.getElementById('results-editor').innerHTML=html;
-}
-
-function setResult(idx,val){
-  if(!_currentResults[idx]) _currentResults[idx]={};
-  _currentResults[idx].result=val;
-  ['1','X','2','VOID'].forEach(function(v){
-    var el=document.getElementById('rb-'+idx+'-'+v); if(!el)return;
-    el.className='res-btn'+(v===val?' sel-'+v.toLowerCase():'');
-    if(v==='VOID'){ el.style.background=v===val?'#3d0000':''; el.style.borderColor=v===val?'var(--red)':''; el.style.color=v===val?'var(--red)':''; }
+  // Refresh every 60s and on tab focus
+  setInterval(_loadAppData, 60000);
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible') _loadAppData();
   });
-}
+});
 
-async function saveResults(){
-  var matches=getMatches();
-  var saved=_cache.results||[];
-  var final=[];
-  for(var i=0;i<14;i++){
-    var res=(_currentResults[i]&&_currentResults[i].result)||(saved[i]&&(typeof saved[i]==='object'?saved[i].result:saved[i]))||'';
-    var sh=document.getElementById('sc-h-'+i); var sa=document.getElementById('sc-a-'+i);
-    final.push({result:res,scoreHome:sh?sh.value:'',scoreAway:sa?sa.value:'',home:matches[i]?matches[i].home:'',away:matches[i]?matches[i].away:'',time:matches[i]?matches[i].time:''});
-  }
-  var missing=final.filter(function(r){return !r.result;}).length;
-  if(missing>0){ document.getElementById('results-save-msg').innerHTML='<span style="color:var(--red)">⚠️ '+missing+' match(es) still need a result.</span>'; return; }
-  _cache.results=final;
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'app_settings','current_results'),
-        {results:final,updatedAt:new Date().toISOString()},{merge:true});
-      document.getElementById('results-save-msg').innerHTML='<span style="color:var(--green)">✅ Results saved to Firebase! Click Scan to find winners.</span>';
-    }catch(e){
-      document.getElementById('results-save-msg').innerHTML='<span style="color:var(--red)">Firebase save failed: '+e.message+'</span>';
-    }
-  }
-  await addLog('Match results saved','admin');
-  setTimeout(function(){document.getElementById('results-save-msg').textContent='';},5000);
-  toast('✅ Results saved');
-}
-
-// ── TICKET SCANNER ──
-function pickToVal(p){ p=(p||'').toLowerCase(); if(p==='home'||p==='1')return '1'; if(p==='draw'||p==='x')return 'X'; if(p==='away'||p==='2')return '2'; return p.toUpperCase(); }
-function resultToVal(r){ r=(r||'').toString().toUpperCase().trim(); if(r==='VOID')return 'VOID'; return r; }
-
-async function scanAllTickets(){
-  var results=_cache.results;
-  if(!results||results.length<14){ toast('⚠️ Save all 14 results first before scanning.','t-err'); return; }
-  var tickets=_cache.tickets;
-  if(!tickets.length){ document.getElementById('scan-results').innerHTML='<div class="tbl-empty">No tickets to scan this round.</div>'; document.getElementById('scan-summary').style.display='grid'; setText('sc-total','0'); setText('sc-14','0'); setText('sc-13','0'); setText('sc-12','0'); document.getElementById('publish-section').style.display='block'; return; }
-  var w14=[],w13=[],w12=[],others=[];
-  tickets.forEach(function(t){
-    var correct=0;
-    t.selections.forEach(function(s,i){
-      var rawRes=results[i]; var resVal=typeof rawRes==='object'?(rawRes.result||''):rawRes;
-      var res=resultToVal(resVal); if(res==='VOID')return;
-      var picks=(s.picks||[]).map(function(p){return pickToVal(p);});
-      if(res&&picks.indexOf(res)!==-1) correct++;
-    });
-    t._correct=correct;
-    if(correct===14) w14.push(t); else if(correct===13) w13.push(t); else if(correct===12) w12.push(t); else others.push(t);
-  });
-  document.getElementById('scan-summary').style.display='grid';
-  setText('sc-total',tickets.length); setText('sc-14',w14.length); setText('sc-13',w13.length); setText('sc-12',w12.length);
-  var hasWinners=w14.length>0||w13.length>0||w12.length>0;
-  var alarmBanner=document.getElementById('alarm-banner');
-  if(hasWinners){
-    alarmBanner.classList.add('show');
-    var msgs=[]; if(w14.length>0)msgs.push(w14.length+' JACKPOT WINNER(S)!'); if(w13.length>0)msgs.push(w13.length+' 2nd Prize Winner(s)'); if(w12.length>0)msgs.push(w12.length+' 3rd Prize Winner(s)');
-    setText('alarm-text','🔔 '+msgs.join(' · ')); setText('alarm-sub','Check winners below — fill in the winners table and publish results to users.');
-    try{ var ctx=new(window.AudioContext||window.webkitAudioContext)(); var osc=ctx.createOscillator(); osc.connect(ctx.destination); osc.frequency.value=880; osc.start(); osc.stop(ctx.currentTime+0.4); }catch(e){}
-  } else { alarmBanner.classList.remove('show'); }
-  if(w14.length){ var el=document.getElementById('wn-14-tickets'); if(el&&!el.value)el.value=w14.length; }
-  if(w13.length){ var el=document.getElementById('wn-13-tickets'); if(el&&!el.value)el.value=w13.length; }
-  if(w12.length){ var el=document.getElementById('wn-12-tickets'); if(el&&!el.value)el.value=w12.length; }
-  var html='';
-  if(w14.length) html+='<div class="winner-section"><div class="winner-section-title ws-14">🟢 14 CORRECT — SUPER JACKPOT WINNERS ('+w14.length+')</div>'+w14.map(function(t){return winnerCard(t,'wc-14');}).join('')+'</div>';
-  if(w13.length) html+='<div class="winner-section"><div class="winner-section-title ws-13">🔵 13 CORRECT — 2ND PRIZE ('+w13.length+')</div>'+w13.map(function(t){return winnerCard(t,'wc-13');}).join('')+'</div>';
-  if(w12.length) html+='<div class="winner-section"><div class="winner-section-title ws-12">🟡 12 CORRECT — 3RD PRIZE ('+w12.length+')</div>'+w12.map(function(t){return winnerCard(t,'wc-12');}).join('')+'</div>';
-  if(others.length) html+='<div class="winner-section"><div class="winner-section-title ws-red">🔴 NO PRIZE — '+others.length+' Ticket(s)</div></div>';
-  document.getElementById('scan-results').innerHTML=html;
-  document.getElementById('publish-section').style.display='block';
-  document.getElementById('new-round-box').style.display='block';
-  await addLog('Tickets scanned. 14:'+w14.length+' 13:'+w13.length+' 12:'+w12.length,'admin');
-}
-
-function winnerCard(t,cls){
-  var u=_cache.users[t.user]||{};
-  var msg=encodeURIComponent('🏆 Congratulations from GoalRush Jackpot!\n\nYou got '+t._correct+'/14 correct this round.\nTicket Ref: '+t.id+'\nYour account: '+t.user+'\n\nPlease reply to claim your prize. Well done! ⚽');
-  return '<div class="winner-card '+cls+'"><div class="winner-info"><div class="wi-phone">'+esc(t.user)+'</div><div style="font-size:11px;color:var(--text2)">Name: '+esc(u.name||u.fullName||'—')+'</div><div class="wi-ticket">Ref: '+esc(t.id||'—')+' · Stake: ₦'+t.stake.toLocaleString()+'</div><div class="wi-correct" style="color:'+(t._correct===14?'var(--green)':t._correct===13?'var(--blue)':'var(--yellow)')+'">'+t._correct+'/14 Correct</div></div><a class="wa-btn" href="https://wa.me/'+esc(t.user.replace(/[^0-9]/g,''))+'?text='+msg+'" target="_blank">📲 WhatsApp</a></div>';
-}
-
-// ── PUBLISH ──
-async function publishResults(){
-  var roundId=document.getElementById('pub-round-id').value.trim();
-  if(!roundId){ toast('Enter a Round label e.g. 20260024','t-err'); return; }
-  var results=_cache.results;
-  if(!results||results.length<14){ toast('Save match results first','t-err'); return; }
-  var matches=getMatches();
-  var winners={};
-  [['14','wn-14'],['13','wn-13'],['12','wn-12'],['11','wn-11']].forEach(function(p){
-    var tEl=document.getElementById(p[1]+'-tickets'); var pEl=document.getElementById(p[1]+'-prize');
-    var tickets=tEl?parseInt(tEl.value||'0'):0; var prize=pEl?parseInt(pEl.value||'0'):0;
-    if(tickets>0) winners[p[0]]={tickets:tickets,prize:prize};
-  });
-  var matchList=matches.map(function(m,i){
-    var r=results[i]||{};
-    return {home:m.home,away:m.away,time:m.time||'',result:typeof r==='object'?r.result:r,scoreHome:typeof r==='object'?r.scoreHome:'',scoreAway:typeof r==='object'?r.scoreAway:''};
-  });
-  var now=new Date();
-  var savedAt=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-  var round={id:roundId,roundId:roundId,savedAt:savedAt,winners:winners,matches:matchList,results:results};
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'published_rounds',roundId),round);
-      // Update cache
-      var idx=_cache.publishedRounds.findIndex(function(r){return r.id===roundId;});
-      if(idx>=0) _cache.publishedRounds[idx]=round; else _cache.publishedRounds.push(round);
-      document.getElementById('publish-save-msg').innerHTML='<span style="color:var(--green)">✅ Round '+esc(roundId)+' published to ALL devices via Firebase!</span>';
-      toast('📢 Results published to all users via Firebase!','t-gold');
-    }catch(e){
-      document.getElementById('publish-save-msg').innerHTML='<span style="color:var(--red)">Firebase publish failed: '+e.message+'</span>';
-      toast('Firebase publish failed: '+e.message,'t-err');
-    }
-  } else { toast('Firebase not connected.','t-err'); }
-  await addLog('Results published — Round '+roundId,'admin');
-  setTimeout(function(){document.getElementById('publish-save-msg').textContent='';},6000);
-}
-
-// ── NEW ROUND ──
-async function confirmNewRound(){
-  var clearTickets=document.getElementById('nr-clear-tickets')&&document.getElementById('nr-clear-tickets').checked;
-  var clearResults=document.getElementById('nr-clear-results')&&document.getElementById('nr-clear-results').checked;
-  var resetCd=document.getElementById('nr-reset-cd')&&document.getElementById('nr-reset-cd').checked;
-  if(!clearTickets&&!clearResults&&!resetCd){ toast('Select at least one option to proceed.','t-err'); return; }
-  showLoad('Starting new round...');
-  var fbOk=await window._fbReady;
-  var actions=[]; var newRoundId='round_'+Date.now();
-  if(clearTickets){
-    if(fbOk&&window._db){
-      // Delete all tickets from Firestore
-      try{
-        var snap=await window._F.getDocs(window._F.collection(window._db,'tickets'));
-        var delPromises=[]; snap.forEach(function(d){ delPromises.push(window._F.deleteDoc(window._F.doc(window._db,'tickets',d.id))); });
-        await Promise.all(delPromises);
-      }catch(e){}
-    }
-    _cache.tickets=[]; actions.push('tickets cleared');
-  }
-  if(clearResults){
-    _cache.results=null; _currentResults=[];
-    if(fbOk&&window._db){ try{ await window._F.setDoc(window._F.doc(window._db,'app_settings','current_results'),{results:[],updatedAt:new Date().toISOString()}); }catch(e){} }
-    renderResultsEditor(); actions.push('results cleared');
-  }
-  if(resetCd){
-    _cache.countdown=null;
-    if(fbOk&&window._db){ try{ await window._F.deleteDoc(window._F.doc(window._db,'app_settings','countdown')); }catch(e){} }
-    loadCurrentCountdown(); actions.push('countdown reset');
-  }
-  // Save new round ID to Firestore
-  _cache.currentRoundId=newRoundId;
-  if(fbOk&&window._db){ try{ await window._F.setDoc(window._F.doc(window._db,'app_settings','current_round'),{roundId:newRoundId,setAt:new Date().toISOString()}); }catch(e){} }
-  actions.push('new round ID: '+newRoundId);
-  ['wn-14-tickets','wn-14-prize','wn-13-tickets','wn-13-prize','wn-12-tickets','wn-12-prize','wn-11-tickets','wn-11-prize','pub-round-id'].forEach(function(id){ var el=document.getElementById(id); if(el)el.value=''; });
-  document.getElementById('scan-results').innerHTML='';
-  var ss=document.getElementById('scan-summary'); if(ss)ss.style.display='none';
-  var ps=document.getElementById('publish-section'); if(ps)ps.style.display='none';
-  var nrb=document.getElementById('new-round-box'); if(nrb)nrb.style.display='none';
-  var ab=document.getElementById('alarm-banner'); if(ab)ab.classList.remove('show');
-  await addLog('New round started — '+actions.join(', '),'admin');
-  updateStats(); hideLoad();
-  toast('🔄 New round started! ('+actions.join(', ')+')','t-gold');
-}
-function startNewRound(){ openMo('mo-newround'); }
-
-// ════════════════════════════════════════════════════════
-//  PRIZES
-// ════════════════════════════════════════════════════════
-function loadPrizesForm(){
-  var p=_cache.prizes; if(!p)return;
-  var f14=document.getElementById('prize-14'); var f13=document.getElementById('prize-13'); var f12=document.getElementById('prize-12');
-  if(f14&&p.jackpot)f14.value=p.jackpot; if(f13&&p.second)f13.value=p.second; if(f12&&p.third)f12.value=p.third;
-}
-async function savePrizes(){
-  var j=Number(document.getElementById('prize-14').value); var s=Number(document.getElementById('prize-13').value); var t=Number(document.getElementById('prize-12').value);
-  if(!j){ document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--red)">Enter the Super Jackpot amount.</span>'; return; }
-  var prizeData={jackpot:j,second:s,third:t,updatedAt:new Date().toISOString()};
-  _cache.prizes=prizeData;
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'app_settings','prizes'),prizeData,{merge:true});
-      document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--green)">✅ Prize settings saved on ALL devices!</span>';
-    }catch(e){ document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--red)">Failed: '+e.message+'</span>'; }
-  }
-  await addLog('Prize settings updated — Jackpot: ₦'+j.toLocaleString(),'admin');
-  setTimeout(function(){document.getElementById('prizes-save-msg').textContent='';},5000);
-  toast('🏆 Prize settings saved');
-}
-
-// ════════════════════════════════════════════════════════
-//  MATCHES EDITOR
-// ════════════════════════════════════════════════════════
-function loadMatchesEditor(){ renderMatchesEditor(); }
-function renderMatchesEditor(){
-  var matches=getMatches();
-  document.getElementById('matches-editor').innerHTML=matches.map(function(m,i){
-    return '<div class="match-edit-row"><div class="match-num-badge">'+(i+1)+'</div><div class="match-inputs">'
-      +'<input class="mi-field" id="mh-'+i+'" value="'+esc(m.home||'')+'" placeholder="Home Team"/>'
-      +'<input class="mi-field" id="ma-'+i+'" value="'+esc(m.away||'')+'" placeholder="Away Team"/>'
-      +'<input class="mi-field" id="mt-'+i+'" value="'+esc(m.time||'')+'" placeholder="Date/Time e.g. 2025-09-06 14:00" style="min-width:180px"/>'
-      +'</div></div>';
-  }).join('');
-}
-async function saveMatches(){
-  var matches=[]; var msgEl=document.getElementById('matches-save-msg');
-  for(var i=0;i<14;i++){
-    var h=document.getElementById('mh-'+i); var a=document.getElementById('ma-'+i); var t=document.getElementById('mt-'+i);
-    if(!h||!a||!t)continue;
-    var home=h.value.trim(),away=a.value.trim(),time=t.value.trim();
-    if(!home||!away){ msgEl.innerHTML='<span style="color:var(--red)">Match '+(i+1)+': both team names required.</span>'; return; }
-    matches.push({home:home,away:away,time:time||'TBD'});
-  }
-  _cache.matches=matches;
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'app_settings','matches'),{matches:matches,updatedAt:new Date().toISOString()},{merge:true});
-      msgEl.innerHTML='<span style="color:var(--green)">✅ All 14 matches saved to Firebase — live on ALL devices NOW!</span>';
-      toast('⚽ Matches updated on all devices');
-    }catch(e){ msgEl.innerHTML='<span style="color:var(--red)">Firebase save failed: '+e.message+'</span>'; }
-  }
-  await addLog('Matches updated','admin');
-  setTimeout(function(){msgEl.textContent='';},4000);
-}
-
-// ════════════════════════════════════════════════════════
-//  COUNTDOWN
-// ════════════════════════════════════════════════════════
-async function startCountdown(){
-  var d=Number(document.getElementById('cd-days').value)||0;
-  var h=Number(document.getElementById('cd-hours').value)||0;
-  var m=Number(document.getElementById('cd-mins').value)||0;
-  var s=Number(document.getElementById('cd-secs').value)||0;
-  var total=d*86400+h*3600+m*60+s;
-  if(total<=0){toast('Enter a duration first.','t-err');return;}
-  var cfg={days:d,hours:h,minutes:m,seconds:s,totalSeconds:total,setAt:Date.now(),target:Date.now()+total*1000};
-  _cache.countdown=cfg;
-  loadCurrentCountdown();
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db){
-    try{ await window._F.setDoc(window._F.doc(window._db,'app_settings','countdown'),cfg,{merge:true}); }catch(e){}
-  }
-  await addLog('Countdown set: '+d+'d '+h+'h '+m+'m '+s+'s','admin');
-  toast('⏱ Countdown started on all devices — '+d+'d '+h+'h '+m+'m '+s+'s');
-}
-async function resetCountdown(){
-  _cache.countdown=null;
-  loadCurrentCountdown();
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db){ try{ await window._F.deleteDoc(window._F.doc(window._db,'app_settings','countdown')); }catch(e){} }
-  await addLog('Countdown reset — betting open','admin');
-  toast('↺ Countdown reset — betting is now open','t-gold');
-}
-function loadCurrentCountdown(){
-  var cfg=_cache.countdown;
-  var el=document.getElementById('cd-current');
-  if(!cfg){el.textContent='⚪ No countdown active — betting is open.';el.style.color='var(--green)';return;}
-  var elapsed=Math.floor((Date.now()-(cfg.setAt||Date.now()))/1000);
-  var remaining=Math.max(0,(cfg.totalSeconds||0)-elapsed);
-  var d=Math.floor(remaining/86400),r=remaining%86400,h=Math.floor(r/3600);r%=3600;var m=Math.floor(r/60),s=r%60;
-  if(remaining>0){ el.innerHTML='⏱ Remaining: <span style="color:var(--gold)">'+d+'d '+h+'h '+m+'m '+s+'s</span>'; el.style.color='var(--text)'; }
-  else{ el.innerHTML='🔴 <span style="color:var(--red)">Countdown expired — betting CLOSED</span>'; }
-}
-
-// ── BET ID SEARCH ──
-function searchBetId(){
-  var input=document.getElementById('betid-input').value.trim().toUpperCase();
-  var resultDiv=document.getElementById('betid-result');
-  if(!input){ resultDiv.innerHTML='<div class="tbl-empty" style="color:var(--red);">Please enter a Ticket ID.</div>'; return; }
-  var ticket=_cache.tickets.find(function(t){return (t.id||'').toUpperCase()===input;});
-  if(!ticket){ resultDiv.innerHTML='<div style="background:#1a0000;border:1px solid var(--red);border-radius:12px;padding:20px;text-align:center;"><div style="font-size:32px;margin-bottom:10px;">❌</div><div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:6px;">Ticket Not Found</div><div style="font-size:13px;color:var(--text3);">No bet with ID <span style="font-family:monospace;color:var(--gold)">'+esc(input)+'</span> exists.</div></div>'; return; }
-  var u=_cache.users[ticket.user]||{};
-  var matchedRound=_cache.publishedRounds.find(function(r){return r.roundId===ticket.roundId||r.id===ticket.roundId;})||null;
-  if(!matchedRound&&ticket.selections&&ticket.selections.length>=3){
-    matchedRound=_cache.publishedRounds.find(function(r){
-      var rm=r.matches||[];if(rm.length<3)return false;var hits=0;
-      for(var x=0;x<Math.min(4,ticket.selections.length,rm.length);x++){
-        var s=ticket.selections[x],m=rm[x];if(!s||!m)continue;
-        if((s.home||'').toLowerCase().trim()===(m.home||'').toLowerCase().trim()&&(s.away||'').toLowerCase().trim()===(m.away||'').toLowerCase().trim())hits++;
-      }
-      return hits>=3;
-    })||null;
-  }
-  var roundResults=matchedRound?matchedRound.matches:null;
-  var totalCorrect=0,totalVoid=0;
-  var matchRows=ticket.selections.map(function(s,idx){
-    var pick=s.code||'';
-    var matchResult=roundResults?roundResults[idx]:null;
-    var resVal=matchResult?(matchResult.result||'').toString().trim().toUpperCase():'';
-    var isVoid=resVal==='VOID';var hasResult=resVal!=='';
-    var userPickVals=(s.picks||[]).map(function(p){p=(p||'').toLowerCase();if(p==='home'||p==='1')return '1';if(p==='draw'||p==='x')return 'X';if(p==='away'||p==='2')return '2';return '';});
-    var isWin=hasResult&&!isVoid&&userPickVals.indexOf(resVal)!==-1;
-    if(isVoid)totalVoid++;if(isWin)totalCorrect++;
-    var score='';if(matchResult&&matchResult.scoreHome!==undefined&&!isVoid)score=' <span style="font-size:10px;color:var(--text3)">('+matchResult.scoreHome+'-'+matchResult.scoreAway+')</span>';
-    var indicator=!hasResult?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right;">—</span>':isVoid?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right;">void</span>':isWin?'<span style="color:var(--green);font-size:13px;font-weight:800;min-width:40px;text-align:right;">✅ Won</span>':'<span style="color:var(--red);font-size:13px;font-weight:700;min-width:40px;text-align:right;">❌ Lost</span>';
-    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text3);width:24px;font-size:11px;font-weight:700;flex-shrink:0;">'+s.matchIndex+'</span><span style="flex:1;font-size:12px;color:var(--text2);">'+esc(s.home||'—')+' v '+esc(s.away||'—')+score+'</span><span style="color:var(--green);font-weight:700;font-size:13px;min-width:28px;text-align:center;">'+esc(pick)+'</span>'+indicator+'</div>';
-  }).join('');
-  var sc=!roundResults?'var(--text3)':totalCorrect===14?'var(--green)':totalCorrect>=13?'var(--blue)':totalCorrect>=12?'var(--yellow)':'var(--red)';
-  var sl=!roundResults?'— Awaiting results':(totalCorrect+' correct'+(totalVoid?' ('+totalVoid+' void)':''));
-  resultDiv.innerHTML='<div style="background:var(--card);border:2px solid var(--green);border-radius:14px;padding:18px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);"><div><div style="font-size:14px;font-weight:800;color:var(--gold);">🎫 Ticket Found</div><div style="font-family:monospace;font-size:12px;color:var(--green);margin-top:4px;">ID: '+esc(ticket.id||'—')+'</div></div><span style="font-size:10px;color:var(--text3);">'+fmtDate(ticket.created)+'</span></div><div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:14px;"><div style="font-size:14px;font-weight:700;color:var(--green);">'+esc(u.name||u.fullName||ticket.user)+'</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Phone: '+esc(ticket.user)+'</div><div style="font-size:12px;color:var(--gold);margin-top:4px;">Balance: ₦'+Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2})+'</div></div>'+matchRows+'<div style="margin-top:12px;padding:10px 12px;background:var(--bg3);border-radius:9px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;color:var(--text3);">Overall</span><span style="font-size:14px;font-weight:800;color:'+sc+';">'+sl+'</span></div><div style="margin-top:10px;font-size:13px;color:var(--text2);padding-top:10px;border-top:1px solid var(--border);">Combinations: <strong style="color:var(--gold);">'+ticket.combination+'</strong> &nbsp;|&nbsp; Stake: <strong style="color:var(--gold);">₦'+ticket.stake.toLocaleString()+'</strong></div></div>';
-  addLog('Bet ID searched: '+input,'admin');
+// ── PRIZE DISPLAY ──
+function loadCoverPrize(){
+  var el=document.getElementById('cover-prize-amount');
+  if(!el) return;
+  var j = _cache.prizes && _cache.prizes.jackpot ? Number(_cache.prizes.jackpot) : 0;
+  el.textContent = j>0 ? 'NGN '+j.toLocaleString() : 'NGN 200,000,000';
 }
 
 // ── BROADCAST ──
-function loadBroadcast(){
-  var bc=_cache.broadcast;
-  if(bc&&bc.message){ var el=document.getElementById('bc-msg'); if(el)el.value=bc.message; }
+var _lastBroadcastSeen=0;
+function checkBroadcast(){
+  var bc = _cache.broadcast;
+  if(!bc||!bc.message||!bc.sentAt) return;
+  if(bc.sentAt <= _lastBroadcastSeen) return;
+  _lastBroadcastSeen = bc.sentAt;
+  showBroadcastBanner(bc.message);
 }
-async function sendBroadcast(){
-  var msg=document.getElementById('bc-msg').value.trim();
-  if(!msg){toast('Enter a message first.','t-err');return;}
-  var obj={message:msg,sentAt:Date.now(),sentAtStr:new Date().toLocaleString()};
-  _cache.broadcast=obj;
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'app_settings','broadcast'),obj,{merge:true});
-      document.getElementById('bc-status').innerHTML='✅ Broadcast sent at '+new Date().toLocaleTimeString()+' — pushed to ALL devices via Firebase.';
-    }catch(e){ document.getElementById('bc-status').innerHTML='Failed: '+e.message; }
-  }
-  await addLog('Broadcast sent: '+msg.slice(0,60),'admin');
-  setTimeout(function(){document.getElementById('bc-status').textContent='';},6000);
-  toast('📢 Broadcast sent to all users!');
+function showBroadcastBanner(msg){
+  var b=document.getElementById('broadcast-banner');
+  if(!b) return;
+  document.getElementById('broadcast-banner-text').textContent=msg;
+  b.style.display='flex';
+  setTimeout(function(){closeBroadcastBanner();},12000);
+}
+function closeBroadcastBanner(){
+  var b=document.getElementById('broadcast-banner'); if(b) b.style.display='none';
 }
 
-// ── LOGS ──
-function loadLogs(){
-  var logs=_cache.logs;
-  if(!logs.length){ document.getElementById('logs-list').innerHTML='<div class="log-empty">No activity logged yet.</div>'; return; }
-  document.getElementById('logs-list').innerHTML=logs.slice(0,200).map(function(l){
-    return '<div class="log-entry"><div class="log-time">'+esc(l.time||'—')+'</div><div><span class="log-action">'+esc(l.action||'—')+'</span>'+(l.user?' — <span class="log-user">'+esc(l.user)+'</span>':'')+'</div></div>';
+// ── RESULTS ROUNDS ──
+async function loadResultsRounds(){
+  _renderRoundsDropdown(_cache.publishedRounds);
+}
+function _renderRoundsDropdown(rounds){
+  var sel=document.getElementById('results-round-sel'); if(!sel) return;
+  var prev=sel.value;
+  sel.innerHTML='<option value="">[ Select a Round to view results ]</option>';
+  rounds.slice().reverse().forEach(function(r){
+    var opt=document.createElement('option');
+    opt.value=r.id; opt.textContent='Round '+r.id+' (GoalRush 14) — '+r.savedAt;
+    sel.appendChild(opt);
+  });
+  if(prev) sel.value=prev;
+  if(rounds.length>0 && !sel.value){ sel.value=rounds[rounds.length-1].id; renderSelectedRound(); }
+}
+
+function renderSelectedRound(){
+  var sel=document.getElementById('results-round-sel');
+  var roundId=sel?sel.value:'';
+  var display=document.getElementById('results-display');
+  if(!display) return;
+  if(!roundId){ display.innerHTML='<div style="text-align:center;color:var(--text3);padding:30px;font-size:13px;">Select a round above to view results.</div>'; return; }
+  var round=_cache.publishedRounds.find(function(r){return r.id===roundId;});
+  if(!round){ display.innerHTML='<div style="text-align:center;color:var(--text3);padding:30px;">Round not found.</div>'; return; }
+  var tiers=[{key:'14',label:'14 out of 14'},{key:'13',label:'13 out of 14'},{key:'12',label:'12 out of 14'},{key:'11',label:'11 out of 14'}];
+  var winnersRows='',hasWinners=false;
+  tiers.forEach(function(t){
+    var entry=round.winners&&round.winners[t.key];
+    if(!entry||!entry.tickets||Number(entry.tickets)===0) return;
+    hasWinners=true;
+    var p=Number(entry.prize||0);
+    var perTicket=p>0?'<strong style="color:var(--gold);font-size:14px;">₦'+p.toLocaleString()+'</strong>':'<span style="color:var(--text3)">—</span>';
+    winnersRows+='<tr>'
+      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);"><span style="display:inline-block;width:4px;height:32px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px;"></span><span style="font-size:13px;font-weight:600;color:var(--text)">'+t.label+'</span></td>'
+      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--green);font-size:15px;">'+Number(entry.tickets).toLocaleString()+'</td>'
+      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;">'+perTicket+'</td>'
+      +'</tr>';
+  });
+  var winnersTable=hasWinners?'<table style="width:100%;border-collapse:collapse;margin-bottom:22px;"><thead><tr>'
+    +'<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Correct Events</th>'
+    +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">No. Tickets</th>'
+    +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Winning per Ticket</th>'
+    +'</tr></thead><tbody>'+winnersRows+'</tbody></table>':'';
+  var matchRows='',matches=round.matches||[];
+  if(!matches.length){ matchRows='<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">No match data found.</div>'; }
+  else{
+    matches.forEach(function(m,i){
+      var resVal=(m.result||'').toString().trim().toUpperCase();
+      var isVoid=resVal==='VOID';
+      var resDisp=isVoid?'<span style="color:var(--text3);font-size:12px;">void</span>':resVal?'<strong style="color:var(--gold);font-size:15px;">'+esc(resVal)+'</strong>':'<span style="color:var(--text3);">—</span>';
+      var sh=m.scoreHome!==undefined&&m.scoreHome!==null&&m.scoreHome!==''?String(m.scoreHome):'';
+      var sa=m.scoreAway!==undefined&&m.scoreAway!==null&&m.scoreAway!==''?String(m.scoreAway):'';
+      var scoreHtml=(sh&&sa&&!isVoid)
+        ?'<span style="font-size:15px;font-weight:700;color:var(--text);">'+esc(sh)+'</span><span style="color:var(--text3);margin:0 3px;">-</span><span style="font-size:15px;font-weight:700;color:var(--text);">'+esc(sa)+'</span>'
+        :isVoid?'<span style="color:var(--text3);font-size:12px;">void</span>':'<span style="color:var(--text3);">—</span>';
+      matchRows+='<div style="border-bottom:1px solid var(--border);padding:12px 0;">'
+        +'<div style="font-size:10px;color:var(--text3);margin-bottom:6px;">'+(i+1)+'.&nbsp;&nbsp;'+esc(m.time||'')+'</div>'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+          +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(m.home||'—')+'</div><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(m.away||'—')+'</div></div>'
+          +'<div style="text-align:center;min-width:58px;flex-shrink:0;">'+scoreHtml+'</div>'
+          +'<div style="text-align:right;min-width:36px;flex-shrink:0;">'+resDisp+'</div>'
+        +'</div></div>';
+    });
+  }
+  display.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 14px;">'
+    +winnersTable
+    +'<div style="font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">Results</div>'
+    +'<div style="display:flex;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--border);"><span style="flex:1;">Match</span><span style="min-width:58px;text-align:center;flex-shrink:0;">Score</span><span style="min-width:36px;text-align:right;flex-shrink:0;">Result</span></div>'
+    +matchRows+'</div>';
+}
+
+// ── MENU ──
+function openMenu(){document.getElementById('menu-overlay').classList.add('open');document.getElementById('menu-panel').classList.add('open');}
+function closeMenu(){document.getElementById('menu-overlay').classList.remove('open');document.getElementById('menu-panel').classList.remove('open');}
+function updateMenuItems(){
+  var cu=_cache.cu;
+  var ub=document.getElementById('menu-user-block');
+  var mi=document.getElementById('menu-items');
+  if(cu && _cache.cuData){
+    ub.style.display='block';
+    document.getElementById('menu-user-name').textContent=(_cache.cuData.fullName||_cache.cuData.name||cu);
+    mi.innerHTML=
+      menuItem('💰','Deposit',function(){closeMenu();openDeposit();})+
+      menuItem('💸','Withdraw',function(){closeMenu();openWithdraw();})+
+      menuItem('🎫','My Bets',function(){closeMenu();openSlip();})+
+      menuItem('📊','Results',function(){closeMenu();switchTab('results');})+
+      menuItem('❓','How to Play',function(){closeMenu();switchTab('howto');})+
+      menuItem('📧','Contact Us',function(){closeMenu();openModal('contact-modal');})+
+      menuItem('🚪','Logout',function(){closeMenu();doLogout();});
+  }else{
+    ub.style.display='none';
+    mi.innerHTML=
+      menuItem('👤','Create Account',function(){closeMenu();openModal('create-modal');})+
+      menuItem('🔐','Login',function(){closeMenu();openModal('login-modal');})+
+      menuItem('🎫','My Bets',function(){closeMenu();openSlip();})+
+      menuItem('📊','Results',function(){closeMenu();switchTab('results');})+
+      menuItem('❓','How to Play',function(){closeMenu();switchTab('howto');})+
+      menuItem('📧','Contact Us',function(){closeMenu();openModal('contact-modal');});
+  }
+}
+function menuItem(ico,label,fn){
+  var id='mi_'+Math.random().toString(36).slice(2);
+  setTimeout(function(){var el=document.getElementById(id);if(el)el.onclick=fn;},0);
+  return '<div class="menu-item" id="'+id+'"><span class="ico">'+ico+'</span>'+label+'</div>';
+}
+
+// ── TABS ──
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',['goalrush','results','howto'][i]===name);});
+  document.querySelectorAll('.section').forEach(function(s){s.classList.toggle('active',s.id===name);});
+  document.getElementById('stake-bar').style.display=name==='goalrush'?'flex':'none';
+}
+
+// ── MATCHES ──
+function renderMatches(){
+  var matches=getMatches();
+  var html=matches.map(function(m,i){
+    return '<div class="match-card" id="mc-'+i+'">'
+      +'<div class="match-num">Match '+(i+1)+' of 14</div>'
+      +'<div class="match-time">'+esc(m.time||'')+'</div>'
+      +'<div class="match-teams">'+esc(m.home)+' vs '+esc(m.away)+'</div>'
+      +'<div class="match-opts">'
+        +'<button class="opt-btn" data-mi="'+i+'" data-val="home" onclick="toggleOpt(this)">1<span class="opt-label">Home</span></button>'
+        +'<button class="opt-btn" data-mi="'+i+'" data-val="draw" onclick="toggleOpt(this)">X<span class="opt-label">Draw</span></button>'
+        +'<button class="opt-btn" data-mi="'+i+'" data-val="away" onclick="toggleOpt(this)">2<span class="opt-label">Away</span></button>'
+      +'</div>'
+    +'</div>';
   }).join('');
+  document.getElementById('matches-list').innerHTML=html;
+  updateStake();
 }
-async function clearLogs(){
-  if(!confirm('Clear all audit logs? This cannot be undone.'))return;
-  _cache.logs=[];
+function toggleOpt(btn){
+  if(isBettingLocked()){showNotif('Betting is closed for this round','err');return;}
+  btn.classList.toggle('active'); updateStake();
+}
+function updateStake(){
+  var matches=document.querySelectorAll('.match-card');
+  var combo=1,allSel=true;
+  matches.forEach(function(mc){
+    var cnt=mc.querySelectorAll('.opt-btn.active').length;
+    if(cnt===0){allSel=false;combo=0;}else combo*=cnt;
+  });
+  _combo=combo;_stake=combo*100;_allSel=allSel;
+  document.getElementById('combo-count').textContent=combo||0;
+  document.getElementById('stake-amt').textContent='₦'+(combo*100).toLocaleString();
+  var pb=document.getElementById('place-btn');
+  if(allSel&&combo>0)pb.classList.add('ready');else pb.classList.remove('ready');
+}
+function goalRushPick(){
+  if(isBettingLocked()){showNotif('Betting is closed','err');return;}
+  clearAll();
+  document.querySelectorAll('.match-card').forEach(function(mc){
+    var btns=mc.querySelectorAll('.opt-btn');
+    if(btns.length)btns[Math.floor(Math.random()*btns.length)].classList.add('active');
+  });
+  updateStake(); showNotif('🎲 Random picks selected!');
+}
+function clearAll(){document.querySelectorAll('.opt-btn').forEach(function(b){b.classList.remove('active');});updateStake();}
+
+// ── PLACE BET ──
+function placeBet(){
+  if(isBettingLocked()){showNotif('Betting is closed for this round','err');return;}
+  if(!_allSel||_combo===0){showNotif('Select at least one option for each of the 14 matches','err');return;}
+  if(!_cache.cu){openModal('auth-gate-modal');return;}
+  var bal=Number((_cache.cuData||{}).balance||0);
+  if(bal<_stake){showNotif('Insufficient balance. Please deposit first.','err');setTimeout(function(){openDeposit();},1000);return;}
+  document.getElementById('cb-combo').textContent=_combo;
+  document.getElementById('cb-stake').textContent='₦'+_stake.toLocaleString();
+  document.getElementById('cb-balance').textContent='₦'+bal.toLocaleString('en',{minimumFractionDigits:2});
+  document.getElementById('cb-after').textContent='₦'+(bal-_stake).toLocaleString('en',{minimumFractionDigits:2});
+  openModal('confirm-bet-modal');
+}
+
+async function doPlaceBet(){
+  closeModal('confirm-bet-modal');
+  showLoading('Placing your bet...');
+  var fbOk = await window._fbReady;
+  if(!fbOk||!window._db||!_cache.cu||!_cache.cuUid){hideLoading();showNotif('Not logged in','err');return;}
+  await _refreshMe();
+  var cd=_cache.cuData||{};
+  if(cd.archived||cd.disabled||cd.status==='banned'){hideLoading();showNotif('Account is not active','err');return;}
+  var bal=Number(cd.balance||0);
+  if(bal<_stake){hideLoading();showNotif('Insufficient balance','err');return;}
+  var matches=getMatches();
+  var sels=[];
+  document.querySelectorAll('.match-card').forEach(function(mc,i){
+    var picks=Array.from(mc.querySelectorAll('.opt-btn.active')).map(function(b){return b.dataset.val;});
+    sels.push({matchIndex:i+1,home:matches[i].home,away:matches[i].away,picks:picks,code:picksToCode(picks)});
+  });
+  // Get current roundId from Firestore app_settings
+  var roundId = 'round_default';
+  try{
+    var rid = await window._F.getDoc(window._F.doc(window._db,'app_settings','current_round'));
+    if(rid.exists()) roundId = rid.data().roundId || roundId;
+  }catch(e){}
+
+  var ticket={
+    id:          genRef(),
+    created:     new Date().toISOString(),
+    user:        _cache.cu,
+    userUid:     _cache.cuUid,
+    roundId:     roundId,
+    selections:  sels,
+    combination: _combo,
+    stake:       _stake
+  };
+  try{
+    var F=window._F,b=F.writeBatch(window._db);
+    b.update(F.doc(window._db,'users',_cache.cuUid),{balance:F.increment(-_stake),lastUpdated:new Date().toISOString()});
+    b.set(F.doc(window._db,'tickets',ticket.id),ticket);
+    await b.commit();
+    _cache.tickets.unshift(ticket);
+    await _refreshMe();
+  }catch(e){ console.warn(e); hideLoading(); showNotif('Could not place bet. You were not charged.','err'); return; }
+  // Log
+  await _addLog('Placed bet ₦'+_stake, _cache.cu);
+  updateHeaderBalance(); updateSlipBadge(); clearAll(); hideLoading();
+  showSuccess('✅','Bet Placed!','Your bet of ₦'+_stake.toLocaleString()+' has been placed. Good luck!');
+}
+
+function picksToCode(picks){
+  var s=new Set(picks.map(function(p){return p.toLowerCase();}));
+  var h=s.has('home'),d=s.has('draw'),a=s.has('away');
+  if(h&&d&&a)return '1X2';if(h&&d)return '1X';if(d&&a)return 'X2';if(h&&a)return '12';
+  if(h)return '1';if(d)return 'X';if(a)return '2';return '';
+}
+
+// ── BET SLIP ──
+function openSlip(){
+  var myTickets=_cache.tickets||[];
+  var publishedRounds=_cache.publishedRounds||[];
+  var html=myTickets.length===0
+    ?'<p style="text-align:center;color:var(--text3);padding:20px">No bets placed yet. Make your selections and place a bet!</p>'
+    :myTickets.map(function(t,i){
+      var date=new Date(t.created).toLocaleString();
+      var matchedRound=null;
+      if(t.roundId){
+        matchedRound=publishedRounds.find(function(r){return r.roundId===t.roundId||r.id===t.roundId;})||null;
+      }
+      if(!matchedRound&&t.selections&&t.selections.length>=3){
+        matchedRound=publishedRounds.find(function(r){
+          var rm=r.matches||[];if(rm.length<3)return false;
+          var hits=0;
+          for(var x=0;x<Math.min(4,t.selections.length,rm.length);x++){
+            var s=t.selections[x],m=rm[x];if(!s||!m)continue;
+            if((s.home||'').toLowerCase().trim()===(m.home||'').toLowerCase().trim()
+            &&(s.away||'').toLowerCase().trim()===(m.away||'').toLowerCase().trim()) hits++;
+          }
+          return hits>=3;
+        })||null;
+      }
+      var roundResults=matchedRound?matchedRound.matches:null;
+      var roundWinners=matchedRound?(matchedRound.winners||{}):{};
+      var totalCorrect=0,totalVoid=0;
+      var rows=t.selections.map(function(s,idx){
+        var pick=s.code||'';
+        var matchResult=roundResults?roundResults[idx]:null;
+        var resVal=matchResult?(matchResult.result||'').toString().trim().toUpperCase():'';
+        var isVoid=resVal==='VOID';var hasResult=resVal!=='';
+        var userPickVals=(s.picks||[]).map(function(p){
+          p=(p||'').toLowerCase();
+          if(p==='home'||p==='1')return '1';if(p==='draw'||p==='x')return 'X';if(p==='away'||p==='2')return '2';return '';
+        });
+        var isWin=hasResult&&!isVoid&&userPickVals.indexOf(resVal)!==-1;
+        if(isVoid)totalVoid++;if(isWin)totalCorrect++;
+        var score='';
+        if(matchResult&&matchResult.scoreHome!==undefined&&matchResult.scoreHome!==''&&!isVoid)
+          score='<span style="font-size:10px;color:var(--text3)"> ('+matchResult.scoreHome+'-'+matchResult.scoreAway+')</span>';
+        var indicator=!hasResult
+          ?'<span style="color:var(--text3);font-size:13px;min-width:40px;text-align:right;font-weight:600">—</span>'
+          :isVoid?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right">void</span>'
+          :isWin?'<span style="color:var(--green);font-size:12px;font-weight:800;min-width:40px;text-align:right">✅ Won</span>'
+          :'<span style="color:var(--red);font-size:12px;font-weight:700;min-width:40px;text-align:right">❌ Lost</span>';
+        return '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #1e293b;">'
+          +'<span style="color:var(--text3);width:22px;flex-shrink:0;font-size:11px;font-weight:700">'+s.matchIndex+'</span>'
+          +'<span style="flex:1;font-size:12px;color:var(--text2)">'+esc(s.home)+' v '+esc(s.away)+score+'</span>'
+          +'<span style="font-weight:700;color:var(--green);font-size:12px;min-width:28px;text-align:center">'+esc(pick)+'</span>'
+          +indicator+'</div>';
+      }).join('');
+      var overallStatus='';
+      if(roundResults){
+        var sc=totalCorrect===14?'var(--green)':totalCorrect>=13?'var(--blue)':totalCorrect>=12?'var(--yellow)':'var(--red)';
+        var pe=roundWinners[String(totalCorrect)];
+        var prizeHtml='';
+        if(pe&&Number(pe.prize||0)>0)
+          prizeHtml='<div style="margin-top:6px;padding:8px 10px;background:linear-gradient(135deg,#0a2010,#071407);border:1px solid var(--green);border-radius:8px;text-align:center;">'
+            +'<span style="font-size:12px;color:var(--text2)">🏆 Winning per Ticket: </span>'
+            +'<span style="font-size:15px;font-weight:900;color:var(--gold)">₦'+Number(pe.prize).toLocaleString()+'</span></div>';
+        overallStatus='<div style="margin-top:8px;padding:8px 10px;background:#111827;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'
+          +'<span style="font-size:11px;color:var(--text3)">Result</span>'
+          +'<span style="font-size:13px;font-weight:800;color:'+sc+'">'+totalCorrect+' correct'+(totalVoid>0?' ('+totalVoid+' void)':'')+'</span>'
+          +'</div>'+prizeHtml;
+      }else{
+        overallStatus='<div style="margin-top:8px;padding:8px 10px;background:#111827;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'
+          +'<span style="font-size:11px;color:var(--text3)">Result</span>'
+          +'<span style="font-size:13px;font-weight:700;color:var(--text3)">⏳ Awaiting results</span></div>';
+      }
+      return '<div class="ticket-card">'
+        +'<div class="tc-header"><div><span class="tc-title">Ticket '+(i+1)+' — '+date+'</span>'
+        +'<div style="font-size:10px;color:var(--text3);margin-top:2px">ID: <span style="font-family:monospace;color:var(--gold)">'+esc(t.id)+'</span></div></div>'
+        +'</div>'
+        +'<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);margin-bottom:2px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">'
+        +'<span style="width:22px">#</span><span style="flex:1">Match</span><span style="min-width:28px;text-align:center">Pick</span><span style="min-width:40px;text-align:right">Result</span></div>'
+        +rows+overallStatus
+        +'<div class="tc-footer" style="margin-top:8px">Combos: <strong>'+t.combination+'</strong> &nbsp;|&nbsp; Stake: <strong>₦'+t.stake.toLocaleString()+'</strong></div>'
+        +'</div>';
+    }).join('');
+  document.getElementById('slip-content').innerHTML=html;
+  openModal('slip-modal');
+}
+
+function updateSlipBadge(){
+  var count=(_cache.tickets||[]).length;
+  var badge=document.getElementById('slip-badge');
+  var txt=document.getElementById('slip-count-txt');
+  if(count>0){badge.textContent=count;badge.classList.add('show');txt.textContent='Bets ('+count+')';}
+  else{badge.classList.remove('show');txt.textContent='Bets';}
+}
+
+// ── HEADER BALANCE ──
+function updateHeaderBalance(){
+  var bal=Number((_cache.cuData||{}).balance||0);
+  document.getElementById('hdr-bal').textContent=bal.toLocaleString('en',{minimumFractionDigits:2});
+}
+
+// ── COUNTDOWN ──
+function startCountdown(){
+  if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
+  var cfg=_cache.countdown;
+  if(!cfg){renderCD(0);updateLockState();return;}
+  var elapsed=Math.floor((Date.now()-(cfg.setAt||Date.now()))/1000);
+  _cdSecs=Math.max(0,(cfg.totalSeconds||0)-elapsed);
+  renderCD(_cdSecs);updateLockState();
+  if(_cdSecs<=0)return;
+  _cdInterval=setInterval(function(){
+    _cdSecs--;if(_cdSecs<0)_cdSecs=0;
+    renderCD(_cdSecs);updateLockState();
+    if(_cdSecs<=0){clearInterval(_cdInterval);_cdInterval=null;}
+  },1000);
+}
+function renderCD(s){
+  var d=Math.floor(s/86400);var rem=s%86400;
+  var h=Math.floor(rem/3600);rem%=3600;
+  var m=Math.floor(rem/60);var sec=rem%60;
+  function p(n){return String(n).padStart(2,'0');}
+  document.getElementById('cd-d').textContent=p(d);
+  document.getElementById('cd-h').textContent=p(h);
+  document.getElementById('cd-m').textContent=p(m);
+  document.getElementById('cd-s').textContent=p(sec);
+}
+function isBettingLocked(){return _cdSecs<=0 && _cache.countdown!==null;}
+function updateLockState(){
+  var locked=isBettingLocked();
+  var banner=document.getElementById('betting-closed-banner');
+  var lockOv=document.getElementById('lock-overlay');
+  if(locked){banner.style.display='block';if(!window._lockShown){window._lockShown=true;lockOv.classList.add('show');setTimeout(function(){lockOv.classList.remove('show');},4000);}}
+  else{banner.style.display='none';lockOv.classList.remove('show');}
+}
+
+// ── AUTH ──
+async function doSignup(){
+  var name=gv('ca-name').trim(),email=gv('ca-email').trim().toLowerCase(),
+      phone=gv('ca-phone').trim(),pw=gv('ca-pw'),pw2=gv('ca-pw2'),
+      age=parseInt(gv('ca-age')||'0'),gender=gv('ca-gender').trim();
+  var msg=document.getElementById('ca-msg');msg.textContent='';
+  if(!name||!email||!phone||!pw||!pw2||!age||!gender){setMsg(msg,'All fields are required','err');return;}
+  if(!/\S+@\S+\.\S+/.test(email)){setMsg(msg,'Enter a valid email address','err');return;}
+  if(!/^\+\d{7,15}$/.test(phone)){setMsg(msg,'Phone must start with + e.g. +2348012345678','err');return;}
+  if(isNaN(age)||age<1||age>120){setMsg(msg,'Enter a valid age','err');return;}
+  if(age<18){setMsg(msg,'⛔ You must be 18 or older','err');return;}
+  if(pw.length<6){setMsg(msg,'Password must be at least 6 characters','err');return;}
+  if(pw!==pw2){setMsg(msg,'❌ Passwords do not match','err');return;}
+  setMsg(msg,'Connecting...','ok');
   var fbOk=await window._fbReady;
-  if(fbOk&&window._db){
-    try{
-      var snap=await window._F.getDocs(window._F.collection(window._db,'logs'));
-      var dels=[]; snap.forEach(function(d){dels.push(window._F.deleteDoc(window._F.doc(window._db,'logs',d.id)));});
-      await Promise.all(dels);
-    }catch(e){}
+  if(!fbOk||!window._auth||!window._db){setMsg(msg,'Server connection failed. Check your internet.','err');return;}
+  setMsg(msg,'Creating your account...','ok');
+  try{
+    var uc=await window._F.createUserWithEmailAndPassword(window._auth,email,pw);
+    var uid=uc.user.uid;
+    var profile={uid:uid,fullName:name,name:name,email:email,phone:phone,
+      age:age,gender:gender,balance:0,role:'user',status:'active',
+      disabled:false,archived:false,createdAt:window._F.serverTimestamp()};
+    await window._F.setDoc(window._F.doc(window._db,'users',uid),profile);
+    _cache.cuUid=uid; _cache.cu=phone;
+    _cache.cuData=Object.assign({},profile,{balance:0,createdAt:new Date().toISOString()});
+    _cache.tickets=[]; _saveSession();
+    closeModal('create-modal');
+    ['ca-name','ca-email','ca-phone','ca-age','ca-pw','ca-pw2'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+    updateMenuItems();updateHeaderBalance();updateSlipBadge();
+    showSuccess('🎉','Welcome, '+name+'!','Your account has been created. You can now deposit and place bets!');
+    await _addLog('Account created',phone);
+  }catch(e){
+    var em='Registration failed. Please try again.';
+    if(e.code==='auth/email-already-in-use') em='This email is already registered. Please login instead.';
+    else if(e.code==='auth/invalid-email')   em='Invalid email address format.';
+    else if(e.code==='auth/weak-password')   em='Password too weak. Use at least 6 characters.';
+    else if(e.code==='auth/network-request-failed') em='Network error. Check your internet connection.';
+    setMsg(msg,em,'err');
   }
-  loadLogs(); toast('🗑️ All logs cleared','t-err');
 }
-async function addLog(action,user){
-  _cache.logs.unshift({time:new Date().toISOString(),action:action,user:user||''});
+
+async function doLogin(){
+  var email=gv('li-email').trim().toLowerCase(),pw=gv('li-pw');
+  var msg=document.getElementById('li-msg');msg.textContent='';
+  if(!email||!pw){setMsg(msg,'Email and password required','err');return;}
+  setMsg(msg,'Connecting...','ok');
   var fbOk=await window._fbReady;
-  if(fbOk&&window._db){
-    try{ await window._F.addDoc(window._F.collection(window._db,'logs'),{time:new Date().toISOString(),action:action,user:user||''}); }catch(e){}
+  if(!fbOk||!window._auth||!window._db){setMsg(msg,'Server connection failed. Check your internet.','err');return;}
+  setMsg(msg,'Signing in...','ok');
+  try{
+    var uc=await window._F.signInWithEmailAndPassword(window._auth,email,pw);
+    var uid=uc.user.uid;
+    var snap=await window._F.getDoc(window._F.doc(window._db,'users',uid));
+    if(!snap.exists()){setMsg(msg,'Account profile not found. Contact support.','err');return;}
+    var data=snap.data();
+    if(data.archived||data.status==='banned'){setMsg(msg,'This account has been suspended.','err');await window._F.signOut(window._auth);return;}
+    if(data.disabled){setMsg(msg,'This account has been disabled.','err');await window._F.signOut(window._auth);return;}
+    _cache.cuUid=uid; _cache.cu=data.phone||uid; _cache.cuData=data; _saveSession();
+    document.getElementById('li-email').value=''; document.getElementById('li-pw').value='';
+    await _loadMyTickets();
+    closeModal('login-modal');
+    updateMenuItems();updateHeaderBalance();updateSlipBadge();
+    _renderRoundsDropdown(_cache.publishedRounds);
+    showNotif('Welcome back, '+(data.fullName||data.name||email)+'! ⚽');
+    await _addLog('Login',_cache.cu);
+  }catch(e){
+    var em='Login failed. Please try again.';
+    if(e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential') em='Incorrect email or password.';
+    else if(e.code==='auth/invalid-email') em='Invalid email address.';
+    else if(e.code==='auth/too-many-requests') em='Too many attempts. Please wait.';
+    else if(e.code==='auth/network-request-failed') em='Network error. Check your internet.';
+    setMsg(msg,em,'err'); document.getElementById('li-pw').value='';
   }
 }
 
-// ── MODAL HELPERS ──
-function openMo(id){document.getElementById(id).classList.add('open');}
-function closeMo(id){document.getElementById(id).classList.remove('open');}
-document.querySelectorAll('.mo').forEach(function(el){ el.addEventListener('click',function(e){if(e.target===this)closeMo(this.id);}); });
+async function doLogout(){
+  var fbOk=await window._fbReady;
+  if(fbOk&&window._auth){ try{await window._F.signOut(window._auth);}catch(e){} }
+  _clearSession(); updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
+  showNotif('Logged out successfully.');
+}
 
-function showLoad(txt){setText('a-spin-txt',txt||'Processing...');document.getElementById('a-loading').classList.add('show');}
-function hideLoad(){document.getElementById('a-loading').classList.remove('show');}
+async function doResetPw(){
+  var email=gv('fp-email').trim().toLowerCase();
+  var msg=document.getElementById('fp-msg');msg.textContent='';
+  if(!email){setMsg(msg,'Enter your email address','err');return;}
+  setMsg(msg,'Connecting...','ok');
+  var fbOk=await window._fbReady;
+  if(!fbOk||!window._auth){setMsg(msg,'Server connection failed.','err');return;}
+  try{
+    await window._F.sendPasswordResetEmail(window._auth,email);
+    setMsg(msg,'✅ Password reset email sent! Check your inbox.','ok');
+    setTimeout(function(){closeModal('forgot-modal');},3000);
+  }catch(e){
+    var em='Could not send reset email.';
+    if(e.code==='auth/user-not-found') em='No account found with this email.';
+    else if(e.code==='auth/invalid-email') em='Invalid email address.';
+    setMsg(msg,em,'err');
+  }
+}
 
-var _tt=null;
-function toast(msg,cls){var el=document.getElementById('toast');el.textContent=msg;el.className='show '+(cls||'');if(_tt)clearTimeout(_tt);_tt=setTimeout(function(){el.className='';},3800);}
+function openForgot(){closeModal('login-modal');openModal('forgot-modal');}
+function switchToLogin(){closeModal('create-modal');openModal('login-modal');}
+function switchToSignup(){closeModal('login-modal');openModal('create-modal');}
 
-function setText(id,val){var el=document.getElementById(id);if(el)el.textContent=val;}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-function fmtDate(iso){if(!iso)return '—';try{var d=new Date(iso);if(isNaN(d.getTime()))return String(iso);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}catch(e){return String(iso);}}
+// ── LOGS (Firestore) ──
+async function _addLog(action, user){
+  var fbOk=await window._fbReady;
+  if(!fbOk||!window._db) return;
+  try{
+    await window._F.addDoc(window._F.collection(window._db,'logs'),
+      {time:new Date().toISOString(),action:action,user:user||''});
+  }catch(e){}
+}
+
+// ── DEPOSIT (Paystack direct — credited on successful payment) ──
+function openDeposit(){
+  if(!_cache.cu){openModal('auth-gate-modal');return;}
+  document.getElementById('dep-msg').textContent='';
+  document.getElementById('dep-amount').value='';
+  openModal('deposit-method-modal');
+}
+function proceedDeposit(){
+  var msg=document.getElementById('dep-msg');msg.textContent='';
+  var amt=Math.floor(Number(document.getElementById('dep-amount').value));
+  if(!amt||amt<100||amt>100000000){setMsg(msg,'Enter amount between ₦100 and ₦100,000,000','err');return;}
+  if(typeof PaystackPop==='undefined'){setMsg(msg,'Payment service did not load. Check your internet and refresh.','err');return;}
+  var data=_cache.cuData||{};
+  var email=data.email||((_cache.cu||'user').replace(/\W/g,'')+'@goalrush.com');
+  var ref='GRJ-'+Date.now()+'-'+Math.random().toString(36).slice(2,7).toUpperCase();
+  var paid=false;
+  closeModal('deposit-method-modal');
+  PaystackPop.setup({
+    key:PAYSTACK_KEY,email:email,amount:amt*100,currency:'NGN',ref:ref,
+    metadata:{custom_fields:[
+      {display_name:'Phone',variable_name:'phone',value:_cache.cu},
+      {display_name:'Platform',variable_name:'platform',value:'GoalRush Jackpot'}
+    ]},
+    callback:function(response){ paid=true; creditPaystackDeposit(response.reference||ref,amt); },
+    onClose:function(){ setTimeout(function(){ if(!paid) showNotif('Payment window closed. You were not charged.','err'); },600); }
+  }).openIframe();
+}
+async function creditPaystackDeposit(ref,amt){
+  showLoading('Crediting your account...');
+  var F=window._F, rec={id:ref,ref:ref,user:_cache.cu,userUid:_cache.cuUid||'',amount:amt,method:'Paystack',time:new Date().toISOString()};
+  try{
+    var b=F.writeBatch(window._db);
+    b.update(F.doc(window._db,'users',_cache.cuUid),{balance:F.increment(amt),lastDepositRef:ref,lastUpdated:new Date().toISOString()});
+    b.set(F.doc(window._db,'deposits',ref),Object.assign({status:'approved',verified:false},rec));
+    await b.commit();
+    await _refreshMe();
+    _addLog('Deposit ₦'+amt.toLocaleString()+' via Paystack ref:'+ref,_cache.cu);
+    hideLoading();
+    showSuccess('✅','Payment Successful!','₦'+amt.toLocaleString()+' has been added. New balance: ₦'+Number(_cache.cuData.balance||0).toLocaleString()+'.');
+  }catch(e){
+    // Could not credit: leave a pending record so admin can see it, and tell user to email
+    try{ await F.setDoc(F.doc(window._db,'deposits',ref),Object.assign({status:'pending',verified:false,note:'Auto-credit failed'},rec)); }catch(e2){}
+    hideLoading();
+    showNotif('Payment received but not credited yet. Email goalrushjackpot@gmail.com with ref: '+ref,'err');
+  }
+}
+
+// ── WITHDRAW ──
+function openWithdraw(){
+  if(!_cache.cu){openModal('auth-gate-modal');return;}
+  var bal=Number((_cache.cuData||{}).balance||0);
+  document.getElementById('wd-balance').textContent='₦'+bal.toLocaleString('en',{minimumFractionDigits:2});
+  document.getElementById('wd-msg').textContent='';
+  document.getElementById('wd-bank').value='';
+  document.getElementById('wd-account').value='';
+  document.getElementById('wd-amount').value='';
+  openModal('withdraw-modal');
+}
+async function doWithdraw(){
+  var bank=gv('wd-bank').trim(),acct=gv('wd-account').trim(),amt=Number(gv('wd-amount'));
+  var msg=document.getElementById('wd-msg');msg.textContent='';
+  var bal=Number((_cache.cuData||{}).balance||0);
+  if(!bank){setMsg(msg,'Enter bank name','err');return;}
+  if(!acct||acct.length<6){setMsg(msg,'Enter a valid account number','err');return;}
+  if(!amt||amt<100000){setMsg(msg,'Minimum withdrawal is ₦100,000','err');return;}
+  if(amt>100000000){setMsg(msg,'Maximum withdrawal is ₦100,000,000','err');return;}
+  if(amt>bal){setMsg(msg,'Insufficient balance','err');return;}
+  showLoading('Processing withdrawal...');
+  await _refreshMe();
+  bal=Number((_cache.cuData||{}).balance||0);
+  if(amt>bal){hideLoading();setMsg(msg,'Insufficient balance','err');return;}
+  var ref=genRef();
+  try{
+    var F=window._F,b=F.writeBatch(window._db);
+    b.update(F.doc(window._db,'users',_cache.cuUid),{balance:F.increment(-amt),lastUpdated:new Date().toISOString()});
+    b.set(F.doc(window._db,'withdrawals',ref),{id:ref,user:_cache.cu,userUid:_cache.cuUid||'',amount:amt,bank:bank,account:acct,code:ref,time:new Date().toISOString(),status:'pending'});
+    await b.commit();
+    await _refreshMe();
+  }catch(e){ console.warn(e); hideLoading(); setMsg(msg,'Could not process. You were not charged.','err'); return; }
+  await _addLog('Withdrawal ₦'+amt+' ref:'+ref, _cache.cu);
+  updateHeaderBalance(); hideLoading(); closeModal('withdraw-modal');
+  showSuccess('💸','Withdrawal Submitted!','Reference: '+ref+'\n\nAmount: ₦'+amt.toLocaleString()+'\nBank: '+bank+'\nAccount: '+acct+'\n\nYou will receive payment shortly.');
+}
+
+// ── MODALS ──
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(function(el){
+  el.addEventListener('click',function(e){if(e.target===this)closeModal(this.id);});
+});
+
+// ── SUCCESS POPUP ──
+var _spTimer=null;
+function showSuccess(icon,title,msg){
+  document.getElementById('sp-icon').textContent=icon;
+  document.getElementById('sp-title').textContent=title;
+  document.getElementById('sp-msg').textContent=msg;
+  document.getElementById('success-popup').classList.add('show');
+  if(_spTimer)clearTimeout(_spTimer);
+  _spTimer=setTimeout(function(){document.getElementById('success-popup').classList.remove('show');},5000);
+}
+
+// ── NOTIFICATIONS ──
+var _nTimer=null;
+function showNotif(msg,type){
+  var el=document.getElementById('notif');
+  el.textContent=msg; el.className='';
+  if(type==='err')el.classList.add('err');
+  el.classList.add('show');
+  if(_nTimer)clearTimeout(_nTimer);
+  _nTimer=setTimeout(function(){el.classList.remove('show');},3500);
+}
+
+// ── LOADING ──
+function showLoading(txt){document.getElementById('loading-text').textContent=txt||'Processing...';document.getElementById('loading').classList.add('show');}
+function hideLoading(){document.getElementById('loading').classList.remove('show');}
+
+// ── UTILS ──
+function gv(id){var el=document.getElementById(id);return el?el.value:'';}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function setMsg(el,msg,type){el.textContent=msg;el.className='modal-msg '+(type==='err'?'msg-err':'msg-ok');}
+function genRef(){return 'GRJ-'+Math.random().toString(36).substring(2,8).toUpperCase();}
+function togglePw(id,el){var f=document.getElementById(id);f.type=f.type==='password'?'text':'password';el.textContent=f.type==='password'?'👁️':'🙈';}
 
 </script>
 </body>
