@@ -767,7 +767,7 @@ window._fbReady = (async function(){
             signOut, onAuthStateChanged, sendPasswordResetEmail }
       = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const { getFirestore, doc, setDoc, getDoc, updateDoc,
-            collection, getDocs, addDoc, serverTimestamp, query, where, deleteDoc, increment }
+            collection, getDocs, addDoc, serverTimestamp, query, where, deleteDoc, increment, writeBatch }
       = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
     const app  = initializeApp(_FIREBASE_CONFIG);
@@ -778,7 +778,7 @@ window._fbReady = (async function(){
     window._auth = auth;
     window._db   = db;
     window._F    = { doc, setDoc, getDoc, updateDoc, collection, getDocs,
-                     addDoc, serverTimestamp, query, where, deleteDoc, increment,
+                     addDoc, serverTimestamp, query, where, deleteDoc, increment, writeBatch,
                      createUserWithEmailAndPassword, signInWithEmailAndPassword,
                      signOut, onAuthStateChanged, sendPasswordResetEmail };
 
@@ -821,7 +821,7 @@ async function _loadMyTickets(){
   try{
     var snap = await window._F.getDocs(
       window._F.query(window._F.collection(window._db,'tickets'),
-        window._F.where('user','==',_cache.cu))
+        window._F.where('userUid','==',_cache.cuUid))
     );
     _cache.tickets = [];
     snap.forEach(function(d){ _cache.tickets.push(d.data()); });
@@ -1167,15 +1167,14 @@ async function doPlaceBet(){
     combination: _combo,
     stake:       _stake
   };
-  try{ await _adjustBalance(-_stake); }
-  catch(e){ hideLoading(); showNotif('Could not place bet. Try again.','err'); return; }
   try{
-    await window._F.setDoc(window._F.doc(window._db,'tickets',ticket.id), ticket);
+    var F=window._F,b=F.writeBatch(window._db);
+    b.update(F.doc(window._db,'users',_cache.cuUid),{balance:F.increment(-_stake),lastUpdated:new Date().toISOString()});
+    b.set(F.doc(window._db,'tickets',ticket.id),ticket);
+    await b.commit();
     _cache.tickets.unshift(ticket);
-  }catch(e){
-    try{ await _adjustBalance(_stake); }catch(e2){}
-    hideLoading(); showNotif('Failed to save bet. You were not charged.','err'); return;
-  }
+    await _refreshMe();
+  }catch(e){ console.warn(e); hideLoading(); showNotif('Could not place bet. You were not charged.','err'); return; }
   // Log
   await _addLog('Placed bet ₦'+_stake, _cache.cu);
   updateHeaderBalance(); updateSlipBadge(); clearAll(); hideLoading();
@@ -1468,8 +1467,11 @@ async function creditPaystackDeposit(ref,amt){
   showLoading('Crediting your account...');
   var F=window._F, rec={id:ref,ref:ref,user:_cache.cu,userUid:_cache.cuUid||'',amount:amt,method:'Paystack',time:new Date().toISOString()};
   try{
-    await _adjustBalance(amt);
-    try{ await F.setDoc(F.doc(window._db,'deposits',ref),Object.assign({status:'approved',verified:false},rec)); }catch(e){}
+    var b=F.writeBatch(window._db);
+    b.update(F.doc(window._db,'users',_cache.cuUid),{balance:F.increment(amt),lastDepositRef:ref,lastUpdated:new Date().toISOString()});
+    b.set(F.doc(window._db,'deposits',ref),Object.assign({status:'approved',verified:false},rec));
+    await b.commit();
+    await _refreshMe();
     _addLog('Deposit ₦'+amt.toLocaleString()+' via Paystack ref:'+ref,_cache.cu);
     hideLoading();
     showSuccess('✅','Payment Successful!','₦'+amt.toLocaleString()+' has been added. New balance: ₦'+Number(_cache.cuData.balance||0).toLocaleString()+'.');
@@ -1506,15 +1508,13 @@ async function doWithdraw(){
   bal=Number((_cache.cuData||{}).balance||0);
   if(amt>bal){hideLoading();setMsg(msg,'Insufficient balance','err');return;}
   var ref=genRef();
-  try{ await _adjustBalance(-amt); }catch(e){ hideLoading(); setMsg(msg,'Could not process. Try again.','err'); return; }
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'withdrawals',ref),
-        {id:ref,user:_cache.cu,userUid:_cache.cuUid||'',amount:amt,bank:bank,
-         account:acct,code:ref,time:new Date().toISOString(),status:'pending'});
-    }catch(e){}
-  }
+  try{
+    var F=window._F,b=F.writeBatch(window._db);
+    b.update(F.doc(window._db,'users',_cache.cuUid),{balance:F.increment(-amt),lastUpdated:new Date().toISOString()});
+    b.set(F.doc(window._db,'withdrawals',ref),{id:ref,user:_cache.cu,userUid:_cache.cuUid||'',amount:amt,bank:bank,account:acct,code:ref,time:new Date().toISOString(),status:'pending'});
+    await b.commit();
+    await _refreshMe();
+  }catch(e){ console.warn(e); hideLoading(); setMsg(msg,'Could not process. You were not charged.','err'); return; }
   await _addLog('Withdrawal ₦'+amt+' ref:'+ref, _cache.cu);
   updateHeaderBalance(); hideLoading(); closeModal('withdraw-modal');
   showSuccess('💸','Withdrawal Submitted!','Reference: '+ref+'\n\nAmount: ₦'+amt.toLocaleString()+'\nBank: '+bank+'\nAccount: '+acct+'\n\nYou will receive payment shortly.');
