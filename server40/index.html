@@ -964,9 +964,20 @@ async function doLogin(){
   var ok=await window._fbReady; if(!ok){ fail('❌ Cannot connect to Firebase.'); return; }
   try{
     var cred=await window._F.signInWithEmailAndPassword(window._auth,em,pw);
-    if(!(await isAdminUser(cred.user))){ await window._F.signOut(window._auth); fail('❌ This account is not an admin.'); return; }
+    if(!(await isAdminUser(cred.user))){ await window._F.signOut(window._auth); fail('❌ Signed in, but this account is not listed as an admin.'); return; }
     enterAdmin();
-  }catch(e){ fail('❌ Incorrect email or password.'); }
+  }catch(e){
+    var m='❌ Login failed';
+    if(e.code==='auth/user-not-found') m='❌ No account with this email.';
+    else if(e.code==='auth/wrong-password') m='❌ Wrong password.';
+    else if(e.code==='auth/invalid-email') m='❌ Invalid email format.';
+    else if(e.code==='auth/invalid-credential') m='❌ Wrong email or password.';
+    else if(e.code==='auth/unauthorized-domain') m='❌ This website domain is not authorized in Firebase (Authentication > Settings > Authorized domains).';
+    else if(e.code==='auth/operation-not-allowed') m='❌ Email/Password sign-in is not enabled in Firebase (Authentication > Sign-in method).';
+    else if(e.code==='auth/network-request-failed') m='❌ Network error. Check your internet.';
+    else if(e.code) m='❌ '+e.code;
+    fail(m);
+  }
 }
 var _adminOn=false;
 function enterAdmin(){
