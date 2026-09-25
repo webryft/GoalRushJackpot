@@ -953,7 +953,10 @@ window._fbReady = (async function(){
 
 // ── Admin login: Firebase Auth account that also has a doc in /admins/{uid} ──
 async function isAdminUser(user){
-  try{ var d=await window._F.getDoc(window._F.doc(window._db,'admins',user.uid)); return d.exists(); }catch(e){ return false; }
+  try{
+    var d=await window._F.getDoc(window._F.doc(window._db,'admins',user.uid));
+    return {ok:d.exists()};
+  }catch(e){ return {ok:false, err:e.code||e.message}; }
 }
 async function doLogin(){
   var em=document.getElementById('adm-user').value.trim();
@@ -964,7 +967,12 @@ async function doLogin(){
   var ok=await window._fbReady; if(!ok){ fail('❌ Cannot connect to Firebase.'); return; }
   try{
     var cred=await window._F.signInWithEmailAndPassword(window._auth,em,pw);
-    if(!(await isAdminUser(cred.user))){ await window._F.signOut(window._auth); fail('❌ Signed in, but this account is not listed as an admin.'); return; }
+    var chk=await isAdminUser(cred.user);
+    if(!chk.ok){
+      await window._F.signOut(window._auth);
+      fail('❌ Not admin. Your UID: '+cred.user.uid+(chk.err?' | Firestore error: '+chk.err:' | admins/'+cred.user.uid+' not found.'));
+      return;
+    }
     enterAdmin();
   }catch(e){
     var m='❌ Login failed';
