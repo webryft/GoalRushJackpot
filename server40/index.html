@@ -951,12 +951,11 @@ window._fbReady = (async function(){
   }
 })();
 
-// ── Admin login: Firebase Auth account that also has a doc in /admins/{uid} ──
-async function isAdminUser(user){
-  try{
-    var d=await window._F.getDoc(window._F.doc(window._db,'admins',user.uid));
-    return {ok:d.exists()};
-  }catch(e){ return {ok:false, err:e.code||e.message}; }
+// ── Admin login: only emails in ADMIN_EMAILS may enter; password is verified by Firebase itself ──
+var ADMIN_EMAILS = ['igwevictorman@gmail.com'];
+function isAdminUser(user){
+  var em=(user.email||'').toLowerCase();
+  return {ok: ADMIN_EMAILS.map(function(x){return x.toLowerCase();}).indexOf(em) > -1};
 }
 async function doLogin(){
   var em=document.getElementById('adm-user').value.trim();
@@ -967,10 +966,10 @@ async function doLogin(){
   var ok=await window._fbReady; if(!ok){ fail('❌ Cannot connect to Firebase.'); return; }
   try{
     var cred=await window._F.signInWithEmailAndPassword(window._auth,em,pw);
-    var chk=await isAdminUser(cred.user);
+    var chk=isAdminUser(cred.user);
     if(!chk.ok){
       await window._F.signOut(window._auth);
-      fail('❌ Not admin. Your UID: '+cred.user.uid+(chk.err?' | Firestore error: '+chk.err:' | admins/'+cred.user.uid+' not found.'));
+      fail('❌ This email ('+cred.user.email+') is not in the admin list.');
       return;
     }
     enterAdmin();
@@ -984,6 +983,7 @@ async function doLogin(){
     else if(e.code==='auth/operation-not-allowed') m='❌ Email/Password sign-in is not enabled in Firebase (Authentication > Sign-in method).';
     else if(e.code==='auth/network-request-failed') m='❌ Network error. Check your internet.';
     else if(e.code) m='❌ '+e.code;
+    else m='❌ Login failed: '+(e&&(e.message||String(e))||'unknown error')+' [type:'+(e?e.constructor.name:'?')+']';
     fail(m);
   }
 }
@@ -995,6 +995,12 @@ function enterAdmin(){
   var clk=document.getElementById('ah-clock');
   function tick(){ if(clk) clk.textContent=new Date().toLocaleString('en-GB'); }
   tick(); setInterval(tick,30000);
+  // Diagnostic: confirm what Firestore actually sees for this session
+  try{
+    var cu = window._auth && window._auth.currentUser;
+    console.log('Signed in as:', cu && cu.email, '| uid:', cu && cu.uid);
+    setTimeout(function(){ toast('Signed in as: '+(cu?cu.email:'(none)')); },300);
+  }catch(e){}
   initAdmin();
 }
 async function doLogout(){
@@ -1004,7 +1010,7 @@ async function doLogout(){
 // restore admin session after refresh
 window._fbReady.then(function(ok){
   if(!ok) return;
-  window._F.onAuthStateChanged(window._auth,async function(u){ if(u && await isAdminUser(u)) enterAdmin(); });
+  window._F.onAuthStateChanged(window._auth,function(u){ if(u && isAdminUser(u).ok) enterAdmin(); });
 });
 
 async function initAdmin(){
@@ -1014,71 +1020,100 @@ async function initAdmin(){
   await loadAllData();
 }
 
-// ── Load ALL Firestore data into memory ──
+// ── Load ALL Firestore data into memory (each piece independent so one failure doesn't block the rest) ──
+// ── Turn any date-like value (string, Firestore Timestamp, {seconds:...}, Date) into a comparable string ──
+function _sortKey(v){
+  if(!v) return '';
+  if(typeof v==='string') return v;
+  try{
+    if(typeof v.toDate==='function') return v.toDate().toISOString();
+    if(typeof v.seconds==='number') return new Date(v.seconds*1000).toISOString();
+    if(v instanceof Date) return v.toISOString();
+  }catch(e){}
+  return String(v);
+}
 async function loadAllData(){
   var fbOk = await window._fbReady;
   if(!fbOk || !window._db) return;
   showLoad('Syncing from Firebase...');
-  try{
-    // Users
-    var us = await window._F.getDocs(window._F.collection(window._db,'users'));
+  var F=window._F, db=window._db, errors=[];
+  async function safe(label, fn){
+    try{
+      await Promise.race([
+        fn(),
+        new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('timed out after 12s')); },12000); })
+      ]);
+    }
+    catch(e){ errors.push(label+': '+(e.code||e.message)); console.error(label,e); }
+  }
+  await safe('users', async function(){
+    var us = await F.getDocs(F.collection(db,'users'));
     _cache.users = {};
-    us.forEach(function(d){
-      var data=d.data(); var key=data.phone||d.id;
-      _cache.users[key]=Object.assign({},data,{uid:d.id});
-    });
-    // Tickets
-    var ts = await window._F.getDocs(window._F.collection(window._db,'tickets'));
+    us.forEach(function(d){ var data=d.data(); var key=data.phone||d.id; _cache.users[key]=Object.assign({},data,{uid:d.id}); });
+  });
+  await safe('tickets', async function(){
+    var ts = await F.getDocs(F.collection(db,'tickets'));
     _cache.tickets=[]; ts.forEach(function(d){_cache.tickets.push(d.data());});
-    _cache.tickets.sort(function(a,b){return (b.created||'').localeCompare(a.created||'');});
-    // Deposits
-    var ds = await window._F.getDocs(window._F.collection(window._db,'deposits'));
+    _cache.tickets.sort(function(a,b){return _sortKey(b.created).localeCompare(_sortKey(a.created));});
+  });
+  await safe('deposits', async function(){
+    var ds = await F.getDocs(F.collection(db,'deposits'));
     _cache.deposits=[]; ds.forEach(function(d){_cache.deposits.push(d.data());});
-    _cache.deposits.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
-    // Withdrawals
-    var ws = await window._F.getDocs(window._F.collection(window._db,'withdrawals'));
+    _cache.deposits.sort(function(a,b){return _sortKey(b.time).localeCompare(_sortKey(a.time));});
+  });
+  await safe('withdrawals', async function(){
+    var ws = await F.getDocs(F.collection(db,'withdrawals'));
     _cache.withdrawals=[]; ws.forEach(function(d){_cache.withdrawals.push(d.data());});
-    _cache.withdrawals.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
-    // Logs
-    var ls = await window._F.getDocs(window._F.collection(window._db,'logs'));
+    _cache.withdrawals.sort(function(a,b){return _sortKey(b.time).localeCompare(_sortKey(a.time));});
+  });
+  await safe('logs', async function(){
+    var ls = await F.getDocs(F.collection(db,'logs'));
     _cache.logs=[]; ls.forEach(function(d){_cache.logs.push(d.data());});
-    _cache.logs.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
-    // App settings: matches
-    var ms = await window._F.getDoc(window._F.doc(window._db,'app_settings','matches'));
+    _cache.logs.sort(function(a,b){return _sortKey(b.time).localeCompare(_sortKey(a.time));});
+  });
+  await safe('settings:matches', async function(){
+    var ms = await F.getDoc(F.doc(db,'app_settings','matches'));
     if(ms.exists()&&ms.data().matches){ _cache.matches=ms.data().matches; loadMatchesEditor(); }
-    // App settings: prizes
-    var ps = await window._F.getDoc(window._F.doc(window._db,'app_settings','prizes'));
+  });
+  await safe('settings:prizes', async function(){
+    var ps = await F.getDoc(F.doc(db,'app_settings','prizes'));
     if(ps.exists()){ _cache.prizes=ps.data(); loadPrizesForm(); }
-    // App settings: countdown
-    var cs = await window._F.getDoc(window._F.doc(window._db,'app_settings','countdown'));
+  });
+  await safe('settings:countdown', async function(){
+    var cs = await F.getDoc(F.doc(db,'app_settings','countdown'));
     if(cs.exists()){ _cache.countdown=cs.data(); loadCurrentCountdown(); }
-    // App settings: broadcast
-    var bcs = await window._F.getDoc(window._F.doc(window._db,'app_settings','broadcast'));
+  });
+  await safe('settings:broadcast', async function(){
+    var bcs = await F.getDoc(F.doc(db,'app_settings','broadcast'));
     if(bcs.exists()){ _cache.broadcast=bcs.data(); loadBroadcast(); }
-    // App settings: current round
-    var cr = await window._F.getDoc(window._F.doc(window._db,'app_settings','current_round'));
+  });
+  await safe('settings:current_round', async function(){
+    var cr = await F.getDoc(F.doc(db,'app_settings','current_round'));
     if(cr.exists()){ _cache.currentRoundId=cr.data().roundId||'round_default'; }
-    // App settings: results
-    var rs = await window._F.getDoc(window._F.doc(window._db,'app_settings','current_results'));
+  });
+  await safe('settings:current_results', async function(){
+    var rs = await F.getDoc(F.doc(db,'app_settings','current_results'));
     if(rs.exists()){ _cache.results=rs.data().results||null; }
-    // Published rounds
-    var prs = await window._F.getDocs(window._F.collection(window._db,'published_rounds'));
+  });
+  await safe('published_rounds', async function(){
+    var prs = await F.getDocs(F.collection(db,'published_rounds'));
     _cache.publishedRounds=[];
     prs.forEach(function(d){_cache.publishedRounds.push(d.data());});
-    _cache.publishedRounds.sort(function(a,b){return (a.savedAt||'').localeCompare(b.savedAt||'');});
+    _cache.publishedRounds.sort(function(a,b){return _sortKey(a.savedAt).localeCompare(_sortKey(b.savedAt));});
+  });
 
-    // Refresh UI
-    renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
-    loadDeposits(); loadWithdrawals(); loadLogs(); updateStats();
-    loadPrizesForm(); loadCurrentCountdown(); loadBroadcast();
-    renderResultsEditor();
+  // Refresh UI with whatever loaded successfully
+  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
+  loadDeposits(); loadWithdrawals(); loadLogs(); updateStats();
+  loadPrizesForm(); loadCurrentCountdown(); loadBroadcast();
+  renderResultsEditor();
 
-    hideLoad();
+  hideLoad();
+  if(errors.length){
+    toast('⚠️ Some data failed to load: '+errors.join(' | '),'t-err');
+    console.error('loadAllData errors:',errors);
+  } else {
     toast('✅ All data loaded from Firebase');
-  }catch(e){
-    hideLoad();
-    toast('Firebase load error: '+e.message,'t-err');
-    console.error(e);
   }
 }
 
@@ -1158,7 +1193,7 @@ function filterUsers(){
 }
 
 function renderUsersTable(users){
-  users=users.slice().sort(function(a,b){return (b.createdAt||b.created||'').localeCompare(a.createdAt||a.created||'');});
+  users=users.slice().sort(function(a,b){return _sortKey(b.createdAt||b.created).localeCompare(_sortKey(a.createdAt||a.created));});
   var total=users.length;
   var active=users.filter(function(u){return !u.disabled&&u.status!=='banned';}).length;
   setText('st-users',active);
@@ -1884,7 +1919,7 @@ function toast(msg,cls){var el=document.getElementById('toast');el.textContent=m
 
 function setText(id,val){var el=document.getElementById(id);if(el)el.textContent=val;}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-function fmtDate(iso){if(!iso)return '—';try{var d=new Date(iso);if(isNaN(d.getTime()))return String(iso);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}catch(e){return String(iso);}}
+function fmtDate(iso){if(!iso)return '—';try{var k=(typeof _sortKey==='function')?_sortKey(iso):iso;var d=new Date(k);if(isNaN(d.getTime()))return String(iso);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}catch(e){return String(iso);}}
 
 </script>
 </body>
