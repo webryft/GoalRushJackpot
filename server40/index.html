@@ -993,12 +993,6 @@ function enterAdmin(){
   var clk=document.getElementById('ah-clock');
   function tick(){ if(clk) clk.textContent=new Date().toLocaleString('en-GB'); }
   tick(); setInterval(tick,30000);
-  // Diagnostic: confirm what Firestore actually sees for this session
-  try{
-    var cu = window._auth && window._auth.currentUser;
-    console.log('Signed in as:', cu && cu.email, '| uid:', cu && cu.uid);
-    setTimeout(function(){ toast('Signed in as: '+(cu?cu.email:'(none)')); },300);
-  }catch(e){}
   initAdmin();
 }
 async function doLogout(){
@@ -1018,84 +1012,71 @@ async function initAdmin(){
   await loadAllData();
 }
 
-// ── Load ALL Firestore data into memory (each piece independent so one failure doesn't block the rest) ──
+// ── Load ALL Firestore data into memory ──
 async function loadAllData(){
   var fbOk = await window._fbReady;
   if(!fbOk || !window._db) return;
   showLoad('Syncing from Firebase...');
-  var F=window._F, db=window._db, errors=[];
-  async function safe(label, fn){
-    try{ await fn(); }
-    catch(e){ errors.push(label+': '+(e.code||e.message)); console.error(label,e); }
-  }
-  await safe('users', async function(){
-    var us = await F.getDocs(F.collection(db,'users'));
+  try{
+    // Users
+    var us = await window._F.getDocs(window._F.collection(window._db,'users'));
     _cache.users = {};
-    us.forEach(function(d){ var data=d.data(); var key=data.phone||d.id; _cache.users[key]=Object.assign({},data,{uid:d.id}); });
-  });
-  await safe('tickets', async function(){
-    var ts = await F.getDocs(F.collection(db,'tickets'));
+    us.forEach(function(d){
+      var data=d.data(); var key=data.phone||d.id;
+      _cache.users[key]=Object.assign({},data,{uid:d.id});
+    });
+    // Tickets
+    var ts = await window._F.getDocs(window._F.collection(window._db,'tickets'));
     _cache.tickets=[]; ts.forEach(function(d){_cache.tickets.push(d.data());});
     _cache.tickets.sort(function(a,b){return (b.created||'').localeCompare(a.created||'');});
-  });
-  await safe('deposits', async function(){
-    var ds = await F.getDocs(F.collection(db,'deposits'));
+    // Deposits
+    var ds = await window._F.getDocs(window._F.collection(window._db,'deposits'));
     _cache.deposits=[]; ds.forEach(function(d){_cache.deposits.push(d.data());});
     _cache.deposits.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
-  });
-  await safe('withdrawals', async function(){
-    var ws = await F.getDocs(F.collection(db,'withdrawals'));
+    // Withdrawals
+    var ws = await window._F.getDocs(window._F.collection(window._db,'withdrawals'));
     _cache.withdrawals=[]; ws.forEach(function(d){_cache.withdrawals.push(d.data());});
     _cache.withdrawals.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
-  });
-  await safe('logs', async function(){
-    var ls = await F.getDocs(F.collection(db,'logs'));
+    // Logs
+    var ls = await window._F.getDocs(window._F.collection(window._db,'logs'));
     _cache.logs=[]; ls.forEach(function(d){_cache.logs.push(d.data());});
     _cache.logs.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
-  });
-  await safe('settings:matches', async function(){
-    var ms = await F.getDoc(F.doc(db,'app_settings','matches'));
+    // App settings: matches
+    var ms = await window._F.getDoc(window._F.doc(window._db,'app_settings','matches'));
     if(ms.exists()&&ms.data().matches){ _cache.matches=ms.data().matches; loadMatchesEditor(); }
-  });
-  await safe('settings:prizes', async function(){
-    var ps = await F.getDoc(F.doc(db,'app_settings','prizes'));
+    // App settings: prizes
+    var ps = await window._F.getDoc(window._F.doc(window._db,'app_settings','prizes'));
     if(ps.exists()){ _cache.prizes=ps.data(); loadPrizesForm(); }
-  });
-  await safe('settings:countdown', async function(){
-    var cs = await F.getDoc(F.doc(db,'app_settings','countdown'));
+    // App settings: countdown
+    var cs = await window._F.getDoc(window._F.doc(window._db,'app_settings','countdown'));
     if(cs.exists()){ _cache.countdown=cs.data(); loadCurrentCountdown(); }
-  });
-  await safe('settings:broadcast', async function(){
-    var bcs = await F.getDoc(F.doc(db,'app_settings','broadcast'));
+    // App settings: broadcast
+    var bcs = await window._F.getDoc(window._F.doc(window._db,'app_settings','broadcast'));
     if(bcs.exists()){ _cache.broadcast=bcs.data(); loadBroadcast(); }
-  });
-  await safe('settings:current_round', async function(){
-    var cr = await F.getDoc(F.doc(db,'app_settings','current_round'));
+    // App settings: current round
+    var cr = await window._F.getDoc(window._F.doc(window._db,'app_settings','current_round'));
     if(cr.exists()){ _cache.currentRoundId=cr.data().roundId||'round_default'; }
-  });
-  await safe('settings:current_results', async function(){
-    var rs = await F.getDoc(F.doc(db,'app_settings','current_results'));
+    // App settings: results
+    var rs = await window._F.getDoc(window._F.doc(window._db,'app_settings','current_results'));
     if(rs.exists()){ _cache.results=rs.data().results||null; }
-  });
-  await safe('published_rounds', async function(){
-    var prs = await F.getDocs(F.collection(db,'published_rounds'));
+    // Published rounds
+    var prs = await window._F.getDocs(window._F.collection(window._db,'published_rounds'));
     _cache.publishedRounds=[];
     prs.forEach(function(d){_cache.publishedRounds.push(d.data());});
     _cache.publishedRounds.sort(function(a,b){return (a.savedAt||'').localeCompare(b.savedAt||'');});
-  });
 
-  // Refresh UI with whatever loaded successfully
-  renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
-  loadDeposits(); loadWithdrawals(); loadLogs(); updateStats();
-  loadPrizesForm(); loadCurrentCountdown(); loadBroadcast();
-  renderResultsEditor();
+    // Refresh UI
+    renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
+    loadDeposits(); loadWithdrawals(); loadLogs(); updateStats();
+    loadPrizesForm(); loadCurrentCountdown(); loadBroadcast();
+    renderResultsEditor();
 
-  hideLoad();
-  if(errors.length){
-    toast('⚠️ Some data failed to load: '+errors.join(' | '),'t-err');
-    console.error('loadAllData errors:',errors);
-  } else {
+    hideLoad();
     toast('✅ All data loaded from Firebase');
+  }catch(e){
+    hideLoad();
+    toast('Firebase load error: '+e.message,'t-err');
+    console.error(e);
   }
 }
 
