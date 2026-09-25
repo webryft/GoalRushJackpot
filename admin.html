@@ -1027,7 +1027,12 @@ async function loadAllData(){
   showLoad('Syncing from Firebase...');
   var F=window._F, db=window._db, errors=[];
   async function safe(label, fn){
-    try{ await fn(); }
+    try{
+      await Promise.race([
+        fn(),
+        new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('timed out after 12s')); },12000); })
+      ]);
+    }
     catch(e){ errors.push(label+': '+(e.code||e.message)); console.error(label,e); }
   }
   await safe('users', async function(){
