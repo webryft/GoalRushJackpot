@@ -952,6 +952,7 @@ window._fbReady = (async function(){
 })();
 
 // ── Admin login: only emails in ADMIN_EMAILS may enter; password is verified by Firebase itself ──
+var ADMIN_EMAILS = ['igwevictorman@gmail.com'];
 function isAdminUser(user){
   var em=(user.email||'').toLowerCase();
   return {ok: ADMIN_EMAILS.map(function(x){return x.toLowerCase();}).indexOf(em) > -1};
