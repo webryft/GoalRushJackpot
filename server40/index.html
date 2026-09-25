@@ -395,8 +395,8 @@ tbody tr:hover td{background:#0a1a0a40;}
     <div class="lc-icon">⚽</div>
     <div class="lc-title">GOALRUSH ADMIN</div>
     <div class="lc-sub">Control Panel — Authorised Access Only</div>
-    <label class="lc-lbl">Admin Email</label>
-    <input class="lc-input" id="adm-user" type="text" placeholder="Admin email" autocomplete="off"
+    <label class="lc-lbl">Username</label>
+    <input class="lc-input" id="adm-user" type="text" placeholder="Admin username" autocomplete="off"
       onkeydown="if(event.key==='Enter')document.getElementById('adm-pass').focus()"/>
     <label class="lc-lbl">Password</label>
     <input class="lc-input" id="adm-pass" type="password" placeholder="Admin password"
@@ -927,20 +927,17 @@ var _cache = {
 window._fbReady = (async function(){
   try{
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-    const { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs,
             addDoc, serverTimestamp, query, where, deleteDoc, orderBy, limit, increment }
       = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
-    const app = initializeApp(_FIREBASE_CONFIG,'admin');
-    window._auth = getAuth(app);
+    const app = initializeApp(_FIREBASE_CONFIG);
     const db  = getFirestore(app);
 
     window._FB = true;
     window._db = db;
     window._F  = { doc, setDoc, getDoc, updateDoc, collection, getDocs,
-                   addDoc, serverTimestamp, query, where, deleteDoc, orderBy, limit, increment,
-                   signInWithEmailAndPassword, signOut, onAuthStateChanged };
+                   addDoc, serverTimestamp, query, where, deleteDoc, orderBy, limit, increment };
 
     console.log('✅ Admin Firebase ready');
     return true;
@@ -951,43 +948,23 @@ window._fbReady = (async function(){
   }
 })();
 
-// ── Admin login: only emails in ADMIN_EMAILS may enter; password is verified by Firebase itself ──
-function isAdminUser(user){
-  var em=(user.email||'').toLowerCase();
-  return {ok: ADMIN_EMAILS.map(function(x){return x.toLowerCase();}).indexOf(em) > -1};
-}
-async function doLogin(){
-  var em=document.getElementById('adm-user').value.trim();
-  var pw=document.getElementById('adm-pass').value;
+// ── Admin login (change these!) ──
+var ADMIN_USER = 'GOALRUSH';
+var ADMIN_PASS = 'GOALRUSH242777';
+
+function doLogin(){
+  var u=document.getElementById('adm-user').value.trim();
+  var p=document.getElementById('adm-pass').value;
   var err=document.getElementById('login-err');
-  function fail(m){ err.textContent=m; err.style.display='block'; setTimeout(function(){err.style.display='none';},3000); }
-  if(!em||!pw){ fail('❌ Enter admin email and password.'); return; }
-  var ok=await window._fbReady; if(!ok){ fail('❌ Cannot connect to Firebase.'); return; }
-  try{
-    var cred=await window._F.signInWithEmailAndPassword(window._auth,em,pw);
-    var chk=isAdminUser(cred.user);
-    if(!chk.ok){
-      await window._F.signOut(window._auth);
-      fail('❌ This email ('+cred.user.email+') is not in the admin list.');
-      return;
-    }
+  if(u===ADMIN_USER && p===ADMIN_PASS){
+    try{sessionStorage.setItem('grj_admin','1');}catch(e){}
     enterAdmin();
-  }catch(e){
-    var m='❌ Login failed';
-    if(e.code==='auth/user-not-found') m='❌ No account with this email.';
-    else if(e.code==='auth/wrong-password') m='❌ Wrong password.';
-    else if(e.code==='auth/invalid-email') m='❌ Invalid email format.';
-    else if(e.code==='auth/invalid-credential') m='❌ Wrong email or password.';
-    else if(e.code==='auth/unauthorized-domain') m='❌ This website domain is not authorized in Firebase (Authentication > Settings > Authorized domains).';
-    else if(e.code==='auth/operation-not-allowed') m='❌ Email/Password sign-in is not enabled in Firebase (Authentication > Sign-in method).';
-    else if(e.code==='auth/network-request-failed') m='❌ Network error. Check your internet.';
-    else if(e.code) m='❌ '+e.code;
-    fail(m);
+  } else {
+    err.style.display='block';
+    setTimeout(function(){err.style.display='none';},2500);
   }
 }
-var _adminOn=false;
 function enterAdmin(){
-  if(_adminOn) return; _adminOn=true;
   document.getElementById('login-screen').style.display='none';
   document.getElementById('admin-app').style.display='block';
   var clk=document.getElementById('ah-clock');
@@ -995,15 +972,11 @@ function enterAdmin(){
   tick(); setInterval(tick,30000);
   initAdmin();
 }
-async function doLogout(){
-  try{ await window._F.signOut(window._auth); }catch(e){}
+function doLogout(){
+  try{sessionStorage.removeItem('grj_admin');}catch(e){}
   location.reload();
 }
-// restore admin session after refresh
-window._fbReady.then(function(ok){
-  if(!ok) return;
-  window._F.onAuthStateChanged(window._auth,function(u){ if(u && isAdminUser(u).ok) enterAdmin(); });
-});
+try{ if(sessionStorage.getItem('grj_admin')==='1') document.addEventListener('DOMContentLoaded',enterAdmin); }catch(e){}
 
 async function initAdmin(){
   var fbOk = await window._fbReady;
