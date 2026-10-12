@@ -2,1564 +2,1191 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>GoalRush Jackpot</title>
-<style>
-/* ═══════════════════════════════════════
-   🔥 FIREBASE LIVE CONFIG — see script tag
-   ═══════════════════════════════════════ */
-
-:root{
-  --bg:#0b1120;--bg2:#111827;--bg3:#1a2235;
-  --green:#22c55e;--green2:#16a34a;
-  --gold:#ffd700;--gold2:#e5b400;
-  --red:#ef4444;--orange:#f97316;
-  --blue:#3b82f6;--purple:#8b5cf6;
-  --text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;
-  --border:#1e293b;--card:#111827;
-  --glow-green:0 0 20px #22c55e44;
-  --glow-gold:0 0 20px #ffd70044;
-}
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:100%;min-height:100vh;overflow-x:hidden;}
-body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;font-size:15px;}
-::-webkit-scrollbar{width:4px;}
-::-webkit-scrollbar-track{background:var(--bg);}
-::-webkit-scrollbar-thumb{background:var(--green2);border-radius:2px;}
-
-/* ── HEADER ── */
-#header{
-  position:sticky;top:0;z-index:800;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 14px;
-  background:linear-gradient(90deg,#050d1a,#0b1120);
-  border-bottom:1px solid var(--border);
-  backdrop-filter:blur(12px);
-}
-#hamburger{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:4px;}
-#hamburger span{display:block;width:22px;height:2px;background:var(--green);border-radius:2px;transition:all .3s;}
-.header-logo{font-size:16px;font-weight:800;color:var(--gold);letter-spacing:.5px;text-shadow:0 0 12px #ffd70066;}
-.header-right{display:flex;align-items:center;gap:10px;}
-#header-balance{
-  background:linear-gradient(135deg,#0f2010,#0a1a08);
-  border:1px solid var(--green2);
-  color:var(--green);padding:6px 12px;border-radius:20px;
-  font-weight:700;font-size:13px;cursor:pointer;
-  box-shadow:var(--glow-green);
-}
-#slip-counter-btn{
-  position:relative;background:none;border:1px solid var(--border);
-  color:var(--text2);padding:6px 12px;border-radius:20px;
-  cursor:pointer;font-size:13px;transition:all .2s;
-}
-#slip-counter-btn:hover{border-color:var(--gold);color:var(--gold);}
-#slip-badge{
-  position:absolute;top:-6px;right:-6px;
-  background:var(--red);color:#fff;
-  width:18px;height:18px;border-radius:50%;
-  font-size:10px;font-weight:700;
-  display:none;align-items:center;justify-content:center;
-}
-#slip-badge.show{display:flex;}
-
-/* ── SLIDE MENU ── */
-#menu-overlay{position:fixed;inset:0;background:#00000088;z-index:900;opacity:0;pointer-events:none;transition:opacity .3s;}
-#menu-overlay.open{opacity:1;pointer-events:all;}
-#menu-panel{
-  position:fixed;top:0;left:-280px;bottom:0;width:260px;
-  background:linear-gradient(180deg,#050d1a,#0b1120);
-  border-right:1px solid var(--border);
-  z-index:901;transition:left .35s cubic-bezier(.4,0,.2,1);
-  display:flex;flex-direction:column;
-}
-#menu-panel.open{left:0;}
-.menu-header{
-  padding:20px 16px 14px;
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.menu-header h2{font-size:15px;color:var(--gold);font-weight:800;}
-#menu-close{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;}
-#menu-user-block{
-  padding:14px 16px;border-bottom:1px solid var(--border);
-  font-size:13px;color:var(--text2);display:none;
-}
-#menu-user-block strong{color:var(--green);display:block;font-size:14px;}
-.menu-item{
-  display:flex;align-items:center;gap:12px;
-  padding:14px 16px;cursor:pointer;
-  border-bottom:1px solid #ffffff08;
-  font-size:14px;font-weight:600;color:var(--text);
-  transition:background .2s;
-}
-.menu-item:hover{background:#ffffff08;}
-.menu-item .ico{font-size:16px;width:20px;text-align:center;}
-
-/* ── COVER BANNER ── */
-#cover{
-  position:relative;
-  background:linear-gradient(135deg,#050d1a 0%,#0a1628 40%,#0f2010 100%);
-  padding:20px 16px 16px;
-  border-bottom:1px solid var(--border);
-  overflow:hidden;
-}
-#cover::before{
-  content:'';position:absolute;inset:0;
-  background:url('cover.jpeg') center/cover no-repeat;
-  opacity:.15;
-}
-.cover-inner{position:relative;z-index:1;}
-.cover-prize{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;}
-.cover-amount{font-size:30px;font-weight:900;color:var(--gold);text-shadow:var(--glow-gold);line-height:1;}
-.cover-sub{font-size:13px;color:var(--red);margin-top:4px;font-weight:600;}
-.cover-actions{display:flex;gap:10px;margin-top:14px;}
-.cov-btn{flex:1;padding:11px;border-radius:10px;border:none;cursor:pointer;font-weight:700;font-size:14px;transition:all .2s;}
-.cov-deposit{background:linear-gradient(135deg,var(--green),var(--green2));color:#000;}
-.cov-deposit:hover{box-shadow:var(--glow-green);}
-.cov-withdraw{background:#1e293b;border:1px solid var(--border);color:var(--text);}
-.cov-withdraw:hover{border-color:var(--gold);color:var(--gold);}
-
-/* ── COUNTDOWN ── */
-#countdown-section{
-  background:var(--bg2);border-bottom:1px solid var(--border);
-  padding:12px 16px;text-align:center;
-}
-.cd-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
-.cd-boxes{display:flex;justify-content:center;gap:8px;}
-.cd-box{
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:8px;padding:8px 14px;min-width:60px;text-align:center;
-}
-.cd-num{display:block;font-size:22px;font-weight:900;color:var(--gold);line-height:1;}
-.cd-unit{display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
-#betting-closed-banner{
-  background:linear-gradient(90deg,#3d0000,#6b0000);
-  border:1px solid var(--red);
-  color:#fca5a5;padding:10px 16px;text-align:center;
-  font-weight:700;font-size:13px;display:none;
-}
-
-/* ── TABS ── */
-#tabs-bar{
-  display:flex;background:var(--bg2);border-bottom:2px solid var(--border);
-  position:sticky;top:57px;z-index:700;
-}
-.tab-btn{
-  flex:1;padding:13px 6px;border:none;background:none;
-  color:var(--text2);font-weight:700;font-size:13px;cursor:pointer;
-  border-bottom:3px solid transparent;transition:all .2s;
-  margin-bottom:-2px;
-}
-.tab-btn.active{color:var(--green);border-bottom-color:var(--green);}
-
-/* ── SECTIONS ── */
-.section{display:none;padding:14px;}
-.section.active{display:block;}
-
-/* ── MATCHES ── */
-.match-card{
-  background:var(--card);border:1px solid var(--border);
-  border-radius:12px;padding:12px 14px;margin-bottom:10px;
-  transition:border-color .2s;
-}
-.match-card:hover{border-color:var(--green2);}
-.match-num{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
-.match-time{font-size:11px;color:var(--text3);margin-bottom:6px;}
-.match-teams{font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px;}
-.match-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
-.opt-btn{
-  padding:9px 6px;border-radius:8px;border:1px solid var(--border);
-  background:var(--bg3);color:var(--text2);
-  font-size:12px;font-weight:700;cursor:pointer;
-  text-align:center;transition:all .2s;
-}
-.opt-btn:hover{border-color:var(--green);color:var(--green);}
-.opt-btn.active{
-  background:linear-gradient(135deg,var(--green),var(--green2));
-  color:#000;border-color:var(--green);
-  box-shadow:var(--glow-green);
-}
-.opt-label{display:block;font-size:10px;opacity:.7;font-weight:400;}
-
-/* ── STAKE BAR ── */
-#stake-bar{
-  position:sticky;bottom:0;z-index:700;
-  background:linear-gradient(90deg,#050d1a,#0b1120);
-  border-top:1px solid var(--border);
-  padding:10px 14px;
-  display:flex;align-items:center;justify-content:space-between;
-  gap:10px;
-}
-.stake-info{font-size:12px;color:var(--text2);}
-.stake-info strong{color:var(--gold);}
-.stake-actions{display:flex;gap:8px;}
-.stake-btn{
-  padding:9px 16px;border-radius:9px;border:none;
-  font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;
-}
-.sb-clear{background:var(--bg3);border:1px solid var(--border);color:var(--text2);}
-.sb-clear:hover{border-color:var(--red);color:var(--red);}
-.sb-pick{background:var(--bg3);border:1px solid var(--green2);color:var(--green);}
-.sb-pick:hover{background:#0f2010;}
-.sb-place{
-  background:linear-gradient(135deg,var(--green),var(--green2));
-  color:#000;opacity:.5;pointer-events:none;
-}
-.sb-place.ready{opacity:1;pointer-events:all;box-shadow:var(--glow-green);}
-
-/* ── HOW TO / RESULTS ── */
-.howto-box{
-  background:var(--card);border:1px solid var(--border);
-  border-radius:12px;padding:18px;line-height:1.8;
-  color:var(--text2);font-size:14px;
-}
-.howto-box h2{color:var(--gold);margin-bottom:12px;font-size:16px;}
-.howto-box p{margin-bottom:12px;}
-.howto-box strong{color:var(--green);}
-.results-img{width:100%;border-radius:10px;margin-bottom:12px;border:1px solid var(--border);}
-
-/* ── LOCK OVERLAY ── */
-#lock-overlay{
-  display:none;position:fixed;inset:0;z-index:600;
-  background:rgba(0,0,0,.75);backdrop-filter:blur(4px);
-  align-items:center;justify-content:center;flex-direction:column;
-}
-#lock-overlay.show{display:flex;}
-.lock-box{
-  background:linear-gradient(145deg,#0f1a0f,#071207);
-  border:2px solid var(--red);border-radius:20px;
-  padding:32px 28px;text-align:center;
-  max-width:320px;width:90%;
-}
-.lock-icon{font-size:48px;margin-bottom:12px;}
-.lock-title{font-size:18px;font-weight:800;color:var(--red);margin-bottom:8px;}
-.lock-sub{font-size:13px;color:var(--text2);line-height:1.6;}
-
-/* ══════════════════════════════════════
-   MODAL SYSTEM
-══════════════════════════════════════ */
-.modal-overlay{
-  position:fixed;inset:0;background:#000000aa;
-  backdrop-filter:blur(6px);
-  z-index:1000;display:flex;align-items:flex-end;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .3s;
-  padding:0;
-}
-.modal-overlay.open{opacity:1;pointer-events:all;}
-.modal-sheet{
-  background:linear-gradient(180deg,#0f1827,#0b1120);
-  border:1px solid var(--border);
-  border-radius:20px 20px 0 0;
-  padding:20px;width:100%;max-width:480px;
-  transform:translateY(100%);
-  transition:transform .4s cubic-bezier(.4,0,.2,1);
-  max-height:90vh;overflow-y:auto;
-}
-.modal-overlay.open .modal-sheet{transform:translateY(0);}
-.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
-.modal-title{font-size:17px;font-weight:800;color:var(--gold);text-align:center;margin-bottom:18px;}
-.modal-input{
-  width:100%;background:#050d1a;border:1px solid var(--border);
-  color:var(--text);padding:12px 14px;border-radius:10px;
-  font-size:15px;margin-bottom:10px;outline:none;
-  transition:border-color .2s;font-family:inherit;
-}
-.modal-input:focus{border-color:var(--green);}
-.modal-input::placeholder{color:var(--text3);}
-.pw-wrap{position:relative;}
-.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:16px;color:var(--text3);}
-.modal-btn{
-  width:100%;padding:13px;border-radius:10px;border:none;
-  font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;margin-bottom:8px;
-  font-family:inherit;
-}
-.mb-green{background:linear-gradient(135deg,var(--green),var(--green2));color:#000;}
-.mb-green:hover{box-shadow:var(--glow-green);}
-.mb-gray{background:var(--bg3);border:1px solid var(--border);color:var(--text2);}
-.mb-gray:hover{border-color:var(--text2);}
-.mb-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#000;}
-.mb-gold:hover{box-shadow:var(--glow-gold);}
-.modal-link{color:var(--green);font-size:13px;cursor:pointer;text-align:center;display:block;margin-top:6px;}
-.modal-link:hover{text-decoration:underline;}
-.modal-msg{font-size:13px;text-align:center;min-height:18px;margin-top:6px;}
-.msg-ok{color:var(--green);}.msg-err{color:var(--red);}
-
-/* ── PAYMENT METHOD CARDS ── */
-.pay-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
-.pay-card{
-  background:var(--bg3);border:2px solid var(--border);
-  border-radius:14px;padding:16px;text-align:center;cursor:pointer;
-  transition:all .25s;position:relative;
-}
-.pay-card:hover{border-color:var(--green);transform:translateY(-2px);}
-.pay-card.selected{border-color:var(--green);background:#0a1e0a;box-shadow:var(--glow-green);}
-.pay-card.coming-soon{opacity:.5;cursor:not-allowed;}
-.pay-icon{font-size:28px;margin-bottom:6px;}
-.pay-name{font-size:13px;font-weight:700;color:var(--text);}
-.pay-sub{font-size:11px;color:var(--text3);margin-top:2px;}
-.pay-cs-badge{
-  position:absolute;top:6px;right:6px;
-  background:var(--orange);color:#000;
-  font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;
-}
-
-/* ── PAYMENT DETAIL BOX ── */
-.pay-detail-box{
-  background:#050d1a;border:1px solid var(--green2);
-  border-radius:12px;padding:16px;margin:12px 0;
-}
-.pd-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
-.pd-row:last-child{border-bottom:none;}
-.pd-label{font-size:12px;color:var(--text3);}
-.pd-val{font-size:13px;font-weight:700;color:var(--text);}
-.pd-copy{
-  background:var(--green2);border:none;color:#fff;
-  padding:4px 10px;border-radius:6px;cursor:pointer;
-  font-size:11px;font-weight:700;margin-left:8px;
-  transition:all .2s;
-}
-.pd-copy:hover{background:var(--green);}
-.pay-amount{font-size:20px;font-weight:900;color:var(--gold);text-align:center;margin:10px 0;}
-.pay-timer{font-size:22px;font-weight:900;color:var(--red);text-align:center;margin:8px 0;}
-.screenshot-note{
-  background:#0a150a;border:1px solid var(--green2);
-  border-radius:10px;padding:12px;margin:12px 0;
-  font-size:12px;color:#86efac;line-height:1.7;
-}
-.screenshot-note strong{color:var(--green);display:block;margin-bottom:4px;}
-
-/* ── CONFIRM BET PANEL ── */
-.confirm-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
-.confirm-row:last-child{border-bottom:none;}
-.cr-label{font-size:13px;color:var(--text2);}
-.cr-val{font-size:13px;font-weight:700;color:var(--text);}
-.cr-val.gold{color:var(--gold);}
-.cr-val.green{color:var(--green);}
-
-/* ── BET SLIP ── */
-.ticket-card{
-  background:var(--bg3);border:1px solid var(--border);
-  border-radius:10px;padding:12px;margin-bottom:10px;
-}
-.tc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-.tc-title{font-size:12px;color:var(--text2);}
-.tc-delete{background:none;border:1px solid var(--border);color:var(--red);padding:3px 8px;border-radius:6px;cursor:pointer;font-size:11px;}
-.tc-row{display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid #ffffff08;font-size:12px;}
-.tc-row:last-of-type{border-bottom:none;}
-.tc-idx{color:var(--text3);width:20px;flex-shrink:0;}
-.tc-teams{flex:1;color:var(--text2);}
-.tc-code{font-weight:700;color:var(--green);min-width:36px;text-align:right;}
-.tc-footer{margin-top:8px;font-size:12px;color:var(--text2);}
-.tc-footer strong{color:var(--gold);}
-
-/* ── SUCCESS POPUP ── */
-#success-popup{
-  position:fixed;top:50%;left:50%;
-  transform:translate(-50%,-60%) scale(.85);
-  background:linear-gradient(145deg,#0a1e0a,#071407);
-  border:1px solid var(--green);border-radius:20px;
-  padding:28px 24px;text-align:center;z-index:2000;
-  opacity:0;pointer-events:none;
-  transition:all .4s cubic-bezier(.4,0,.2,1);
-  min-width:260px;max-width:320px;
-  box-shadow:0 0 60px #22c55e44;
-}
-#success-popup.show{opacity:1;pointer-events:all;transform:translate(-50%,-50%) scale(1);}
-.sp-icon{font-size:48px;margin-bottom:10px;}
-.sp-title{font-size:16px;font-weight:800;color:var(--green);margin-bottom:6px;}
-.sp-msg{font-size:13px;color:var(--text2);line-height:1.5;}
-
-/* ── GENERAL NOTIFICATION ── */
-#notif{
-  position:fixed;top:70px;left:50%;
-  transform:translateX(-50%) translateY(-100px);
-  background:var(--card);border:1px solid var(--green);
-  border-radius:10px;padding:10px 18px;
-  font-size:13px;color:var(--text);
-  z-index:1500;transition:transform .4s cubic-bezier(.4,0,.2,1);
-  text-align:center;min-width:200px;max-width:90vw;
-  box-shadow:var(--glow-green);
-}
-#notif.show{transform:translateX(-50%) translateY(0);}
-#notif.err{border-color:var(--red);box-shadow:0 0 20px #ef444444;}
-
-/* ── LOADING SPINNER ── */
-.loading-overlay{
-  position:fixed;inset:0;background:#000000cc;z-index:3000;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .3s;
-}
-.loading-overlay.show{opacity:1;pointer-events:all;}
-.spinner{
-  width:50px;height:50px;border-radius:50%;
-  border:3px solid var(--border);border-top-color:var(--green);
-  animation:spin 1s linear infinite;margin-bottom:14px;
-}
-@keyframes spin{to{transform:rotate(360deg);}}
-.spin-text{font-size:13px;color:var(--text2);}
-
-/* ── RESPONSIVE ── */
-@media(max-width:400px){
-  .pay-grid{grid-template-columns:repeat(2,1fr);}
-  .cover-amount{font-size:24px;}
-}
-</style>
-
-
-<!-- 💳 PAYSTACK SDK -->
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>LuckySpin — Spin & Win Coins</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
 <script src="https://js.paystack.co/v1/inline.js"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3899764771871192" crossorigin="anonymous"></script>
+<style>
+:root{
+  --gold:#f5c518;--gold2:#e6b000;--gold-dim:rgba(245,197,24,0.14);--gold-glow:rgba(245,197,24,0.28);
+  --purple:#6c3ce1;--purple2:#5429c4;--purple-dim:rgba(108,60,225,0.15);
+  --green:#22c55e;--green2:#16a34a;--red:#ef4444;--red2:#dc2626;
+  --bg:#0e0b1e;--surface:#1a1630;--surface2:#241e42;--surface3:#2e2856;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text:#f1f0ff;--muted:rgba(241,240,255,0.5);--muted2:rgba(241,240,255,0.28);
+  --display:'Nunito',sans-serif;--body:'Inter',sans-serif;
+  --r:14px;--rsm:9px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
+button{cursor:pointer;font-family:var(--body);}
+input,textarea,select{font-family:var(--body);}
+
+/* HEADER */
+header{position:fixed;top:0;left:0;right:0;z-index:300;background:rgba(14,11,30,0.95);border-bottom:1px solid var(--border);backdrop-filter:blur(16px);}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:0 clamp(12px,3vw,24px);height:60px;max-width:560px;margin:0 auto;}
+.header-left{display:flex;align-items:center;gap:8px;}
+.header-logo-img{width:34px;height:34px;border-radius:10px;object-fit:cover;background:var(--gold-dim);}
+.header-title{font-family:var(--display);font-size:1.05rem;font-weight:900;color:var(--gold);letter-spacing:-0.01em;}
+.header-right{display:flex;align-items:center;gap:6px;}
+.header-balance{display:flex;flex-direction:column;align-items:flex-end;cursor:pointer;padding:4px 10px;border-radius:20px;background:var(--gold-dim);border:1px solid rgba(245,197,24,0.25);transition:all .2s;}
+.header-balance:hover{background:rgba(245,197,24,0.2);}
+.balance-label{font-size:0.52rem;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;font-weight:700;}
+.balance-val{font-family:var(--display);font-size:0.82rem;font-weight:800;color:var(--gold);}
+.icon-btn{width:36px;height:36px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;position:relative;transition:all .2s;}
+.icon-btn:hover{background:var(--surface3);border-color:var(--border2);}
+.icon-btn svg{width:18px;height:18px;fill:none;stroke:var(--text);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.notif-dot{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:50%;background:var(--red);border:2px solid var(--bg);display:none;}
+.notif-dot.show{display:block;}
+
+/* AD */
+.ad-banner{max-width:560px;margin:0 auto;padding:6px 12px;}
+
+/* MAIN */
+main{max-width:560px;margin:0 auto;padding:70px 12px 120px;}
+
+/* COIN BAR */
+.coin-bar{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:14px;}
+.coin-left{display:flex;align-items:center;gap:10px;}
+.coin-icon-wrap{width:38px;height:38px;border-radius:10px;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;}
+.coin-icon-wrap svg{width:22px;height:22px;}
+.coin-label{font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:1px;}
+.coin-amount{font-family:var(--display);font-size:1.1rem;font-weight:800;color:var(--gold);}
+.coin-right{display:flex;gap:7px;flex-wrap:wrap;}
+.btn-sm{font-size:0.72rem;font-weight:700;padding:7px 13px;border-radius:20px;border:none;transition:all .2s;}
+.btn-fund{background:var(--purple);color:#fff;}.btn-fund:hover{background:var(--purple2);}
+.btn-withdraw{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(245,197,24,0.3);}
+.btn-withdraw:hover{background:rgba(245,197,24,0.2);}
+.btn-hist{background:var(--surface2);border:1px solid var(--border2);color:var(--muted);}
+.btn-hist:hover{background:var(--surface3);color:var(--text);}
+
+/* FUND CARD */
+.fund-card{background:linear-gradient(135deg,var(--purple),#3b1fa8);border-radius:var(--r);padding:16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.fund-card-label{font-size:0.68rem;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;}
+.fund-card-amount{font-family:var(--display);font-size:1.5rem;font-weight:900;color:#fff;}
+.fund-card-sub{font-size:0.68rem;color:rgba(255,255,255,0.55);margin-top:2px;}
+.btn-add-fund{background:#fff;color:var(--purple);font-weight:800;font-size:0.8rem;padding:10px 18px;border-radius:30px;border:none;transition:all .2s;display:flex;align-items:center;gap:6px;}
+.btn-add-fund:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.3);}
+.btn-add-fund svg{width:16px;height:16px;}
+
+/* STAGE */
+.stage-section{margin-bottom:16px;}
+.stage-label{font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.stage-label span{color:var(--gold);font-weight:700;font-size:.8rem;}
+.stage-scroll{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
+.stage-scroll::-webkit-scrollbar{display:none;}
+.stage-pill{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:0.72rem;font-weight:700;border:1.5px solid var(--border2);background:var(--surface2);color:var(--muted);transition:all .2s;-webkit-tap-highlight-color:transparent;}
+.stage-pill.active{background:var(--purple);border-color:var(--purple);color:#fff;box-shadow:0 0 12px rgba(108,60,225,0.45);}
+.stage-pill.locked{opacity:.4;cursor:not-allowed;}
+.stage-pill.completed{border-color:var(--green);color:var(--green);background:rgba(34,197,94,0.08);}
+
+/* SPIN INTRO */
+.spin-intro{text-align:center;padding:10px 0 14px;}
+.spin-intro-title{font-family:var(--display);font-size:1.1rem;font-weight:800;color:var(--text);margin-bottom:4px;}
+.spin-intro-sub{font-size:0.78rem;color:var(--muted);line-height:1.55;}
+.spin-intro-cost{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;margin-top:8px;font-size:0.72rem;color:var(--muted);}
+.spin-intro-cost b{color:var(--gold);}
+
+/* WHEEL */
+.wheel-section{display:flex;flex-direction:column;align-items:center;margin-bottom:20px;position:relative;}
+.wheel-outer{position:relative;width:min(340px,90vw);height:min(340px,90vw);}
+.wheel-glow{position:absolute;inset:-20px;border-radius:50%;background:radial-gradient(circle,rgba(108,60,225,0.35) 0%,transparent 70%);animation:glowPulse 2.5s ease-in-out infinite;pointer-events:none;}
+@keyframes glowPulse{0%,100%{opacity:.7;}50%{opacity:1;}}
+canvas#wheelCanvas{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;cursor:pointer;filter:drop-shadow(0 0 20px rgba(108,60,225,0.5));}
+
+/* POINTER — sits inside wheel top, points DOWN into segments */
+.wheel-pointer{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:10;}
+.wheel-pointer svg{width:26px;height:32px;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.8));}
+
+/* CENTER BUTTON */
+.wheel-center-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:68px;height:68px;border-radius:50%;z-index:10;background:linear-gradient(135deg,var(--gold),var(--gold2));border:4px solid #fff;box-shadow:0 0 0 4px rgba(245,197,24,0.3),0 6px 24px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:var(--display);font-size:0.58rem;font-weight:900;color:#000;letter-spacing:.04em;text-transform:uppercase;transition:all .2s;-webkit-tap-highlight-color:transparent;}
+.wheel-center-btn svg{width:22px;height:22px;fill:none;stroke:#000;stroke-width:2.2;}
+.wheel-center-btn:hover:not(:disabled){transform:translate(-50%,-50%) scale(1.06);box-shadow:0 0 0 4px rgba(245,197,24,0.5),0 8px 28px rgba(0,0,0,0.5);}
+.wheel-center-btn:disabled{opacity:.6;cursor:not-allowed;}
+.wheel-center-btn.spinning svg{animation:spinIcon .5s linear infinite;}
+@keyframes spinIcon{to{transform:rotate(360deg);}}
+
+/* SPIN STATS */
+.spin-info-strip{display:flex;gap:12px;margin-top:14px;}
+.spin-stat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:10px 12px;text-align:center;}
+.spin-stat-val{font-family:var(--display);font-size:1rem;font-weight:800;color:var(--gold);}
+.spin-stat-lbl{font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:2px;}
+
+/* AUTO SPIN */
+.auto-spin-row{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:12px 16px;margin-top:12px;}
+.auto-spin-label{font-size:0.82rem;font-weight:600;}
+.auto-spin-sub{font-size:0.7rem;color:var(--muted);margin-top:2px;}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-track{position:absolute;inset:0;border-radius:12px;background:var(--surface3);cursor:pointer;transition:background .2s;}
+.toggle-track::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;}
+.toggle input:checked+.toggle-track{background:var(--green);}
+.toggle input:checked+.toggle-track::after{transform:translateX(20px);}
+
+/* RESULT PANEL */
+#result-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;max-height:0;opacity:0;transition:max-height .5s cubic-bezier(.4,0,.2,1),opacity .35s,margin .3s;margin-bottom:0;}
+#result-panel.open{max-height:280px;opacity:1;margin-bottom:16px;}
+.rp-inner{padding:20px;text-align:center;}
+.rp-icon{font-size:2.8rem;margin-bottom:8px;display:flex;align-items:center;justify-content:center;}
+.rp-icon svg{width:52px;height:52px;}
+.rp-title{font-family:var(--display);font-size:1.2rem;font-weight:800;margin-bottom:4px;}
+.rp-title.win{color:var(--gold);}.rp-title.lose{color:var(--red);}.rp-title.retry{color:var(--purple);}
+.rp-msg{font-size:0.82rem;color:var(--muted);line-height:1.55;margin-bottom:14px;}
+.rp-btn{padding:10px 24px;border-radius:30px;font-weight:700;font-size:0.85rem;border:none;transition:all .2s;}
+.rp-btn-continue{background:var(--gold);color:#000;}.rp-btn-continue:hover{background:var(--gold2);}
+.rp-btn-retry{background:var(--purple);color:#fff;}.rp-btn-retry:hover{background:var(--purple2);}
+
+/* COMMENTS */
+.comments-section{margin-top:24px;}
+.section-head{font-family:var(--display);font-size:1rem;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.section-head svg{width:18px;height:18px;fill:none;stroke:var(--gold);stroke-width:2;}
+.comment-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:14px;}
+.comment-form textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--rsm);color:var(--text);font-size:0.85rem;padding:10px 12px;resize:none;height:72px;outline:none;transition:border-color .2s;}
+.comment-form textarea:focus{border-color:rgba(108,60,225,0.5);}
+.comment-form textarea::placeholder{color:var(--muted2);}
+.comment-form-footer{display:flex;align-items:center;justify-content:space-between;margin-top:8px;}
+.btn-post{background:var(--purple);color:#fff;font-weight:700;font-size:0.8rem;padding:8px 18px;border-radius:20px;border:none;transition:all .2s;}
+.btn-post:hover{background:var(--purple2);}
+.rating-stars{display:flex;gap:3px;}
+.star-btn{background:none;border:none;padding:2px;}
+.star-btn svg{width:18px;height:18px;transition:all .15s;}
+.star-btn.active svg{fill:var(--gold);stroke:var(--gold);}
+.star-btn:not(.active) svg{fill:none;stroke:var(--muted2);}
+.comment-list{display:flex;flex-direction:column;gap:12px;}
+.comment-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;}
+.comment-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.comment-avatar{width:34px;height:34px;border-radius:50%;background:var(--purple-dim);border:2px solid var(--purple);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:0.85rem;font-weight:800;color:var(--purple);flex-shrink:0;}
+.comment-name{font-weight:700;font-size:0.85rem;}
+.comment-time{font-size:0.68rem;color:var(--muted2);}
+.comment-stars{display:flex;gap:2px;margin-left:auto;}
+.comment-stars svg{width:13px;height:13px;fill:var(--gold);stroke:var(--gold);}
+.comment-text{font-size:0.82rem;color:var(--muted);line-height:1.6;margin-bottom:10px;}
+.comment-actions{display:flex;gap:12px;}
+.comment-action-btn{display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--muted2);font-size:0.72rem;font-weight:600;transition:color .2s;padding:0;}
+.comment-action-btn:hover{color:var(--text);}
+.comment-action-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;}
+.comment-action-btn.liked svg{fill:var(--red);stroke:var(--red);}
+.replies{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:none;flex-direction:column;gap:8px;}
+.replies.open{display:flex;}
+.reply-card{background:var(--surface2);border-radius:var(--rsm);padding:10px 12px;display:flex;gap:8px;}
+.reply-avatar{width:26px;height:26px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;color:var(--muted);flex-shrink:0;}
+.reply-text{font-size:0.78rem;color:var(--muted);}
+.reply-name{font-weight:700;color:var(--text);margin-right:4px;}
+.reply-input-wrap{display:none;margin-top:8px;}
+.reply-input-wrap.open{display:flex;gap:6px;}
+.reply-input{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--rsm);color:var(--text);font-size:0.8rem;padding:7px 11px;outline:none;}
+.reply-input::placeholder{color:var(--muted2);}
+.btn-reply-send{background:var(--purple);color:#fff;font-size:0.72rem;font-weight:700;padding:7px 13px;border-radius:var(--rsm);border:none;}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.7);backdrop-filter:blur(5px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-sheet{background:var(--surface);border:1px solid var(--border2);border-radius:20px 20px 0 0;width:100%;max-width:560px;padding:24px 20px 40px;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);max-height:92vh;overflow-y:auto;}
+.modal-overlay.open .modal-sheet{transform:translateY(0);}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 18px;}
+.modal-title{font-family:var(--display);font-size:1.1rem;font-weight:800;color:var(--text);margin-bottom:6px;}
+.modal-sub{font-size:0.82rem;color:var(--muted);margin-bottom:20px;line-height:1.55;}
+.modal-close{position:absolute;top:18px;right:18px;width:30px;height:30px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:all .2s;}
+.modal-close:hover{background:var(--surface3);color:var(--text);}
+.mfg{margin-bottom:14px;}
+.mfl{display:block;font-size:0.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.mfi{width:100%;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--rsm);color:var(--text);font-size:0.88rem;padding:11px 13px;outline:none;transition:border-color .2s;}
+.mfi:focus{border-color:rgba(108,60,225,0.6);}
+.mfi::placeholder{color:var(--muted2);}
+select.mfi{appearance:none;}
+.mferr{font-size:.72rem;color:var(--red);margin-top:4px;display:none;}
+.mferr.show{display:block;}
+.mfbtn{width:100%;background:var(--purple);color:#fff;font-family:var(--body);font-size:.9rem;font-weight:700;padding:13px;border-radius:var(--rsm);border:none;transition:all .2s;margin-top:4px;}
+.mfbtn:hover{background:var(--purple2);}
+.mfbtn-gold{background:var(--gold);color:#000;}.mfbtn-gold:hover{background:var(--gold2);}
+.mflink{display:block;text-align:center;font-size:.8rem;color:var(--purple);cursor:pointer;margin-top:12px;transition:opacity .2s;}
+.mflink:hover{opacity:.7;}
+.mfdiv{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--muted2);font-size:.76rem;}
+.mfdiv::before,.mfdiv::after{content:'';flex:1;height:1px;background:var(--border);}
+.coin-conv{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:12px 14px;margin-bottom:14px;}
+.coin-conv-row{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;color:var(--muted);padding:4px 0;}
+.coin-conv-row b{color:var(--text);font-variant-numeric:tabular-nums;}
+.notif-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:13px 14px;margin-bottom:9px;cursor:pointer;transition:all .2s;}
+.notif-item.unread{border-left:3px solid var(--gold);}
+.notif-item-title{font-weight:700;font-size:.85rem;margin-bottom:3px;}
+.notif-item-body{font-size:.78rem;color:var(--muted);line-height:1.5;display:none;}
+.notif-item-body.open{display:block;}
+.notif-item-time{font-size:.65rem;color:var(--muted2);margin-top:4px;}
+
+/* DRAWER */
+#drawer{position:fixed;top:0;right:0;bottom:0;width:min(300px,88vw);background:var(--surface);border-left:1px solid var(--border);z-index:500;transform:translateX(105%);transition:transform .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow-y:auto;}
+#drawer.open{transform:translateX(0);}
+.drawer-head{padding:18px 18px 14px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;}
+.drawer-logo{font-family:var(--display);font-size:1rem;font-weight:900;color:var(--gold);}
+.drawer-close{width:28px;height:28px;border-radius:7px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:all .2s;}
+.drawer-close:hover{background:var(--surface3);color:var(--text);}
+.drawer-profile{padding:16px 18px;background:var(--purple-dim);border-bottom:1px solid var(--border);display:none;}
+.drawer-profile.show{display:block;}
+.drawer-avatar{width:52px;height:52px;border-radius:50%;background:var(--surface3);border:2px solid var(--purple);margin-bottom:8px;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:1.3rem;font-weight:800;color:var(--purple);overflow:hidden;}
+.drawer-avatar img{width:100%;height:100%;object-fit:cover;}
+.drawer-name{font-weight:700;font-size:.9rem;}
+.drawer-email{font-size:.72rem;color:var(--muted);}
+.drawer-body{padding:10px;flex:1;}
+.dr-item{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:9px;cursor:pointer;transition:background .2s;font-size:.87rem;font-weight:500;color:var(--muted);}
+.dr-item:hover{background:var(--surface2);color:var(--text);}
+.dr-item svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;flex-shrink:0;}
+.dr-sep{height:1px;background:var(--border);margin:6px 12px;}
+.drawer-signout{margin:10px;padding:10px;border-radius:9px;background:rgba(239,68,68,.07);border:1.5px solid rgba(239,68,68,.2);color:var(--red);font-size:.84rem;font-weight:600;display:none;text-align:center;transition:all .2s;}
+.drawer-signout.show{display:block;}
+.drawer-signout:hover{background:rgba(239,68,68,.13);}
+
+/* DIMMER */
+#dimmer{position:fixed;inset:0;z-index:490;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(2px);}
+#dimmer.on{opacity:1;pointer-events:all;}
+
+/* TOAST */
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(8px);z-index:900;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-size:.8rem;padding:9px 18px;border-radius:30px;opacity:0;pointer-events:none;transition:all .3s;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5);}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* LOADER */
+#loader{position:fixed;inset:0;z-index:999;background:rgba(14,11,30,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;opacity:0;pointer-events:none;transition:opacity .3s;}
+#loader.on{opacity:1;pointer-events:all;}
+.ld-ring{width:48px;height:48px;border:3px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ld-txt{font-family:var(--display);font-size:.88rem;font-weight:700;color:var(--gold);letter-spacing:.08em;}
+
+/* ABOUT */
+.about-body{font-size:.84rem;color:var(--muted);line-height:1.8;}
+.about-body h3{font-family:var(--display);font-size:.9rem;font-weight:700;color:var(--text);margin:16px 0 6px;}
+.about-body p{margin-bottom:10px;}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);z-index:200;background:rgba(14,11,30,.97);border-top:1px solid var(--border);display:flex;justify-content:space-around;align-items:center;padding:8px 0 max(8px,env(safe-area-inset-bottom));max-width:560px;width:100%;}
+.bnav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted2);font-size:.56rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;padding:4px 14px;border-radius:8px;transition:all .2s;-webkit-tap-highlight-color:transparent;}
+.bnav-item svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;}
+.bnav-item.active{color:var(--gold);}
+.bnav-item.active svg{stroke:var(--gold);}
+
+/* CONFETTI */
+.confetti-piece{position:fixed;width:8px;height:8px;border-radius:2px;animation:confettiFall 2s ease-in forwards;pointer-events:none;z-index:800;}
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
+
+/* HISTORY MODAL */
+.hist-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:14px;}
+.hist-tab{flex:1;padding:10px 8px;text-align:center;font-size:.78rem;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;}
+.hist-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.hist-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.hs-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:10px;text-align:center;}
+.hs-val{font-family:var(--display);font-size:.95rem;font-weight:800;}
+.hs-lbl{font-size:.62rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.07em;}
+.hist-list{display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow-y:auto;padding-right:2px;}
+.hist-list::-webkit-scrollbar{width:3px;}
+.hist-list::-webkit-scrollbar-thumb{background:var(--surface3);}
+.hist-item{display:flex;align-items:center;gap:11px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:11px 13px;}
+.hist-item.win{border-left:3px solid var(--gold);}
+.hist-item.fail{border-left:3px solid var(--red);}
+.hist-item.retry{border-left:3px solid var(--purple);}
+.hist-item.deposit{border-left:3px solid var(--green);}
+.hist-item.withdrawal{border-left:3px solid #f59e0b;}
+.hist-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.hist-icon.win{background:rgba(245,197,24,.12);}
+.hist-icon.fail{background:rgba(239,68,68,.12);}
+.hist-icon.retry{background:var(--purple-dim);}
+.hist-icon.deposit{background:rgba(34,197,94,.12);}
+.hist-icon.withdrawal{background:rgba(245,158,11,.12);}
+.hist-body{flex:1;min-width:0;}
+.hist-title{font-size:.82rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hist-sub{font-size:.7rem;color:var(--muted);margin-top:2px;}
+.hist-right{text-align:right;flex-shrink:0;}
+.hist-amount{font-family:var(--display);font-size:.9rem;font-weight:800;}
+.hist-amount.pos{color:var(--gold);}
+.hist-amount.neg{color:var(--red);}
+.hist-amount.dep{color:var(--green);}
+.hist-amount.wd{color:#f59e0b;}
+.hist-time{font-size:.62rem;color:var(--muted2);margin-top:2px;}
+.hist-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:.84rem;}
+
+/* CLAIM COIN SECTION */
+.claim-section{background:linear-gradient(135deg,rgba(245,197,24,0.12),rgba(245,197,24,0.04));border:1.5px solid rgba(245,197,24,0.3);border-radius:var(--r);padding:16px;margin-bottom:14px;}
+.claim-title{font-family:var(--display);font-size:.92rem;font-weight:800;color:var(--gold);margin-bottom:5px;display:flex;align-items:center;gap:7px;}
+.claim-desc{font-size:.78rem;color:var(--muted);margin-bottom:12px;line-height:1.55;}
+.claim-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.claim-info{font-size:.76rem;color:var(--muted);}
+.claim-info b{color:var(--gold);}
+.btn-claim{background:var(--gold);color:#000;font-family:var(--display);font-size:.82rem;font-weight:800;padding:10px 20px;border-radius:30px;border:none;transition:all .2s;box-shadow:0 2px 12px var(--gold-glow);}
+.btn-claim:hover{background:var(--gold2);transform:translateY(-1px);}
+.btn-claim:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+</style>
 </head>
 <body>
 
-<!-- ── HEADER ── -->
-<div id="header">
-  <button id="hamburger" onclick="openMenu()" aria-label="Menu">
-    <span></span><span></span><span></span>
-  </button>
-  <div class="header-logo">GoalRush Jackpot</div>
-  <div class="header-right">
-    <div id="header-balance" onclick="openDeposit()">₦ <span id="hdr-bal">0.00</span></div>
-    <button id="slip-counter-btn" onclick="openSlip()">
-      🎫 <span id="slip-count-txt">Bets</span>
-      <span id="slip-badge"></span>
+<div id="loader"><div class="ld-ring"></div><div class="ld-txt">LOADING…</div></div>
+<div id="toast"></div>
+<div id="dimmer" onclick="closeDimmer()"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="header-left">
+      <img src="logo.png" alt="LuckySpin" class="header-logo-img" onerror="this.style.display='none';document.getElementById('logo-fb').style.display='flex'"/>
+      <div id="logo-fb" style="display:none;width:34px;height:34px;border-radius:10px;background:var(--gold-dim);align-items:center;justify-content:center;">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#f5c518" stroke-width="2" stroke-linejoin="round"/></svg>
+      </div>
+      <span class="header-title">LuckySpin</span>
+    </div>
+    <div class="header-right">
+      <div class="header-balance" onclick="openModal('m-withdraw')">
+        <span class="balance-label">Balance</span>
+        <span class="balance-val" id="header-balance">₦0.00</span>
+      </div>
+      <button class="icon-btn" onclick="openModal('m-notifications')">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="notif-dot" id="notif-dot"></div>
+      </button>
+      <button class="icon-btn" onclick="openDrawer()">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- AD TOP -->
+<div class="ad-banner" style="padding-top:68px;">
+  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-3899764771871192" data-ad-slot="5050002840" data-ad-format="auto" data-full-width-responsive="true"></ins>
+</div>
+
+<main>
+
+  <!-- COIN BALANCE -->
+  <div class="coin-bar">
+    <div class="coin-left">
+      <div class="coin-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#f5c518" stroke-width="2"/><text x="12" y="16" text-anchor="middle" font-size="10" font-weight="900" fill="#f5c518">₦</text></svg>
+      </div>
+      <div>
+        <div class="coin-label">Coin Balance</div>
+        <div class="coin-amount" id="coin-display">0 Coins</div>
+      </div>
+    </div>
+    <div class="coin-right">
+      <button class="btn-sm btn-fund" onclick="openModal('m-fund')">Add Funds</button>
+      <button class="btn-sm btn-withdraw" onclick="openModal('m-withdraw')">Withdraw</button>
+      <button class="btn-sm btn-hist" onclick="openHistoryModal()">History</button>
+    </div>
+  </div>
+
+  <!-- CLAIM COINS SECTION -->
+  <div class="claim-section" id="claim-section" style="display:none;">
+    <div class="claim-title">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#f5c518" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      Claim Your Coins
+    </div>
+    <div class="claim-desc">You have coins ready to claim! All your spin winnings will be added to your coin balance and automatically converted to Naira value. Rate: 1,000 coins = ₦100.</div>
+    <div class="claim-row">
+      <div class="claim-info">
+        Coins to claim: <b id="claim-coins-val">0</b><br/>
+        Naira value: <b id="claim-naira-val">₦0.00</b>
+      </div>
+      <button class="btn-claim" id="claim-btn" onclick="claimAllCoins()">🪙 Claim All Coins</button>
+    </div>
+  </div>
+
+  <!-- FUND BALANCE -->
+  <div class="fund-card">
+    <div>
+      <div class="fund-card-label">Fund Balance</div>
+      <div class="fund-card-amount" id="fund-display">₦0.00</div>
+      <div class="fund-card-sub">1 spin = ₦50 · Min deposit ₦5,000</div>
+    </div>
+    <button class="btn-add-fund" onclick="openModal('m-fund')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Funds
     </button>
   </div>
-</div>
 
-<!-- ── BROADCAST BANNER ── -->
-<div id="broadcast-banner" style="display:none;position:sticky;top:60px;z-index:799;
-  background:linear-gradient(90deg,#0a2000,#142800);
-  border-bottom:2px solid var(--green);
-  padding:10px 16px;align-items:center;justify-content:space-between;gap:10px;
-  box-shadow:0 4px 20px #22c55e33;">
-  <div style="display:flex;align-items:center;gap:10px;flex:1;">
-    <span style="font-size:18px;">📢</span>
-    <span id="broadcast-banner-text" style="font-size:13px;font-weight:600;color:var(--green);line-height:1.5;"></span>
+  <!-- STAGE SELECTOR -->
+  <div class="stage-section">
+    <div class="stage-label">Select Stage <span id="current-stage-label">Stage 1 · Beginner</span></div>
+    <div class="stage-scroll" id="stage-scroll"></div>
   </div>
-  <button onclick="closeBroadcastBanner()" style="background:none;border:1px solid var(--green);
-    color:var(--green);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;
-    font-weight:700;flex-shrink:0;transition:all .2s;" onmouseover="this.style.background='var(--green)';this.style.color='#000'" onmouseout="this.style.background='none';this.style.color='var(--green)'">✕ Close</button>
-</div>
 
-<!-- ── MENU OVERLAY ── -->
-<div id="menu-overlay" onclick="closeMenu()"></div>
-<div id="menu-panel">
-  <div class="menu-header">
-    <h2>⚽ GoalRush</h2>
-    <button id="menu-close" onclick="closeMenu()">✕</button>
+  <!-- SPIN INTRO -->
+  <div class="spin-intro">
+    <div class="spin-intro-title" id="spin-intro-title">Stage 1 — Beginner</div>
+    <div class="spin-intro-sub" id="spin-intro-sub">🟢 Easy · 8 segments · 6 coin slots · 1 fail · 1 retry · Win range: 10–100 coins</div>
+    <div class="spin-intro-cost">Cost: <b>₦50 per spin</b> · Fund balance used</div>
   </div>
-  <div id="menu-user-block">
-    <span>Logged in as</span>
-    <strong id="menu-user-name">—</strong>
-  </div>
-  <div id="menu-items"></div>
-</div>
 
-<!-- ── COVER BANNER ── -->
-<div id="cover">
-  <div class="cover-inner">
-    <div class="cover-prize">Predict 14 matches — win</div>
-    <div class="cover-amount" id="cover-prize-amount">NGN 200,000,000</div>
-    <div class="cover-sub">🏆 Consolation prizes for 13 &amp; 12 correct!</div>
-    <div class="cover-actions">
-      <button class="cov-btn cov-deposit" onclick="openDeposit()">Deposit</button>
-      <button class="cov-btn cov-withdraw" onclick="openWithdraw()">Withdraw</button>
+  <!-- WHEEL -->
+  <div class="wheel-section">
+    <div class="wheel-outer">
+      <div class="wheel-glow"></div>
+      <!-- Arrow points DOWN into wheel segments -->
+      <div class="wheel-pointer">
+        <svg viewBox="0 0 28 32" fill="none">
+          <path d="M14 32 L26 6 L14 14 L2 6 Z" fill="#f5c518" stroke="#1a0a40" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="14" cy="32" r="3" fill="#f5c518" stroke="#1a0a40" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <canvas id="wheelCanvas" width="340" height="340"></canvas>
+      <button class="wheel-center-btn" id="spin-btn" onclick="spinWheel()">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+        </svg>
+        SPIN
+      </button>
+    </div>
+    <div class="spin-info-strip">
+      <div class="spin-stat"><div class="spin-stat-val" id="total-spins-val">0</div><div class="spin-stat-lbl">Total Spins</div></div>
+      <div class="spin-stat"><div class="spin-stat-val" id="stage-wins-val">0</div><div class="spin-stat-lbl">Stage Wins</div></div>
+      <div class="spin-stat"><div class="spin-stat-val" id="best-win-val">0</div><div class="spin-stat-lbl">Best Win</div></div>
+    </div>
+    <div class="auto-spin-row">
+      <div><div class="auto-spin-label">Auto Spin</div><div class="auto-spin-sub">Automatically spin after each result</div></div>
+      <label class="toggle"><input type="checkbox" id="auto-spin-toggle" onchange="toggleAutoSpin()"/><div class="toggle-track"></div></label>
     </div>
   </div>
-</div>
 
-<!-- ── COUNTDOWN ── -->
-<div id="countdown-section">
-  <div class="cd-label">⏱ Betting closes in</div>
-  <div class="cd-boxes">
-    <div class="cd-box"><span class="cd-num" id="cd-d">00</span><span class="cd-unit">Days</span></div>
-    <div class="cd-box"><span class="cd-num" id="cd-h">00</span><span class="cd-unit">Hours</span></div>
-    <div class="cd-box"><span class="cd-num" id="cd-m">00</span><span class="cd-unit">Mins</span></div>
-    <div class="cd-box"><span class="cd-num" id="cd-s">00</span><span class="cd-unit">Secs</span></div>
-  </div>
-</div>
+  <!-- RESULT PANEL -->
+  <div id="result-panel"><div class="rp-inner" id="rp-inner"></div></div>
 
-<!-- ── BETTING CLOSED BANNER ── -->
-<div id="betting-closed-banner">⛔ Betting is now CLOSED. Check back for the next round!</div>
-
-<!-- ── LOCK OVERLAY ── -->
-<div id="lock-overlay">
-  <div class="lock-box">
-    <div class="lock-icon">🔒</div>
-    <div class="lock-title">Betting Closed</div>
-    <div class="lock-sub">This round is now closed. Results will be published on Monday. Check back soon for the next round!</div>
-  </div>
-</div>
-
-<!-- ── TABS ── -->
-<div id="tabs-bar">
-  <button class="tab-btn active" onclick="switchTab('goalrush')">GoalRush 14</button>
-  <button class="tab-btn" onclick="switchTab('results')">Previous Results</button>
-  <button class="tab-btn" onclick="switchTab('howto')">❓ How to Play</button>
-</div>
-
-<!-- ── MATCH SECTION ── -->
-<div id="goalrush" class="section active">
-  <div id="matches-list"></div>
-</div>
-
-<!-- ── RESULTS SECTION ── -->
-<div id="results" class="section">
-  <div style="font-size:16px;font-weight:800;color:var(--gold);margin-bottom:14px;">⚽ GoalRush 14</div>
-
-  <!-- Round selector -->
-  <div style="margin-bottom:16px;">
-    <select id="results-round-sel" class="modal-input" onchange="renderSelectedRound()" style="background:#111827;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;width:100%;cursor:pointer;">
-      <option value="">[ Select a Round to view results ]</option>
-    </select>
+  <!-- AD MID -->
+  <div style="margin:16px 0;">
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-3899764771871192" data-ad-slot="5050002840" data-ad-format="auto" data-full-width-responsive="true"></ins>
   </div>
 
-  <!-- Results content -->
-  <div id="results-display">
-    <div style="text-align:center;color:var(--text3);padding:30px;font-size:13px;">
-      Select a round above to view results.
+  <!-- COMMENTS -->
+  <div class="comments-section">
+    <div class="section-head">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Community Comments
     </div>
-  </div>
-</div>
-
-<!-- ── HOW TO SECTION ── -->
-<div id="howto" class="section">
-  <div class="howto-box">
-    <h2>How to Play GoalRush 14</h2>
-    <p>The GoalRush 14 Jackpot consists of predicting the results of <strong>14 matches</strong> selected every week.</p>
-    <p>To take part, register and have at least <strong>₦100</strong> in your account. Correctly predict all 14 results to win the Super Jackpot!</p>
-    <p><strong>Making selections:</strong> Choose Home, Draw, or Away for each match. Each combination costs ₦100. Multiple picks per match increase combinations and stake.</p>
-    <p><strong>Deadline:</strong> Bets must be placed before <strong>14:00 Saturday (Nigeria time)</strong>. The countdown shows the time remaining.</p>
-    <p><strong>Results:</strong> Published every <strong>Monday afternoon</strong> in the Previous Results tab.</p>
-    <p><strong>GoalRush Pick:</strong> Auto-selects one random outcome per match at ₦100 stake. You can add more selections after.</p>
-    <p><strong>Prizes:</strong> 14 correct = Super Jackpot. 13 correct = 2nd Prize. 12 correct = 3rd Prize.</p>
-  </div>
-</div>
-
-<!-- ── STAKE BAR ── -->
-<div id="stake-bar">
-  <div class="stake-info">
-    Combos: <strong id="combo-count">0</strong> &nbsp;|&nbsp;
-    Stake: <strong id="stake-amt">₦0</strong>
-  </div>
-  <div class="stake-actions">
-    <button class="stake-btn sb-pick" onclick="goalRushPick()">🎲 Pick</button>
-    <button class="stake-btn sb-clear" onclick="clearAll()">Clear</button>
-    <button class="stake-btn sb-place" id="place-btn" onclick="placeBet()">Place Bet</button>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════
-     MODALS
-══════════════════════════════════════ -->
-
-<!-- CREATE ACCOUNT -->
-<div class="modal-overlay" id="create-modal">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="modal-title">👤 Create Account</div>
-    <input class="modal-input" id="ca-name" placeholder="Full Name"/>
-    <input class="modal-input" id="ca-email" placeholder="Email Address" type="email"/>
-    <input class="modal-input" id="ca-phone" placeholder="Phone (+2348012345678)" type="tel"/>
-    <input class="modal-input" id="ca-age" placeholder="Your Age (must be 18 or above)" type="number" min="1" max="120"/>
-    <select class="modal-input" id="ca-gender" style="background:#050d1a;color:var(--text);">
-      <option value="" disabled selected>Gender</option>
-      <option value="male">Male</option>
-      <option value="female">Female</option>
-      <option value="other">Other / Prefer not to say</option>
-    </select>
-    <div class="pw-wrap">
-      <input class="modal-input" id="ca-pw" placeholder="Password (min 6 chars)" type="password"/>
-      <span class="pw-toggle" onclick="togglePw('ca-pw',this)">👁️</span>
+    <div class="comment-form">
+      <div class="rating-stars" id="rating-stars" style="margin-bottom:8px;"></div>
+      <textarea id="comment-input" placeholder="Share your experience — tips, wins, thoughts…"></textarea>
+      <div class="comment-form-footer">
+        <span style="font-size:.72rem;color:var(--muted2);">Sign in to comment</span>
+        <button class="btn-post" onclick="postComment()">Post Comment</button>
+      </div>
     </div>
-    <div class="pw-wrap">
-      <input class="modal-input" id="ca-pw2" placeholder="Confirm Password" type="password"/>
-      <span class="pw-toggle" onclick="togglePw('ca-pw2',this)">👁️</span>
-    </div>
-    <button class="modal-btn mb-green" onclick="doSignup()">Create Account</button>
-    <button class="modal-btn mb-gray" onclick="closeModal('create-modal')">Cancel</button>
-    <div class="modal-msg" id="ca-msg"></div>
-    <div style="text-align:center;margin-top:8px;font-size:13px;color:var(--text2)">
-      Already have an account? <span class="modal-link" onclick="switchToLogin()">Login</span>
-    </div>
+    <div class="comment-list" id="comment-list"></div>
+  </div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="bnav-item active" onclick="scrollTo(0,0)">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
+  </div>
+  <div class="bnav-item" onclick="openModal('m-fund')">
+    <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Funds
+  </div>
+  <div class="bnav-item" onclick="openHistoryModal()">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>History
+  </div>
+  <div class="bnav-item" onclick="openDrawer()">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
   </div>
 </div>
 
-<!-- LOGIN -->
-<div class="modal-overlay" id="login-modal">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="modal-title">🔐 Login</div>
-    <input class="modal-input" id="li-email" placeholder="Email Address" type="email"/>
-    <div class="pw-wrap">
-      <input class="modal-input" id="li-pw" placeholder="Password" type="password"/>
-      <span class="pw-toggle" onclick="togglePw('li-pw',this)">👁️</span>
-    </div>
-    <button class="modal-btn mb-green" onclick="doLogin()">Login</button>
-    <button class="modal-btn mb-gray" onclick="closeModal('login-modal')">Cancel</button>
-    <div class="modal-msg" id="li-msg"></div>
-    <span class="modal-link" onclick="openForgot()">Forgot Password?</span>
-    <div style="text-align:center;margin-top:8px;font-size:13px;color:var(--text2)">
-      No account? <span class="modal-link" onclick="switchToSignup()">Create one</span>
-    </div>
+<!-- DRAWER -->
+<div id="drawer">
+  <div class="drawer-head"><div class="drawer-logo">LuckySpin</div><button class="drawer-close" onclick="closeDrawer()">✕</button></div>
+  <div class="drawer-profile" id="drawer-profile">
+    <div class="drawer-avatar" id="drawer-avatar">?</div>
+    <div class="drawer-name" id="drawer-name">Guest</div>
+    <div class="drawer-email" id="drawer-email"></div>
   </div>
+  <div class="drawer-body">
+    <div class="dr-item" id="dr-signin" onclick="closeDrawer();openModal('m-signin')"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>Sign In</div>
+    <div class="dr-item" id="dr-signup" onclick="closeDrawer();openModal('m-signup')"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Create Account</div>
+    <div class="dr-sep"></div>
+    <div class="dr-item" onclick="closeDrawer();openHistoryModal()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Transaction History</div>
+    <div class="dr-item" onclick="closeDrawer();openModal('m-notifications')"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Notifications</div>
+    <div class="dr-item" onclick="closeDrawer();openModal('m-about')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>About LuckySpin</div>
+    <div class="dr-item" onclick="closeDrawer();openModal('m-contact')"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Contact Us</div>
+    <div class="dr-item" onclick="closeDrawer();openModal('m-forgot')"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Forgot Password</div>
+  </div>
+  <button class="drawer-signout" id="drawer-signout" onclick="doSignOut()">Sign Out</button>
 </div>
 
-<!-- FORGOT PASSWORD -->
-<div class="modal-overlay" id="forgot-modal">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="modal-title">🔑 Reset Password</div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;text-align:center;line-height:1.6">Enter your registered email address. We'll send you a password reset link.</p>
-    <input class="modal-input" id="fp-email" placeholder="Email Address" type="email"/>
-    <button class="modal-btn mb-gold" onclick="doResetPw()">Send Reset Email</button>
-    <button class="modal-btn mb-gray" onclick="closeModal('forgot-modal')">Cancel</button>
-    <div class="modal-msg" id="fp-msg"></div>
-  </div>
-</div>
+<!-- ALL MODALS -->
 
-<!-- AUTH GATE (when not logged in and tries to bet/deposit/withdraw) -->
-<div class="modal-overlay" id="auth-gate-modal">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="modal-title">🎯 Almost There!</div>
-    <p style="text-align:center;color:var(--text2);font-size:14px;margin-bottom:18px;line-height:1.6">
-      Create a free account or login to place bets, deposit and withdraw funds.
-    </p>
-    <button class="modal-btn mb-green" onclick="closeModal('auth-gate-modal');openModal('create-modal')">👤 Create Account</button>
-    <button class="modal-btn mb-gray" onclick="closeModal('auth-gate-modal');openModal('login-modal')">🔐 Login</button>
-    <button class="modal-btn mb-gray" onclick="closeModal('auth-gate-modal')" style="opacity:.6">Maybe Later</button>
-  </div>
-</div>
+<!-- SIGN IN -->
+<div class="modal-overlay" id="m-signin"><div class="modal-sheet" style="position:relative;">
+  <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('m-signin')">✕</button>
+  <div class="modal-title">Welcome Back</div><div class="modal-sub">Sign in to your LuckySpin account.</div>
+  <div class="mfg"><label class="mfl">Email</label><input class="mfi" type="email" id="si-email" placeholder="your@email.com"/></div>
+  <div class="mfg"><label class="mfl">Password</label><input class="mfi" type="password" id="si-pass" placeholder="Your password"/><div class="mferr" id="si-err">Incorrect email or password.</div></div>
+  <button class="mfbtn" onclick="doSignIn()">Sign In</button>
+  <span class="mflink" onclick="switchModal('m-signin','m-forgot')">Forgot password?</span>
+  <div class="mfdiv">or</div>
+  <span class="mflink" onclick="switchModal('m-signin','m-signup')">Create a new account →</span>
+</div></div>
 
-<!-- DEPOSIT (Paystack) -->
-<div class="modal-overlay" id="deposit-method-modal">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="modal-title">💰 Deposit Funds</div>
-    <input class="modal-input" id="dep-amount" placeholder="Amount (₦)" type="number"/>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Min ₦100 · Max ₦100,000,000 · Pay by card or bank transfer via Paystack</div>
-    <button class="modal-btn mb-green" onclick="proceedDeposit()">Pay with Paystack →</button>
-    <button class="modal-btn mb-gray" onclick="closeModal('deposit-method-modal')">Cancel</button>
-    <div class="modal-msg" id="dep-msg"></div>
-    <div style="text-align:center;margin-top:8px;font-size:13px;color:var(--text2)">
-      Paid but not credited? <span class="modal-link" onclick="closeModal('deposit-method-modal');openModal('contact-modal')">Contact us</span>
-    </div>
-  </div>
-</div>
+<!-- SIGN UP -->
+<div class="modal-overlay" id="m-signup"><div class="modal-sheet" style="position:relative;">
+  <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('m-signup')">✕</button>
+  <div class="modal-title">Create Account</div><div class="modal-sub">Join LuckySpin and start winning coins!</div>
+  <div class="mfg"><label class="mfl">Full Name</label><input class="mfi" type="text" id="su-name" placeholder="Your name"/></div>
+  <div class="mfg"><label class="mfl">Email</label><input class="mfi" type="email" id="su-email" placeholder="your@email.com"/></div>
+  <div class="mfg"><label class="mfl">Password</label><input class="mfi" type="password" id="su-pass" placeholder="Min 6 characters"/><div class="mferr" id="su-err"></div></div>
+  <button class="mfbtn" onclick="doSignUp()">Create Account</button>
+  <span class="mflink" onclick="switchModal('m-signup','m-signin')">Already have an account? Sign In →</span>
+</div></div>
 
-<!-- CONTACT US -->
-<div class="modal-overlay" id="contact-modal">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="modal-title">📧 Contact Us</div>
-    <p style="text-align:center;color:var(--text2);font-size:14px;line-height:1.7;margin-bottom:16px">
-      Problem with a deposit or your account? Email us with your registered email and payment reference and we will fix it.
-    </p>
-    <a class="modal-btn mb-green" href="mailto:goalrushjackpot@gmail.com" style="display:block;text-align:center;text-decoration:none">goalrushjackpot@gmail.com</a>
-    <button class="modal-btn mb-gray" onclick="closeModal('contact-modal')">Close</button>
-  </div>
-</div>
+<!-- FORGOT -->
+<div class="modal-overlay" id="m-forgot"><div class="modal-sheet" style="position:relative;">
+  <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('m-forgot')">✕</button>
+  <div class="modal-title">Reset Password</div><div class="modal-sub">Enter your email — we'll send a reset link.</div>
+  <div class="mfg"><label class="mfl">Email</label><input class="mfi" type="email" id="fp-email" placeholder="your@email.com"/><div class="mferr" id="fp-err"></div></div>
+  <button class="mfbtn" onclick="doForgotPass()">Send Reset Link</button>
+  <span class="mflink" onclick="switchModal('m-forgot','m-signin')">← Back to Sign In</span>
+</div></div>
+
+<!-- ADD FUNDS -->
+<div class="modal-overlay" id="m-fund"><div class="modal-sheet" style="position:relative;">
+  <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('m-fund')">✕</button>
+  <div class="modal-title">Add Funds</div><div class="modal-sub">Minimum deposit ₦5,000. Used for spinning (₦50 per spin).</div>
+  <div class="mfg"><label class="mfl">Amount (₦)</label><input class="mfi" type="number" id="fund-amount" placeholder="e.g. 5000" min="5000"/><div class="mferr" id="fund-err">Minimum deposit is ₦5,000.</div></div>
+  <div class="mfg"><label class="mfl">Email for Receipt</label><input class="mfi" type="email" id="fund-email" placeholder="your@email.com"/></div>
+  <button class="mfbtn mfbtn-gold" onclick="doFundPaystack()">💳 Pay with Paystack</button>
+  <div style="text-align:center;font-size:.72rem;color:var(--muted2);margin-top:10px;">🔐 Secured by Paystack</div>
+</div></div>
 
 <!-- WITHDRAW -->
-<div class="modal-overlay" id="withdraw-modal">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="modal-title">💸 Withdraw Funds</div>
-    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;text-align:center">
-      <div style="font-size:12px;color:var(--text3)">Available Balance</div>
-      <div style="font-size:22px;font-weight:900;color:var(--green)" id="wd-balance">₦0.00</div>
+<div class="modal-overlay" id="m-withdraw"><div class="modal-sheet" style="position:relative;">
+  <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('m-withdraw')">✕</button>
+  <div class="modal-title">Withdraw Coins</div>
+  <div class="modal-sub">Convert your coins to Naira and withdraw to your bank. Rate: 1,000 coins = ₦100.</div>
+  <div class="coin-conv">
+    <div class="coin-conv-row"><span>Your Coin Balance</span><b id="wd-coin-bal">0 Coins</b></div>
+    <div class="coin-conv-row"><span>Conversion Rate</span><b>1,000 coins = ₦100</b></div>
+    <div class="coin-conv-row"><span>Minimum Withdrawal</span><b>1,000 coins (₦100)</b></div>
+    <div class="coin-conv-row"><span>Full Balance Value</span><b id="wd-naira-est">₦0.00</b></div>
+  </div>
+  <div class="mfg"><label class="mfl">Bank Name</label>
+    <select class="mfi" id="wd-bank">
+      <option value="">Select your bank</option>
+      <option>Access Bank</option><option>First Bank</option><option>GTBank</option>
+      <option>Zenith Bank</option><option>UBA</option><option>Fidelity Bank</option>
+      <option>FCMB</option><option>Sterling Bank</option><option>Union Bank</option>
+      <option>Wema Bank</option><option>Opay</option><option>Kuda Bank</option>
+      <option>Palmpay</option><option>Moniepoint</option><option>Other</option>
+    </select></div>
+  <div class="mfg"><label class="mfl">Account Number</label><input class="mfi" type="text" id="wd-acct" placeholder="10-digit account number" maxlength="10"/></div>
+  <div class="mfg"><label class="mfl">Coins to Withdraw (min 1,000)</label>
+    <input class="mfi" type="number" id="wd-coins" placeholder="Enter coins amount" min="1000" oninput="calcWithdraw()"/>
+    <div style="font-size:.72rem;color:var(--muted);margin-top:4px;">= ₦<span id="wd-calc">0.00</span></div>
+    <div class="mferr" id="wd-err"></div></div>
+  <button class="mfbtn mfbtn-gold" onclick="doWithdraw()">Withdraw Coins</button>
+</div></div>
+
+<!-- NOTIFICATIONS -->
+<div class="modal-overlay" id="m-notifications"><div class="modal-sheet" style="position:relative;">
+  <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('m-notifications')">✕</button>
+  <div class="modal-title">Notifications</div>
+  <div id="notif-list"><div style="text-align:center;padding:30px;color:var(--muted);font-size:.85rem;">No notifications yet.</div></div>
+</div></div>
+
+<!-- HISTORY -->
+<div class="modal-overlay" id="m-history"><div class="modal-sheet" style="position:relative;">
+  <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('m-history')">✕</button>
+  <div class="modal-title">Transaction History</div>
+  <div class="hist-tabs">
+    <div class="hist-tab active" onclick="switchHistTab('all',this)">All</div>
+    <div class="hist-tab" onclick="switchHistTab('spins',this)">Spins</div>
+    <div class="hist-tab" onclick="switchHistTab('deposits',this)">Deposits</div>
+    <div class="hist-tab" onclick="switchHistTab('withdrawals',this)">Withdrawals</div>
+  </div>
+  <div class="hist-summary">
+    <div class="hs-box"><div class="hs-val" id="hs-spins" style="color:var(--purple);">0</div><div class="hs-lbl">Spins</div></div>
+    <div class="hs-box"><div class="hs-val" id="hs-deposited" style="color:var(--green);">₦0</div><div class="hs-lbl">Deposited</div></div>
+    <div class="hs-box"><div class="hs-val" id="hs-won" style="color:var(--gold);">0</div><div class="hs-lbl">Coins Won</div></div>
+  </div>
+  <div class="hist-list" id="hist-list"></div>
+</div></div>
+
+<!-- ABOUT -->
+<div class="modal-overlay" id="m-about"><div class="modal-sheet" style="position:relative;">
+  <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('m-about')">✕</button>
+  <div class="modal-title">About LuckySpin</div>
+  <div class="about-body">
+    <p><strong style="color:var(--text);">LuckySpin</strong> is Nigeria's most exciting coin-based spin-and-win platform. Spin the wheel, win coins, and convert them into real Naira rewards.</p>
+    <h3>How It Works</h3>
+    <p>Fund your account (min ₦5,000), then spin the wheel. Each spin costs ₦50. Win coins credited to your balance. Withdraw coins to your bank — 1,000 coins = ₦100.</p>
+    <h3>Claim Coins</h3>
+    <p>After winning coins on the wheel, use the Claim Coins button to move all your winnings into your coin balance. The system automatically calculates the exact Naira value (1,000 coins = ₦100).</p>
+    <h3>Stages</h3>
+    <p>Start at Stage 1 for easier wins. Progress to higher stages for bigger prizes with tougher obstacles. Return to earlier stages anytime.</p>
+    <h3>Wheel Segments</h3>
+    <p>🟡 <strong style="color:var(--gold);">Coins</strong> — Win coins added to your balance.<br/>
+    ✕ <strong style="color:var(--red);">Fail</strong> — No coins this spin.<br/>
+    🔁 <strong style="color:var(--purple);">Retry</strong> — Free respin at no cost!</p>
+    <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:12px;font-size:.72rem;color:var(--muted2);">
+      Version 2.0 · © LuckySpin 2026 · Spin responsibly.
     </div>
-    <input class="modal-input" id="wd-bank" placeholder="Bank Name"/>
-    <input class="modal-input" id="wd-account" placeholder="Account Number" type="tel" maxlength="10"/>
-    <input class="modal-input" id="wd-amount" placeholder="Amount (₦)" type="number"/>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Min ₦100,000 · Max ₦100,000,000</div>
-    <button class="modal-btn mb-gold" onclick="doWithdraw()">Submit Withdrawal</button>
-    <button class="modal-btn mb-gray" onclick="closeModal('withdraw-modal')">Cancel</button>
-    <div class="modal-msg" id="wd-msg"></div>
   </div>
-</div>
+</div></div>
 
-<!-- CONFIRM BET -->
-<div class="modal-overlay" id="confirm-bet-modal">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="modal-title">✅ Confirm Your Bet</div>
-    <div class="confirm-row"><span class="cr-label">Combinations</span><span class="cr-val gold" id="cb-combo">0</span></div>
-    <div class="confirm-row"><span class="cr-label">Total Stake</span><span class="cr-val gold" id="cb-stake">₦0</span></div>
-    <div class="confirm-row"><span class="cr-label">Your Balance</span><span class="cr-val" id="cb-balance">₦0</span></div>
-    <div class="confirm-row"><span class="cr-label">Balance After</span><span class="cr-val green" id="cb-after">₦0</span></div>
-    <div style="margin-top:6px"></div>
-    <button class="modal-btn mb-green" onclick="doPlaceBet()">✅ Confirm &amp; Place Bet</button>
-    <button class="modal-btn mb-gray" onclick="closeModal('confirm-bet-modal')">Cancel</button>
-  </div>
-</div>
-
-<!-- MY BETS SLIP -->
-<div class="modal-overlay" id="slip-modal">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <div class="modal-title">🎫 My Bets</div>
-    <div id="slip-content"></div>
-    <button class="modal-btn mb-gray" onclick="closeModal('slip-modal')" style="margin-top:10px">Close</button>
-  </div>
-</div>
-
-<!-- SUCCESS POPUP -->
-<div id="success-popup">
-  <div class="sp-icon" id="sp-icon">✅</div>
-  <div class="sp-title" id="sp-title">Success!</div>
-  <div class="sp-msg" id="sp-msg"></div>
-</div>
-
-<!-- LOADING -->
-<div class="loading-overlay" id="loading">
-  <div class="spinner"></div>
-  <div class="spin-text" id="loading-text">Processing...</div>
-</div>
-
-<!-- NOTIFICATION -->
-<div id="notif"></div>
+<!-- CONTACT -->
+<div class="modal-overlay" id="m-contact"><div class="modal-sheet" style="position:relative;">
+  <div class="modal-handle"></div><button class="modal-close" onclick="closeModal('m-contact')">✕</button>
+  <div class="modal-title">Contact Us</div><div class="modal-sub">We usually respond within 24 hours.</div>
+  <div class="mfg"><label class="mfl">Your Name</label><input class="mfi" type="text" id="ct-name" placeholder="Your full name"/></div>
+  <div class="mfg"><label class="mfl">Email</label><input class="mfi" type="email" id="ct-email" placeholder="your@email.com"/></div>
+  <div class="mfg"><label class="mfl">Subject</label>
+    <select class="mfi" id="ct-subject"><option>General Enquiry</option><option>Withdrawal Issue</option><option>Account Problem</option><option>Bug Report</option><option>Other</option></select></div>
+  <div class="mfg"><label class="mfl">Message</label>
+    <textarea class="mfi" id="ct-msg" style="height:96px;resize:vertical;" placeholder="Describe your issue…"></textarea>
+    <div class="mferr" id="ct-err"></div></div>
+  <button class="mfbtn" onclick="doContact()">Send Message</button>
+</div></div>
 
 <script>
-// ════════════════════════════════════════════════════════
-//  🔥 FIREBASE CONFIG
-// ════════════════════════════════════════════════════════
-var _FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDDgcOPxwXS8P5kAvmcqaRd8nTCl2a3Q4E",
-  authDomain: "goalrushjackpot.firebaseapp.com",
-  projectId: "goalrushjackpot",
-  storageBucket: "goalrushjackpot.firebasestorage.app",
-  messagingSenderId: "996412041306",
-  appId: "1:996412041306:web:99bb7a5092c958b0055063",
-  measurementId: "G-FDNDS7FDCD"
-};
+/* ═══════════════════════════════════════════
+   LuckySpin JS — Complete Fixed Version
+═══════════════════════════════════════════ */
 
-// ── In-memory cache (replaces localStorage entirely) ──
-var _cache = {
-  cu: null,          // current user key (phone)
-  cuUid: null,       // current user Firebase UID
-  cuData: null,      // current user profile object
-  matches: null,     // array of 14 matches from Firestore
-  prizes: null,      // prize settings object
-  countdown: null,   // countdown config object
-  publishedRounds: [],// array of published result rounds
-  tickets: [],       // current user's tickets
-  broadcast: null,   // broadcast object
-};
+// FIREBASE
+const firebaseConfig={apiKey:"AIzaSyC334zY1OsZrXDQPtacYud-a0HWISHQsRo",authDomain:"spinning-cefb1.firebaseapp.com",projectId:"spinning-cefb1",storageBucket:"spinning-cefb1.firebasestorage.app",messagingSenderId:"220141879267",appId:"1:220141879267:web:9313d7666989c8c08fead6",measurementId:"G-NK9HPYN904"};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
+const db=firebase.firestore();
+const PK='pk_live_4ff37d15381d1d12c78fd66f7bc86beb64c59415';
 
-// ── Restore session from sessionStorage on reload ──
-try {
-  var _ss = sessionStorage.getItem('grj_session');
-  if(_ss){ var _sd = JSON.parse(_ss); _cache.cu = _sd.cu||null; _cache.cuUid = _sd.uid||null; }
-} catch(e){}
-
-function _saveSession(){ try{ sessionStorage.setItem('grj_session', JSON.stringify({cu:_cache.cu, uid:_cache.cuUid})); }catch(e){} }
-function _clearSession(){ _cache.cu=null; _cache.cuUid=null; _cache.cuData=null; _cache.tickets=[]; try{ sessionStorage.removeItem('grj_session'); }catch(e){} }
-
-// ════════════════════════════════════════════════════════
-//  FIREBASE INIT — _fbReady resolves when Firebase is up
-// ════════════════════════════════════════════════════════
-window._fbReady = (async function(){
-  try{
-    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-    const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-            signOut, onAuthStateChanged, sendPasswordResetEmail }
-      = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
-    const { getFirestore, doc, setDoc, getDoc, updateDoc,
-            collection, getDocs, addDoc, serverTimestamp, query, where, deleteDoc, increment, writeBatch }
-      = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-
-    const app  = initializeApp(_FIREBASE_CONFIG);
-    const auth = getAuth(app);
-    const db   = getFirestore(app);
-
-    window._FB   = true;
-    window._auth = auth;
-    window._db   = db;
-    window._F    = { doc, setDoc, getDoc, updateDoc, collection, getDocs,
-                     addDoc, serverTimestamp, query, where, deleteDoc, increment, writeBatch,
-                     createUserWithEmailAndPassword, signInWithEmailAndPassword,
-                     signOut, onAuthStateChanged, sendPasswordResetEmail };
-
-    // ── Restore session: reload profile + tickets from Firestore on page load ──
-    onAuthStateChanged(auth, async function(fbUser){
-      if(fbUser){
-        _cache.cuUid = fbUser.uid;
-        _saveSession();
-        var snap = await getDoc(doc(db,'users',fbUser.uid));
-        if(snap.exists()){
-          _cache.cuData = snap.data();
-          if(_cache.cuData.archived||_cache.cuData.disabled||_cache.cuData.status==='banned'){ await signOut(auth); return; }
-          _cache.cu     = _cache.cuData.phone || fbUser.uid;
-          _saveSession();
-          await _loadMyTickets();
-        }
-        updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
-      } else {
-        _clearSession();
-        updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
-      }
-    });
-
-    console.log('✅ Firebase ready');
-    return true;
-  }catch(e){
-    console.error('Firebase init failed:', e);
-    window._FB = false;
-    return false;
-  }
-})();
-
-// ════════════════════════════════════════════════════════
-//  FIRESTORE HELPERS
-// ════════════════════════════════════════════════════════
-
-// ── Load current user tickets from Firestore ──
-async function _loadMyTickets(){
-  if(!_cache.cu || !window._db) return;
-  try{
-    var snap = await window._F.getDocs(
-      window._F.query(window._F.collection(window._db,'tickets'),
-        window._F.where('userUid','==',_cache.cuUid))
-    );
-    _cache.tickets = [];
-    snap.forEach(function(d){ _cache.tickets.push(d.data()); });
-    _cache.tickets.sort(function(a,b){ return (b.created||'').localeCompare(a.created||''); });
-  }catch(e){ console.warn('loadMyTickets:', e); }
-}
-
-// ── Load app settings (matches, prizes, countdown, broadcast, rounds) ──
-async function _loadAppData(){
-  var fbOk = await window._fbReady;
-  if(!fbOk || !window._db) return;
-  try{
-    // Matches
-    var ms = await window._F.getDoc(window._F.doc(window._db,'app_settings','matches'));
-    if(ms.exists() && ms.data().matches && ms.data().matches.length){
-      if(JSON.stringify(ms.data().matches)!==JSON.stringify(_cache.matches)){
-        _cache.matches = ms.data().matches;
-        renderMatches();
-      }
-    }
-    // Prizes
-    var ps = await window._F.getDoc(window._F.doc(window._db,'app_settings','prizes'));
-    if(ps.exists()){ _cache.prizes = ps.data(); loadCoverPrize(); }
-    // Countdown
-    var cs = await window._F.getDoc(window._F.doc(window._db,'app_settings','countdown'));
-    if(cs.exists()){ _cache.countdown = cs.data(); startCountdown(); }
-    // Broadcast
-    var bs = await window._F.getDoc(window._F.doc(window._db,'app_settings','broadcast'));
-    if(bs.exists() && bs.data().message){ _cache.broadcast = bs.data(); checkBroadcast(); }
-    // Published rounds
-    var rs = await window._F.getDocs(window._F.collection(window._db,'published_rounds'));
-    _cache.publishedRounds = [];
-    rs.forEach(function(d){ _cache.publishedRounds.push(d.data()); });
-    _cache.publishedRounds.sort(function(a,b){ return (a.savedAt||'').localeCompare(b.savedAt||''); });
-    _renderRoundsDropdown(_cache.publishedRounds);
-    // Also refresh current user balance
-    if(_cache.cu && _cache.cuUid && window._db){
-      var us = await window._F.getDoc(window._F.doc(window._db,'users',_cache.cuUid));
-      if(us.exists()){ _cache.cuData = us.data(); updateHeaderBalance(); }
-    }
-  }catch(e){ console.warn('_loadAppData:', e); }
-}
-
-// ── Balance helpers: atomic increment so admin funding is never overwritten ──
-async function _refreshMe(){
-  if(!_cache.cuUid||!window._db) return;
-  try{
-    var s=await window._F.getDoc(window._F.doc(window._db,'users',_cache.cuUid));
-    if(s.exists()){ _cache.cuData=s.data(); updateHeaderBalance(); }
-  }catch(e){ console.warn('refreshMe:',e); }
-}
-async function _adjustBalance(delta){
-  var F=window._F, r=F.doc(window._db,'users',_cache.cuUid);
-  await F.updateDoc(r,{balance:F.increment(delta),lastUpdated:new Date().toISOString()});
-  await _refreshMe();
-}
-
-// ── Get matches (from cache, or default) ──
-var DEFAULT_MATCHES = [
-  {time:'2025-09-03 06:34',home:'Bournemouth',away:'Brighton'},
-  {time:'2025-09-03 01:20',home:'Arsenal',away:'Liverpool'},
-  {time:'2025-09-03 14:00',home:'Chelsea',away:'Man City'},
-  {time:'2025-09-03 14:00',home:'Tottenham',away:'Everton'},
-  {time:'2025-09-03 14:00',home:'Aston Villa',away:'Newcastle'},
-  {time:'2025-09-03 14:00',home:'West Ham',away:'Wolves'},
-  {time:'2025-09-03 14:00',home:'Leeds',away:'Southampton'},
-  {time:'2025-09-03 14:00',home:'Leicester',away:'Fulham'},
-  {time:'2025-09-03 14:00',home:'Crystal Palace',away:'Brentford'},
-  {time:'2025-09-03 14:00',home:'Burnley',away:'Norwich'},
-  {time:'2025-09-03 14:00',home:'Sheff Utd',away:'Stoke'},
-  {time:'2025-09-03 14:00',home:'Swansea',away:'Cardiff'},
-  {time:'2025-09-03 14:00',home:'Celtic',away:'Rangers'},
-  {time:'2025-09-03 14:00',home:'PSG',away:'Marseille'},
+// STAGES
+const STAGES=[
+  {id:1,name:"Beginner",coinTarget:0,segments:[{type:'coin',value:10,label:'10'},{type:'coin',value:30,label:'30'},{type:'coin',value:50,label:'50'},{type:'coin',value:10,label:'10'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:30,label:'30'},{type:'retry',value:0,label:'RETRY'},{type:'coin',value:100,label:'100'}]},
+  {id:2,name:"Starter",coinTarget:500,segments:[{type:'coin',value:30,label:'30'},{type:'coin',value:50,label:'50'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:100,label:'100'},{type:'coin',value:30,label:'30'},{type:'x',value:0,label:'FAIL'},{type:'retry',value:0,label:'RETRY'},{type:'coin',value:1000,label:'1K'}]},
+  {id:3,name:"Apprentice",coinTarget:2000,segments:[{type:'coin',value:50,label:'50'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:100,label:'100'},{type:'retry',value:0,label:'RETRY'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:1000,label:'1K'},{type:'coin',value:100,label:'100'},{type:'x',value:0,label:'FAIL'}]},
+  {id:4,name:"Explorer",coinTarget:5000,segments:[{type:'coin',value:100,label:'100'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:1000,label:'1K'},{type:'retry',value:0,label:'RETRY'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:1000,label:'1K'},{type:'coin',value:10000,label:'10K'}]},
+  {id:5,name:"Challenger",coinTarget:15000,segments:[{type:'x',value:0,label:'FAIL'},{type:'coin',value:1000,label:'1K'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:10000,label:'10K'},{type:'retry',value:0,label:'RETRY'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:30000,label:'30K'}]},
+  {id:6,name:"Adventurer",coinTarget:40000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:10000,label:'10K'},{type:'x',value:0,label:'FAIL'},{type:'retry',value:0,label:'RETRY'},{type:'coin',value:30000,label:'30K'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:50000,label:'50K'}]},
+  {id:7,name:"Warrior",coinTarget:80000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:30000,label:'30K'},{type:'retry',value:0,label:'RETRY'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:50000,label:'50K'},{type:'coin',value:100000,label:'100K'}]},
+  {id:8,name:"Champion",coinTarget:150000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:50000,label:'50K'},{type:'x',value:0,label:'FAIL'},{type:'retry',value:0,label:'RETRY'},{type:'coin',value:100000,label:'100K'},{type:'x',value:0,label:'FAIL'}]},
+  {id:9,name:"Elite",coinTarget:300000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:100000,label:'100K'},{type:'retry',value:0,label:'RETRY'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:500000,label:'500K'}]},
+  {id:10,name:"Master",coinTarget:600000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:500000,label:'500K'},{type:'retry',value:0,label:'RETRY'},{type:'coin',value:1000000,label:'1M'}]},
+  {id:11,name:"Grand Master",coinTarget:1500000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:1000000,label:'1M'},{type:'retry',value:0,label:'RETRY'},{type:'coin',value:5000000,label:'5M'}]},
+  {id:12,name:"Legend",coinTarget:5000000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:5000000,label:'5M'},{type:'retry',value:0,label:'RETRY'},{type:'coin',value:10000000,label:'10M'}]},
+  {id:13,name:"Myth",coinTarget:10000000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:10000000,label:'10M'},{type:'retry',value:0,label:'RETRY'}]},
+  {id:14,name:"Immortal",coinTarget:20000000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:30000000,label:'30M'},{type:'retry',value:0,label:'RETRY'}]},
+  {id:15,name:"Divine",coinTarget:40000000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:50000000,label:'50M'},{type:'retry',value:0,label:'RETRY'}]},
+  {id:16,name:"Cosmic",coinTarget:80000000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'retry',value:0,label:'RETRY'},{type:'coin',value:100000000,label:'100M'}]},
+  {id:17,name:"Titan",coinTarget:150000000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:100000000,label:'100M'}]},
+  {id:18,name:"Celestial",coinTarget:250000000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:50000000,label:'50M'}]},
+  {id:19,name:"Eternal",coinTarget:400000000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'coin',value:100000000,label:'100M'}]},
+  {id:20,name:"GODMODE",coinTarget:600000000,segments:[{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'x',value:0,label:'FAIL'},{type:'retry',value:0,label:'RETRY'},{type:'coin',value:100000000,label:'100M'}]},
 ];
-function getMatches(){ return _cache.matches || DEFAULT_MATCHES; }
 
-// ── CONSTANTS ──
-var PAYSTACK_KEY='pk_live_4ff37d15381d1d12c78fd66f7bc86beb64c59415';
+// STATE
+let currentUser=null;
+let userData={coins:0,fundBalance:0,totalSpins:0,stageWins:{},bestWin:0,currentStage:1,completedStages:[],pendingCoins:0};
+let currentStageId=1;
+let isSpinning=false,autoSpin=false,autoSpinTimer=null,wheelAngle=0,commentRating=5;
 
-// ── STATE ──
-var _combo=0,_stake=0,_allSel=false;
-var _cdInterval=null,_cdSecs=0;
+// CANVAS
+const canvas=document.getElementById('wheelCanvas');
+const ctx=canvas.getContext('2d');
+const W=canvas.width,H=canvas.height,CX=W/2,CY=H/2,R=W/2-8;
 
-// ════════════════════════════════════════════════════════
-//  BOOT
-// ════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded',function(){
-  renderMatches(); // show defaults immediately
-  updateMenuItems();
-  updateHeaderBalance();
-  updateSlipBadge();
-  startCountdown();
-  loadCoverPrize();
-  loadResultsRounds();
-  checkBroadcast();
-  // Load everything from Firestore
-  _loadAppData().then(function(){
-    startCountdown(); // restart with Firebase countdown
-    updateMenuItems();
-    updateHeaderBalance();
-    updateSlipBadge();
-    if(_cache.cu) _loadMyTickets();
-  });
-  // Refresh every 60s and on tab focus
-  setInterval(_loadAppData, 60000);
-  document.addEventListener('visibilitychange',function(){
-    if(document.visibilityState==='visible') _loadAppData();
-  });
-});
+// IMAGE PRELOAD
+const IMG_NORMAL=new Image();const IMG_LUCKY=new Image();let imagesLoaded=0;
+function onImgLoad(){imagesLoaded++;if(imagesLoaded>=2)drawWheel();}
+IMG_NORMAL.onload=IMG_NORMAL.onerror=onImgLoad;
+IMG_LUCKY.onload=IMG_LUCKY.onerror=onImgLoad;
+IMG_NORMAL.src='image.jpg';IMG_LUCKY.src='imagelucky.jpg';
 
-// ── PRIZE DISPLAY ──
-function loadCoverPrize(){
-  var el=document.getElementById('cover-prize-amount');
-  if(!el) return;
-  var j = _cache.prizes && _cache.prizes.jackpot ? Number(_cache.prizes.jackpot) : 0;
-  el.textContent = j>0 ? 'NGN '+j.toLocaleString() : 'NGN 200,000,000';
-}
+const SEG_COLORS={coin_small:['#2d1b69','#3d2599','#1e1050','#4a30b0'],coin_big:['#1a3a1a','#1e4d1e','#163016','#245024'],x:['#4a0e0e','#6b1414','#3b0a0a','#5c1010'],retry:['#0e3a4a','#145a6b','#0a2d3b','#10485c']};
+function getSegColor(seg,idx){if(seg.type==='x')return SEG_COLORS.x[idx%4];if(seg.type==='retry')return SEG_COLORS.retry[idx%4];if(seg.value>=10000)return SEG_COLORS.coin_big[idx%4];return SEG_COLORS.coin_small[idx%4];}
+function drawSegImg(img,sa,ea,fb){ctx.save();ctx.beginPath();ctx.moveTo(CX,CY);ctx.arc(CX,CY,R,sa,ea);ctx.closePath();ctx.clip();if(img.complete&&img.naturalWidth>0){const s=R*2;ctx.globalAlpha=0.55;ctx.drawImage(img,CX-R,CY-R,s,s);ctx.globalAlpha=1;ctx.beginPath();ctx.moveTo(CX,CY);ctx.arc(CX,CY,R,sa,ea);ctx.closePath();ctx.fillStyle=fb;ctx.globalAlpha=0.5;ctx.fill();ctx.globalAlpha=1;}else{ctx.beginPath();ctx.moveTo(CX,CY);ctx.arc(CX,CY,R,sa,ea);ctx.closePath();ctx.fillStyle=fb;ctx.fill();}ctx.restore();}
 
-// ── BROADCAST ──
-var _lastBroadcastSeen=0;
-function checkBroadcast(){
-  var bc = _cache.broadcast;
-  if(!bc||!bc.message||!bc.sentAt) return;
-  if(bc.sentAt <= _lastBroadcastSeen) return;
-  _lastBroadcastSeen = bc.sentAt;
-  showBroadcastBanner(bc.message);
-}
-function showBroadcastBanner(msg){
-  var b=document.getElementById('broadcast-banner');
-  if(!b) return;
-  document.getElementById('broadcast-banner-text').textContent=msg;
-  b.style.display='flex';
-  setTimeout(function(){closeBroadcastBanner();},12000);
-}
-function closeBroadcastBanner(){
-  var b=document.getElementById('broadcast-banner'); if(b) b.style.display='none';
-}
-
-// ── RESULTS ROUNDS ──
-async function loadResultsRounds(){
-  _renderRoundsDropdown(_cache.publishedRounds);
-}
-function _renderRoundsDropdown(rounds){
-  var sel=document.getElementById('results-round-sel'); if(!sel) return;
-  var prev=sel.value;
-  sel.innerHTML='<option value="">[ Select a Round to view results ]</option>';
-  rounds.slice().reverse().forEach(function(r){
-    var opt=document.createElement('option');
-    opt.value=r.id; opt.textContent='Round '+r.id+' (GoalRush 14) — '+r.savedAt;
-    sel.appendChild(opt);
-  });
-  if(prev) sel.value=prev;
-  if(rounds.length>0 && !sel.value){ sel.value=rounds[rounds.length-1].id; renderSelectedRound(); }
-}
-
-function renderSelectedRound(){
-  var sel=document.getElementById('results-round-sel');
-  var roundId=sel?sel.value:'';
-  var display=document.getElementById('results-display');
-  if(!display) return;
-  if(!roundId){ display.innerHTML='<div style="text-align:center;color:var(--text3);padding:30px;font-size:13px;">Select a round above to view results.</div>'; return; }
-  var round=_cache.publishedRounds.find(function(r){return r.id===roundId;});
-  if(!round){ display.innerHTML='<div style="text-align:center;color:var(--text3);padding:30px;">Round not found.</div>'; return; }
-  var tiers=[{key:'14',label:'14 out of 14'},{key:'13',label:'13 out of 14'},{key:'12',label:'12 out of 14'},{key:'11',label:'11 out of 14'}];
-  var winnersRows='',hasWinners=false;
-  tiers.forEach(function(t){
-    var entry=round.winners&&round.winners[t.key];
-    if(!entry||!entry.tickets||Number(entry.tickets)===0) return;
-    hasWinners=true;
-    var p=Number(entry.prize||0);
-    var perTicket=p>0?'<strong style="color:var(--gold);font-size:14px;">₦'+p.toLocaleString()+'</strong>':'<span style="color:var(--text3)">—</span>';
-    winnersRows+='<tr>'
-      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);"><span style="display:inline-block;width:4px;height:32px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px;"></span><span style="font-size:13px;font-weight:600;color:var(--text)">'+t.label+'</span></td>'
-      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:var(--green);font-size:15px;">'+Number(entry.tickets).toLocaleString()+'</td>'
-      +'<td style="padding:11px 10px;border-bottom:1px solid var(--border);text-align:center;">'+perTicket+'</td>'
-      +'</tr>';
-  });
-  var winnersTable=hasWinners?'<table style="width:100%;border-collapse:collapse;margin-bottom:22px;"><thead><tr>'
-    +'<th style="padding:9px 10px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Correct Events</th>'
-    +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">No. Tickets</th>'
-    +'<th style="padding:9px 10px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3);">Winning per Ticket</th>'
-    +'</tr></thead><tbody>'+winnersRows+'</tbody></table>':'';
-  var matchRows='',matches=round.matches||[];
-  if(!matches.length){ matchRows='<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">No match data found.</div>'; }
-  else{
-    matches.forEach(function(m,i){
-      var resVal=(m.result||'').toString().trim().toUpperCase();
-      var isVoid=resVal==='VOID';
-      var resDisp=isVoid?'<span style="color:var(--text3);font-size:12px;">void</span>':resVal?'<strong style="color:var(--gold);font-size:15px;">'+esc(resVal)+'</strong>':'<span style="color:var(--text3);">—</span>';
-      var sh=m.scoreHome!==undefined&&m.scoreHome!==null&&m.scoreHome!==''?String(m.scoreHome):'';
-      var sa=m.scoreAway!==undefined&&m.scoreAway!==null&&m.scoreAway!==''?String(m.scoreAway):'';
-      var scoreHtml=(sh&&sa&&!isVoid)
-        ?'<span style="font-size:15px;font-weight:700;color:var(--text);">'+esc(sh)+'</span><span style="color:var(--text3);margin:0 3px;">-</span><span style="font-size:15px;font-weight:700;color:var(--text);">'+esc(sa)+'</span>'
-        :isVoid?'<span style="color:var(--text3);font-size:12px;">void</span>':'<span style="color:var(--text3);">—</span>';
-      matchRows+='<div style="border-bottom:1px solid var(--border);padding:12px 0;">'
-        +'<div style="font-size:10px;color:var(--text3);margin-bottom:6px;">'+(i+1)+'.&nbsp;&nbsp;'+esc(m.time||'')+'</div>'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
-          +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(m.home||'—')+'</div><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(m.away||'—')+'</div></div>'
-          +'<div style="text-align:center;min-width:58px;flex-shrink:0;">'+scoreHtml+'</div>'
-          +'<div style="text-align:right;min-width:36px;flex-shrink:0;">'+resDisp+'</div>'
-        +'</div></div>';
-    });
+function drawWheel(){
+  const stage=STAGES.find(s=>s.id===currentStageId);
+  const segs=stage.segments,n=segs.length,arc=(2*Math.PI)/n;
+  ctx.clearRect(0,0,W,H);
+  ctx.save();ctx.beginPath();ctx.arc(CX,CY,R+6,0,2*Math.PI);
+  const g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,'#6c3ce1');g.addColorStop(1,'#3b1fa8');
+  ctx.fillStyle=g;ctx.fill();ctx.restore();
+  for(let i=0;i<n;i++){
+    const sa=wheelAngle+i*arc-Math.PI/2,ea=sa+arc,seg=segs[i],fb=getSegColor(seg,i);
+    if(seg.type==='coin'){drawSegImg(seg.value>=10000?IMG_LUCKY:IMG_NORMAL,sa,ea,fb);}
+    else{ctx.beginPath();ctx.moveTo(CX,CY);ctx.arc(CX,CY,R,sa,ea);ctx.closePath();ctx.fillStyle=fb;ctx.fill();}
+    ctx.beginPath();ctx.moveTo(CX,CY);ctx.arc(CX,CY,R,sa,ea);ctx.closePath();ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.save();ctx.translate(CX,CY);ctx.rotate(sa+arc/2);ctx.textAlign='right';
+    if(seg.type==='x'){
+      ctx.strokeStyle='#ff6b6b';ctx.lineWidth=3.5;ctx.lineCap='round';const xr=13,xd=R*0.60;
+      ctx.shadowColor='#ef4444';ctx.shadowBlur=8;
+      ctx.beginPath();ctx.moveTo(xd-xr,-xr);ctx.lineTo(xd+xr,xr);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(xd+xr,-xr);ctx.lineTo(xd-xr,xr);ctx.stroke();ctx.shadowBlur=0;
+    }else if(seg.type==='retry'){
+      ctx.strokeStyle='#a78bfa';ctx.lineWidth=2.5;ctx.lineCap='round';
+      const rd=R*0.60,rr=11;ctx.shadowColor='#818cf8';ctx.shadowBlur=6;
+      ctx.beginPath();ctx.arc(rd,0,rr,0.4,2*Math.PI-0.4);ctx.stroke();
+      const ax=rd+rr*Math.cos(0.4),ay=rr*Math.sin(0.4);
+      ctx.fillStyle='#a78bfa';ctx.beginPath();ctx.moveTo(ax-4,ay-1);ctx.lineTo(ax+5,ay-2);ctx.lineTo(ax+1,ay+5);ctx.fill();ctx.shadowBlur=0;
+      ctx.fillStyle='#c4b5fd';ctx.font='bold 9px Nunito,sans-serif';ctx.fillText('RETRY',rd+rr+18,4);
+    }else{
+      const td=R*0.62,isL=seg.value>=10000,lw=seg.label.length*8+14;
+      ctx.fillStyle=isL?'rgba(34,197,94,0.75)':'rgba(245,197,24,0.7)';
+      const lx=td-lw+4,ly=-10,lh=20;
+      ctx.beginPath();ctx.moveTo(lx+5,ly);ctx.lineTo(lx+lw-5,ly);ctx.arcTo(lx+lw,ly,lx+lw,ly+lh/2,5);ctx.arcTo(lx+lw,ly+lh,lx+lw-5,ly+lh,5);ctx.lineTo(lx+5,ly+lh);ctx.arcTo(lx,ly+lh,lx,ly+lh/2,5);ctx.arcTo(lx,ly,lx+5,ly,5);ctx.closePath();ctx.fill();
+      ctx.shadowColor=isL?'#22c55e':'#f5c518';ctx.shadowBlur=6;ctx.fillStyle='#fff';
+      const fs=seg.value>=1000000?9:seg.value>=10000?10:12;ctx.font=`900 ${fs}px Nunito,sans-serif`;ctx.fillText(seg.label,td,4);ctx.shadowBlur=0;
+      const cix=td-(seg.label.length*fs*0.55)-14;
+      ctx.beginPath();ctx.arc(cix,0,8,0,2*Math.PI);ctx.fillStyle=isL?'rgba(34,197,94,0.9)':'rgba(245,197,24,0.9)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=1.2;ctx.stroke();
+      ctx.fillStyle='rgba(0,0,0,0.7)';ctx.font='bold 8px Nunito,sans-serif';ctx.textAlign='center';ctx.fillText('₦',cix,3);ctx.textAlign='right';
+    }
+    ctx.restore();
   }
-  display.innerHTML='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 14px;">'
-    +winnersTable
-    +'<div style="font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);">Results</div>'
-    +'<div style="display:flex;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--border);"><span style="flex:1;">Match</span><span style="min-width:58px;text-align:center;flex-shrink:0;">Score</span><span style="min-width:36px;text-align:right;flex-shrink:0;">Result</span></div>'
-    +matchRows+'</div>';
+  ctx.beginPath();ctx.arc(CX,CY,36,0,2*Math.PI);
+  const cg=ctx.createRadialGradient(CX,CY,0,CX,CY,36);cg.addColorStop(0,'#2d1b69');cg.addColorStop(1,'#1a1030');
+  ctx.fillStyle=cg;ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=2;ctx.stroke();
 }
 
-// ── MENU ──
-function openMenu(){document.getElementById('menu-overlay').classList.add('open');document.getElementById('menu-panel').classList.add('open');}
-function closeMenu(){document.getElementById('menu-overlay').classList.remove('open');document.getElementById('menu-panel').classList.remove('open');}
-function updateMenuItems(){
-  var cu=_cache.cu;
-  var ub=document.getElementById('menu-user-block');
-  var mi=document.getElementById('menu-items');
-  if(cu && _cache.cuData){
-    ub.style.display='block';
-    document.getElementById('menu-user-name').textContent=(_cache.cuData.fullName||_cache.cuData.name||cu);
-    mi.innerHTML=
-      menuItem('💰','Deposit',function(){closeMenu();openDeposit();})+
-      menuItem('💸','Withdraw',function(){closeMenu();openWithdraw();})+
-      menuItem('🎫','My Bets',function(){closeMenu();openSlip();})+
-      menuItem('📊','Results',function(){closeMenu();switchTab('results');})+
-      menuItem('❓','How to Play',function(){closeMenu();switchTab('howto');})+
-      menuItem('📧','Contact Us',function(){closeMenu();openModal('contact-modal');})+
-      menuItem('🚪','Logout',function(){closeMenu();doLogout();});
+// SPIN WHEEL
+function spinWheel(){
+  if(!currentUser){openModal('m-signup');showToast('ℹ️ Create an account to spin!');return;}
+  if(isSpinning)return;
+  if(userData.fundBalance<50){openModal('m-fund');showToast('⚠️ Insufficient funds — add ₦50+ to spin');return;}
+  const stage=STAGES.find(s=>s.id===currentStageId);
+  isSpinning=true;closeResultPanel();
+  const btn=document.getElementById('spin-btn');btn.disabled=true;btn.classList.add('spinning');
+  userData.fundBalance-=50;userData.totalSpins++;updateUI();
+  const segs=stage.segments,n=segs.length;
+  const weights=segs.map(seg=>{
+    if(seg.type==='x')return 3.5;if(seg.type==='retry')return 1.5;
+    const v=seg.value;if(v<=100)return 3.0;if(v<=1000)return 2.2;if(v<=10000)return 1.5;if(v<=100000)return 1.0;if(v<=1000000)return 0.5;if(v<=10000000)return 0.25;return 0.1;
+  });
+  const totalW=weights.reduce((a,b)=>a+b,0);let r=Math.random()*totalW;let resultIdx=0;
+  for(let i=0;i<weights.length;i++){r-=weights[i];if(r<=0){resultIdx=i;break;}}
+
+  // ── FIXED ANGLE CALCULATION ───────────────────────
+  // Segments are drawn: segment i starts at (wheelAngle + i*arc - PI/2)
+  // Pointer is at the TOP of the wheel = canvas angle -PI/2 (i.e. 0 offset)
+  // We want the CENTER of resultIdx segment to land under the pointer.
+  // Center of segment i in wheel-local space = i*arc + arc/2
+  // We need: wheelAngle + resultIdx*arc + arc/2 - PI/2 = -PI/2  (mod 2PI)
+  // => wheelAngle = -(resultIdx*arc + arc/2)  (mod 2PI)
+  // So the angle we must spin TO is: targetWheelAngle = -(resultIdx*arc + arc/2)
+  const arc=(2*Math.PI)/n;
+  const targetWheelAngle = (-(resultIdx*arc + arc/2) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI);
+  // Minimum full rotations (5+ based on stage)
+  const minRotations = 5 + currentStageId * 0.4;
+  const extraRotations = (minRotations + Math.random()*3) * 2*Math.PI;
+  // How much more we need to rotate from current position to hit targetWheelAngle
+  const currentNorm = ((wheelAngle % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+  const diff = ((targetWheelAngle - currentNorm) + 2*Math.PI) % (2*Math.PI);
+  const totalRot = extraRotations + diff;
+
+  const startA=wheelAngle,dur=4000+currentStageId*120,startT=performance.now();
+  function easeOut(t){return 1-Math.pow(1-t,3);}
+  function animate(now){
+    const el=now-startT,prog=Math.min(el/dur,1);
+    wheelAngle=startA+totalRot*easeOut(prog);drawWheel();
+    if(prog<1)requestAnimationFrame(animate);
+    else{
+      // Snap to exact target so no drift
+      wheelAngle=targetWheelAngle;
+      drawWheel();
+      onSpinEnd(stage.segments[resultIdx],stage);
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+function onSpinEnd(seg,stage){
+  const btn=document.getElementById('spin-btn');btn.disabled=false;btn.classList.remove('spinning');isSpinning=false;
+  const stageId=stage.id,stageName=stage.name;
+  // Log to history
+  addToHistory({type:seg.type==='coin'?'win':seg.type==='x'?'fail':'retry',stage:stageId,stageName,coins:seg.type==='coin'?seg.value:0,label:seg.label||(seg.type==='x'?'FAIL':'RETRY'),time:Date.now()});
+
+  if(seg.type==='coin'){
+    // Add to pendingCoins — user must claim
+    userData.pendingCoins=(userData.pendingCoins||0)+seg.value;
+    if(seg.value>userData.bestWin)userData.bestWin=seg.value;
+    userData.stageWins[currentStageId]=(userData.stageWins[currentStageId]||0)+1;
+    // Tiered win message
+    let winTitle,winMsg;
+    if(seg.value>=50000000){winTitle=`🎊 MEGA WIN! +${fmtC(seg.value)} Coins!`;winMsg=`INCREDIBLE! You just won ${fmtC(seg.value)} coins on Stage ${stageId} (${stageName})! That's ₦${fmtNaira2(seg.value)} worth! Tap Claim Coins to add them to your balance. 🏆`;}
+    else if(seg.value>=1000000){winTitle=`🔥 BIG WIN! +${fmtC(seg.value)} Coins!`;winMsg=`Massive win! You hit ${fmtC(seg.value)} coins on Stage ${stageId} — ${stageName}. Worth ₦${fmtNaira2(seg.value)}! Claim your coins below.`;}
+    else if(seg.value>=10000){winTitle=`⭐ Great Win! +${fmtC(seg.value)} Coins!`;winMsg=`Well done! You won ${fmtC(seg.value)} coins on Stage ${stageId} — ${stageName}. Tap Claim Coins to add them to your balance!`;}
+    else{winTitle=`✅ +${fmtC(seg.value)} Coins!`;winMsg=`You won ${fmtC(seg.value)} coins on Stage ${stageId} — ${stageName}. Tap Claim Coins below to credit your balance and keep spinning!`;}
+    showResultPanel('win',winTitle,winMsg,seg.value);
+    launchConfetti();
+    updateClaimSection();
+  }else if(seg.type==='x'){
+    const failCt=stage.segments.filter(s=>s.type==='x').length;
+    let failMsg;
+    if(stageId>=16)failMsg=`The pointer landed on a ✕ Fail zone on Stage ${stageId} (${stageName}). This extreme stage has ${failCt} of ${stage.segments.length} fail segments. The 100M coin jackpot is rare — adjust your spin and try again!`;
+    else if(stageId>=11)failMsg=`Tough luck! The wheel hit a ✕ Fail zone on Stage ${stageId} — ${stageName}. ${failCt} fail segments here. The prizes are worth the challenge — spin again!`;
+    else if(stageId>=6)failMsg=`The wheel landed on a ✕ Fail slot on Stage ${stageId} — ${stageName}. ${failCt} fail zones on this stage. Give it another go!`;
+    else failMsg=`The pointer landed on a ✕ Fail zone this round. Stage ${stageId} — ${stageName} has ${failCt} fail slot${failCt!==1?'s':''}. No coins this spin — try again!`;
+    showResultPanel('lose','✕ Fail — No Coins This Round',failMsg,0);
   }else{
-    ub.style.display='none';
-    mi.innerHTML=
-      menuItem('👤','Create Account',function(){closeMenu();openModal('create-modal');})+
-      menuItem('🔐','Login',function(){closeMenu();openModal('login-modal');})+
-      menuItem('🎫','My Bets',function(){closeMenu();openSlip();})+
-      menuItem('📊','Results',function(){closeMenu();switchTab('results');})+
-      menuItem('❓','How to Play',function(){closeMenu();switchTab('howto');})+
-      menuItem('📧','Contact Us',function(){closeMenu();openModal('contact-modal');});
+    showResultPanel('retry','🔁 Free Respin!',`You landed on a 🔁 Retry zone on Stage ${stageId} — ${stageName}. FREE respin at no cost (₦0). Spinning now…`,0);
+  }
+  saveUserData();updateUI();
+  if(autoSpin&&seg.type!=='retry')autoSpinTimer=setTimeout(()=>{if(autoSpin)spinWheel();},2500);
+  if(seg.type==='retry')setTimeout(()=>spinWheelFree(),1800);
+}
+
+// FREE RESPIN
+function spinWheelFree(){
+  if(isSpinning)return;isSpinning=true;closeResultPanel();
+  const btn=document.getElementById('spin-btn');btn.disabled=true;btn.classList.add('spinning');
+  const stage=STAGES.find(s=>s.id===currentStageId),segs=stage.segments,n=segs.length;
+  const weights=segs.map(seg=>{if(seg.type==='retry')return 0.5;if(seg.type==='x')return 3.5;const v=seg.value;if(v<=100)return 3.0;if(v<=1000)return 2.2;if(v<=10000)return 1.5;if(v<=100000)return 1.0;if(v<=1000000)return 0.5;return 0.15;});
+  const totalW=weights.reduce((a,b)=>a+b,0);let r=Math.random()*totalW;let ri=0;for(let i=0;i<weights.length;i++){r-=weights[i];if(r<=0){ri=i;break;}}
+  // Same corrected angle calculation as spinWheel
+  const arc=(2*Math.PI)/n;
+  const targetWheelAngle2=((-(ri*arc+arc/2))%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+  const minR2=4+(currentStageId*0.3);
+  const extR=(minR2+Math.random()*2)*2*Math.PI;
+  const currentNorm2=((wheelAngle%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+  const diff2=((targetWheelAngle2-currentNorm2)+2*Math.PI)%(2*Math.PI);
+  const totalRot=extR+diff2;
+  const startA=wheelAngle,dur=3500,startT=performance.now();
+  function easeOut(t){return 1-Math.pow(1-t,3);}
+  function animate(now){const el=now-startT,prog=Math.min(el/dur,1);wheelAngle=startA+totalRot*easeOut(prog);drawWheel();if(prog<1)requestAnimationFrame(animate);else{wheelAngle=targetWheelAngle2;drawWheel();onSpinEnd(stage.segments[ri],stage);}}
+  requestAnimationFrame(animate);
+}
+
+// ═══════════════════════════════════════
+//  CLAIM COINS — all pending coins enter
+//  balance; system calculates Naira value
+//  Rate: 1,000 coins = ₦100
+// ═══════════════════════════════════════
+function claimAllCoins(){
+  if(!currentUser){openModal('m-signin');return;}
+  const pending=userData.pendingCoins||0;
+  if(pending<=0){showToast('No coins to claim. Spin the wheel first!');return;}
+
+  // 1. Add all pending coins to coin balance
+  userData.coins += pending;
+  userData.pendingCoins = 0;
+
+  // 2. Convert ALL coins to Naira and add to fundBalance (main balance)
+  //    Rate: 1,000 coins = ₦100  →  1 coin = ₦0.10
+  //    Only complete thousands count (floor)
+  const nairaValue = Math.floor(userData.coins / 1000) * 100;
+
+  // 3. Add Naira value directly into main fund balance
+  userData.fundBalance += nairaValue;
+
+  // 4. Optionally deduct the coins that were converted so no double-counting
+  //    (coins remain in coin balance for display, but their Naira equivalent
+  //    is now in fundBalance — user can use funds to spin or withdraw)
+  // Note: coins stay visible as a record; withdrawal deducts from fundBalance
+
+  saveUserData();
+  updateUI();
+  updateClaimSection();
+
+  // Log claim in history
+  addToHistory({
+    type:'claim',
+    coins:pending,
+    nairaValue,
+    time:Date.now()
+  });
+
+  // Also log in Firestore for admin visibility
+  if(currentUser){
+    db.collection('claims').add({
+      userId:currentUser.uid,
+      coins:pending,
+      nairaValue,
+      newFundBalance:userData.fundBalance,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(()=>{});
+  }
+
+  // Show success
+  showToast(`✅ ${fmtC(pending)} coins claimed! ₦${nairaValue.toLocaleString('en-NG')} added to your balance!`);
+  showResultPanel(
+    'win',
+    `🪙 ${fmtC(pending)} Coins Claimed!`,
+    `Your coins have been converted and added to your main balance!\n\n` +
+    `Coins claimed: ${fmtC(pending)}\n` +
+    `Naira added to balance: ₦${nairaValue.toLocaleString('en-NG')}\n` +
+    `New fund balance: ${fmtNaira(userData.fundBalance)}\n\n` +
+    `Rate: 1,000 coins = ₦100. You can now spin more or withdraw your balance!`,
+    pending
+  );
+  launchConfetti();
+}
+
+function updateClaimSection(){
+  const pending=userData.pendingCoins||0;
+  const sec=document.getElementById('claim-section');
+  if(pending>0){
+    sec.style.display='block';
+    document.getElementById('claim-coins-val').textContent=fmtC(pending);
+    document.getElementById('claim-naira-val').textContent=fmtNaira(Math.floor(pending/1000)*100);
+    document.getElementById('claim-btn').disabled=false;
+  }else{
+    sec.style.display='none';
   }
 }
-function menuItem(ico,label,fn){
-  var id='mi_'+Math.random().toString(36).slice(2);
-  setTimeout(function(){var el=document.getElementById(id);if(el)el.onclick=fn;},0);
-  return '<div class="menu-item" id="'+id+'"><span class="ico">'+ico+'</span>'+label+'</div>';
+
+// RESULT PANEL
+function showResultPanel(type,title,msg,coins){
+  const panel=document.getElementById('result-panel'),inner=document.getElementById('rp-inner');
+  let iconSVG='',btnHtml='';
+  if(type==='win'){iconSVG=`<svg viewBox="0 0 52 52" fill="none"><circle cx="26" cy="26" r="24" fill="rgba(245,197,24,0.15)" stroke="#f5c518" stroke-width="2"/><path d="M26 16l3 6.1 6.7 1-4.85 4.7 1.15 6.7L26 31.1l-5.95 3.4L21.2 27.8l-4.85-4.7 6.7-1z" fill="#f5c518" stroke="#f5c518" stroke-linejoin="round"/></svg>`;btnHtml=`<button class="rp-btn rp-btn-continue" onclick="closeResultPanel()">Collect & Continue</button>`;}
+  else if(type==='lose'){iconSVG=`<svg viewBox="0 0 52 52" fill="none"><circle cx="26" cy="26" r="24" fill="rgba(239,68,68,0.12)" stroke="#ef4444" stroke-width="2"/><line x1="18" y1="18" x2="34" y2="34" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/><line x1="34" y1="18" x2="18" y2="34" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/></svg>`;btnHtml=`<button class="rp-btn rp-btn-continue" onclick="closeResultPanel();spinWheel()">Try Again</button>`;}
+  else{iconSVG=`<svg viewBox="0 0 52 52" fill="none"><circle cx="26" cy="26" r="24" fill="rgba(108,60,225,0.12)" stroke="#6c3ce1" stroke-width="2"/><path d="M34 20a8 8 0 0 0-8-8 8 8 0 0 0 0 16 8 8 0 0 0 6.9-4" stroke="#6c3ce1" stroke-width="2.5" stroke-linecap="round"/><polyline points="34,12 34,20 26,20" stroke="#6c3ce1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;btnHtml=`<button class="rp-btn rp-btn-retry" onclick="closeResultPanel()">Spinning…</button>`;}
+  inner.innerHTML=`<div class="rp-icon">${iconSVG}</div><div class="rp-title ${type}">${title}</div><div class="rp-msg">${msg}</div>${btnHtml}`;
+  panel.classList.add('open');
+  setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+}
+function closeResultPanel(){document.getElementById('result-panel').classList.remove('open');}
+
+// CONFETTI
+function launchConfetti(){const colors=['#f5c518','#6c3ce1','#22c55e','#ef4444','#818cf8','#fff'];for(let i=0;i<60;i++){setTimeout(()=>{const el=document.createElement('div');el.className='confetti-piece';el.style.left=Math.random()*100+'vw';el.style.top='-10px';el.style.background=colors[Math.floor(Math.random()*colors.length)];el.style.animationDelay=(Math.random()*0.5)+'s';el.style.animationDuration=(1.5+Math.random()*1.5)+'s';document.body.appendChild(el);setTimeout(()=>el.remove(),3000);},i*30);}}
+
+// STAGE UI
+function buildStageUI(){
+  const scroll=document.getElementById('stage-scroll');scroll.innerHTML='';
+  STAGES.forEach(s=>{
+    const pill=document.createElement('button');pill.className='stage-pill';
+    pill.textContent=`S${s.id} ${s.id<=5?'⭐':s.id<=10?'⚡':s.id<=15?'🔥':s.id<=19?'💎':'👑'}`;
+    if(s.id===currentStageId)pill.classList.add('active');
+    if(s.coinTarget>0&&userData.coins<s.coinTarget){pill.classList.add('locked');pill.title=`Locked — Need ${fmtC(s.coinTarget)} coins`;}
+    if((userData.completedStages||[]).includes(s.id))pill.classList.add('completed');
+    pill.onclick=()=>switchStage(s.id);scroll.appendChild(pill);
+  });
 }
 
-// ── TABS ──
-function switchTab(name){
-  document.querySelectorAll('.tab-btn').forEach(function(b,i){b.classList.toggle('active',['goalrush','results','howto'][i]===name);});
-  document.querySelectorAll('.section').forEach(function(s){s.classList.toggle('active',s.id===name);});
-  document.getElementById('stake-bar').style.display=name==='goalrush'?'flex':'none';
+function switchStage(id){
+  const s=STAGES.find(s=>s.id===id);if(!s)return;
+  if(s.coinTarget>0&&userData.coins<s.coinTarget){showToast(`🔒 Need ${fmtC(s.coinTarget)} coins to unlock Stage ${id}`);return;}
+  currentStageId=id;
+  const coinSegs=s.segments.filter(x=>x.type==='coin');
+  const failCt=s.segments.filter(x=>x.type==='x').length;
+  const retryCt=s.segments.filter(x=>x.type==='retry').length;
+  const maxP=coinSegs.length?Math.max(...coinSegs.map(x=>x.value)):0;
+  const minP=coinSegs.length?Math.min(...coinSegs.map(x=>x.value)):0;
+  const diff=id<=5?'🟢 Easy':id<=10?'🟡 Medium':id<=15?'🟠 Hard':id<=18?'🔴 Very Hard':'💀 Extreme';
+  document.getElementById('current-stage-label').textContent=`Stage ${id} · ${s.name}`;
+  document.getElementById('spin-intro-title').textContent=`Stage ${id} — ${s.name}`;
+  document.getElementById('spin-intro-sub').textContent=`${diff} · ${s.segments.length} segments · ${coinSegs.length} coin · ${failCt} fail · ${retryCt} retry · Win: ${fmtC(minP)}–${fmtC(maxP)} coins`;
+  buildStageUI();closeResultPanel();drawWheel();
 }
 
-// ── MATCHES ──
-function renderMatches(){
-  var matches=getMatches();
-  var html=matches.map(function(m,i){
-    return '<div class="match-card" id="mc-'+i+'">'
-      +'<div class="match-num">Match '+(i+1)+' of 14</div>'
-      +'<div class="match-time">'+esc(m.time||'')+'</div>'
-      +'<div class="match-teams">'+esc(m.home)+' vs '+esc(m.away)+'</div>'
-      +'<div class="match-opts">'
-        +'<button class="opt-btn" data-mi="'+i+'" data-val="home" onclick="toggleOpt(this)">1<span class="opt-label">Home</span></button>'
-        +'<button class="opt-btn" data-mi="'+i+'" data-val="draw" onclick="toggleOpt(this)">X<span class="opt-label">Draw</span></button>'
-        +'<button class="opt-btn" data-mi="'+i+'" data-val="away" onclick="toggleOpt(this)">2<span class="opt-label">Away</span></button>'
-      +'</div>'
-    +'</div>';
+// UI UPDATE
+function updateUI(){
+  document.getElementById('coin-display').textContent=fmtC(userData.coins)+' Coins';
+  document.getElementById('fund-display').textContent=fmtNaira(userData.fundBalance);
+  document.getElementById('header-balance').textContent=fmtNaira(userData.fundBalance);
+  document.getElementById('total-spins-val').textContent=fmtC(userData.totalSpins);
+  document.getElementById('stage-wins-val').textContent=userData.stageWins[currentStageId]||0;
+  document.getElementById('best-win-val').textContent=fmtC(userData.bestWin);
+  document.getElementById('wd-coin-bal').textContent=fmtC(userData.coins)+' Coins';
+  document.getElementById('wd-naira-est').textContent=fmtNaira(Math.floor(userData.coins/1000)*100);
+  updateClaimSection();buildStageUI();
+}
+
+// FORMATTERS
+function fmtC(n){if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(n%1000?1:0)+'K';return String(Math.round(n));}
+function fmtNaira(n){return'₦'+Number(n).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtNaira2(coins){const n=Math.floor(coins/1000)*100;if(n>=1000000)return'₦'+(n/1000000).toFixed(1)+'M';if(n>=1000)return'₦'+(n/1000).toFixed(1)+'K';return'₦'+n.toFixed(2);}
+
+// FUND / PAYSTACK
+function doFundPaystack(){
+  if(!currentUser){closeModal('m-fund');openModal('m-signup');return;}
+  const amt=parseInt(document.getElementById('fund-amount').value);
+  const email=document.getElementById('fund-email').value||currentUser.email||'user@luckyspin.ng';
+  if(!amt||amt<5000){document.getElementById('fund-err').classList.add('show');return;}
+  document.getElementById('fund-err').classList.remove('show');closeModal('m-fund');showLoader('Connecting to Paystack…');
+  setTimeout(()=>{hideLoader();
+    PaystackPop.setup({key:PK,email,amount:amt*100,currency:'NGN',ref:'LS'+Date.now(),label:'LuckySpin — Fund Balance',
+      onClose(){showToast('Payment closed.');},
+      callback(resp){
+        userData.fundBalance+=amt;saveUserData();updateUI();
+        addToHistory({type:'deposit',amount:amt,ref:resp.reference||('DEP'+Date.now()),time:Date.now()});
+        showToast(`✅ ₦${amt.toLocaleString()} added to your fund balance!`);
+      }
+    }).openIframe();
+  },800);
+}
+
+// WITHDRAW
+function calcWithdraw(){const c=parseInt(document.getElementById('wd-coins').value)||0;document.getElementById('wd-calc').textContent=(Math.floor(c/1000)*100).toFixed(2);}
+function doWithdraw(){
+  if(!currentUser){closeModal('m-withdraw');openModal('m-signup');return;}
+  const bank=document.getElementById('wd-bank').value,acct=document.getElementById('wd-acct').value.trim();
+  const coins=parseInt(document.getElementById('wd-coins').value)||0;
+  const err=document.getElementById('wd-err');
+  if(!bank||!acct||acct.length!==10){err.textContent='Enter a valid bank and 10-digit account number.';err.classList.add('show');return;}
+  if(coins<1000){err.textContent='Minimum withdrawal is 1,000 coins.';err.classList.add('show');return;}
+  if(coins>userData.coins){err.textContent='Insufficient coins in your balance.';err.classList.add('show');return;}
+  err.classList.remove('show');
+  userData.coins-=coins;
+  const naira=Math.floor(coins/1000)*100;
+  saveUserData();updateUI();
+  addToHistory({type:'withdrawal',coins,amount:naira,bank,acct,time:Date.now()});
+  closeModal('m-withdraw');
+  showToast(`✅ Withdrawal of ₦${naira.toFixed(2)} submitted! Processing within 24hrs.`);
+  db.collection('withdrawals').add({userId:currentUser.uid,coins,naira,bank,acct,status:'pending',createdAt:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});
+}
+
+// AUTO SPIN
+function toggleAutoSpin(){autoSpin=document.getElementById('auto-spin-toggle').checked;if(!autoSpin&&autoSpinTimer)clearTimeout(autoSpinTimer);showToast(autoSpin?'⚡ Auto Spin ON':'⏹ Auto Spin OFF');}
+
+// AUTH
+function doSignUp(){
+  const name=document.getElementById('su-name').value.trim(),email=document.getElementById('su-email').value.trim(),pass=document.getElementById('su-pass').value;
+  const err=document.getElementById('su-err');
+  if(!name||!email||pass.length<6){err.textContent='Fill all fields. Password must be 6+ characters.';err.classList.add('show');return;}
+  err.classList.remove('show');showLoader('Creating account…');
+  auth.createUserWithEmailAndPassword(email,pass).then(uc=>{currentUser=uc.user;
+    return Promise.all([uc.user.updateProfile({displayName:name}),db.collection('users').doc(uc.user.uid).set({name,email,coins:0,fundBalance:0,totalSpins:0,stageWins:{},bestWin:0,currentStage:1,completedStages:[],pendingCoins:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()})]);
+  }).then(()=>{hideLoader();closeModal('m-signup');onLogin();showToast('✅ Account created! Welcome to LuckySpin!');})
+  .catch(e=>{hideLoader();err.textContent=e.message;err.classList.add('show');});
+}
+function doSignIn(){
+  const email=document.getElementById('si-email').value.trim(),pass=document.getElementById('si-pass').value;
+  const err=document.getElementById('si-err');err.classList.remove('show');showLoader('Signing in…');
+  auth.signInWithEmailAndPassword(email,pass).then(uc=>{currentUser=uc.user;hideLoader();closeModal('m-signin');onLogin();showToast(`✅ Welcome back, ${uc.user.displayName||'Spinner'}!`);})
+  .catch(()=>{hideLoader();err.classList.add('show');});
+}
+function doSignOut(){auth.signOut().then(()=>{currentUser=null;userData={coins:0,fundBalance:0,totalSpins:0,stageWins:{},bestWin:0,currentStage:1,completedStages:[],pendingCoins:0};onLogout();closeDrawer();showToast('Signed out.');});}
+function doForgotPass(){
+  const email=document.getElementById('fp-email').value.trim(),err=document.getElementById('fp-err');
+  if(!email){err.textContent='Enter your email.';err.classList.add('show');return;}
+  err.classList.remove('show');showLoader('Sending reset email…');
+  auth.sendPasswordResetEmail(email).then(()=>{hideLoader();closeModal('m-forgot');showToast('✅ Password reset email sent!');})
+  .catch(e=>{hideLoader();err.textContent=e.message;err.classList.add('show');});
+}
+function onLogin(){
+  loadUserData();
+  document.getElementById('dr-signin').style.display='none';document.getElementById('dr-signup').style.display='none';
+  document.getElementById('drawer-signout').classList.add('show');document.getElementById('drawer-profile').classList.add('show');
+  const n=currentUser.displayName||currentUser.email;
+  document.getElementById('drawer-name').textContent=n;document.getElementById('drawer-email').textContent=currentUser.email;
+  document.getElementById('drawer-avatar').textContent=n[0].toUpperCase();
+  if(currentUser.photoURL){const img=document.createElement('img');img.src=currentUser.photoURL;document.getElementById('drawer-avatar').innerHTML='';document.getElementById('drawer-avatar').appendChild(img);}
+}
+function onLogout(){
+  document.getElementById('dr-signin').style.display='flex';document.getElementById('dr-signup').style.display='flex';
+  document.getElementById('drawer-signout').classList.remove('show');document.getElementById('drawer-profile').classList.remove('show');updateUI();
+}
+function loadUserData(){
+  if(!currentUser)return;
+  db.collection('users').doc(currentUser.uid).get().then(doc=>{
+    if(doc.exists){const d=doc.data();userData={...userData,...d};currentStageId=d.currentStage||1;updateUI();drawWheel();loadNotifications();}
+  });
+}
+function saveUserData(){
+  if(!currentUser)return;
+  db.collection('users').doc(currentUser.uid).update({coins:userData.coins,fundBalance:userData.fundBalance,totalSpins:userData.totalSpins,stageWins:userData.stageWins,bestWin:userData.bestWin,currentStage:currentStageId,completedStages:userData.completedStages||[],pendingCoins:userData.pendingCoins||0}).catch(()=>{});
+}
+
+// NOTIFICATIONS
+function loadNotifications(){
+  db.collection('broadcasts').orderBy('createdAt','desc').limit(10).get().then(snap=>{
+    const list=document.getElementById('notif-list');list.innerHTML='';
+    if(snap.empty){list.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);font-size:.85rem;">No notifications yet.</div>';return;}
+    snap.forEach(doc=>{const d=doc.data();const el=document.createElement('div');el.className='notif-item unread';el.innerHTML=`<div class="notif-item-title">${d.title||'Announcement'}</div><div class="notif-item-body" id="nb-${doc.id}">${d.body||''}</div><div class="notif-item-time">${d.createdAt?new Date(d.createdAt.toDate()).toLocaleDateString():''}</div>`;el.onclick=()=>{document.getElementById('nb-'+doc.id).classList.toggle('open');el.classList.remove('unread');};list.appendChild(el);});
+    document.getElementById('notif-dot').classList.add('show');
+  }).catch(()=>{});
+}
+
+// CONTACT
+function doContact(){
+  const name=document.getElementById('ct-name').value.trim(),email=document.getElementById('ct-email').value.trim();
+  const subj=document.getElementById('ct-subject').value,msg=document.getElementById('ct-msg').value.trim();
+  const err=document.getElementById('ct-err');
+  if(!name||!email||!msg){err.textContent='Please fill all fields.';err.classList.add('show');return;}
+  err.classList.remove('show');showLoader('Sending message…');
+  db.collection('support_messages').add({name,email,subject:subj,message:msg,userId:currentUser?currentUser.uid:null,status:'new',createdAt:firebase.firestore.FieldValue.serverTimestamp()})
+  .then(()=>{hideLoader();closeModal('m-contact');document.getElementById('ct-name').value='';document.getElementById('ct-email').value='';document.getElementById('ct-msg').value='';showToast('✅ Message sent! We will respond within 24 hours.');})
+  .catch(()=>{hideLoader();err.textContent='Failed to send. Try again.';err.classList.add('show');});
+}
+
+// ═══════════════════════════════════════
+//  TRANSACTION HISTORY ENGINE
+//  localStorage (instant) + Firestore sync
+// ═══════════════════════════════════════
+const HKEY='ls_hist';
+function getHistory(){try{return JSON.parse(localStorage.getItem(HKEY)||'[]');}catch(e){return[];}}
+function saveHistory(arr){localStorage.setItem(HKEY,JSON.stringify(arr.slice(-500)));}
+function addToHistory(entry){
+  const hist=getHistory();hist.push({...entry,id:Date.now()+'_'+Math.random().toString(36).slice(2)});saveHistory(hist);
+  if(currentUser){db.collection('users').doc(currentUser.uid).collection('history').add({...entry,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});}
+}
+
+let histTab='all';
+function openHistoryModal(){openModal('m-history');histTab='all';document.querySelectorAll('.hist-tab').forEach((t,i)=>t.classList.toggle('active',i===0));renderHistory();}
+function switchHistTab(tab,el){histTab=tab;document.querySelectorAll('.hist-tab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');renderHistory();}
+
+function renderHistory(){
+  const all=getHistory().reverse();
+  let filtered;
+  if(histTab==='spins')filtered=all.filter(h=>['win','fail','retry'].includes(h.type));
+  else if(histTab==='deposits')filtered=all.filter(h=>h.type==='deposit');
+  else if(histTab==='withdrawals')filtered=all.filter(h=>h.type==='withdrawal');
+  else filtered=all;
+  // Summary
+  document.getElementById('hs-spins').textContent=all.filter(h=>['win','fail','retry'].includes(h.type)).length;
+  document.getElementById('hs-deposited').textContent=fmtNaira(all.filter(h=>h.type==='deposit').reduce((a,h)=>a+(h.amount||0),0));
+  document.getElementById('hs-won').textContent=fmtC(all.filter(h=>h.type==='win').reduce((a,h)=>a+(h.coins||0),0));
+  const list=document.getElementById('hist-list');
+  if(!filtered.length){list.innerHTML=`<div class="hist-empty">No ${histTab==='all'?'transactions':histTab} yet.<br/><small>Start spinning or deposit to see history.</small></div>`;return;}
+  list.innerHTML=filtered.map(h=>{
+    const t=timeAgo(h.time);
+    if(h.type==='win')return`<div class="hist-item win"><div class="hist-icon win">🪙</div><div class="hist-body"><div class="hist-title">Won ${fmtC(h.coins||0)} Coins</div><div class="hist-sub">Stage ${h.stage} — ${h.stageName||''}</div></div><div class="hist-right"><div class="hist-amount pos">+${fmtC(h.coins||0)}</div><div class="hist-time">${t}</div></div></div>`;
+    if(h.type==='fail')return`<div class="hist-item fail"><div class="hist-icon fail">✕</div><div class="hist-body"><div class="hist-title">Spin Failed</div><div class="hist-sub">Stage ${h.stage} — ${h.stageName||''} · Fail zone</div></div><div class="hist-right"><div class="hist-amount neg">−₦50</div><div class="hist-time">${t}</div></div></div>`;
+    if(h.type==='retry')return`<div class="hist-item retry"><div class="hist-icon retry">🔁</div><div class="hist-body"><div class="hist-title">Free Respin</div><div class="hist-sub">Stage ${h.stage} — ${h.stageName||''} · No cost</div></div><div class="hist-right"><div class="hist-amount" style="color:var(--purple);">FREE</div><div class="hist-time">${t}</div></div></div>`;
+    if(h.type==='claim')return`<div class="hist-item win"><div class="hist-icon win">⭐</div><div class="hist-body"><div class="hist-title">Coins Claimed</div><div class="hist-sub">${fmtC(h.coins||0)} coins → ₦${(h.nairaValue||0).toLocaleString()}</div></div><div class="hist-right"><div class="hist-amount pos">+${fmtC(h.coins||0)}</div><div class="hist-time">${t}</div></div></div>`;
+    if(h.type==='deposit')return`<div class="hist-item deposit"><div class="hist-icon deposit">💳</div><div class="hist-body"><div class="hist-title">Funds Deposited</div><div class="hist-sub">Paystack · Ref: ${h.ref||'—'}</div></div><div class="hist-right"><div class="hist-amount dep">+${fmtNaira(h.amount||0)}</div><div class="hist-time">${t}</div></div></div>`;
+    if(h.type==='withdrawal')return`<div class="hist-item withdrawal"><div class="hist-icon withdrawal">🏦</div><div class="hist-body"><div class="hist-title">Withdrawal Request</div><div class="hist-sub">${h.bank||'Bank'} · ${h.acct||'—'} · ${fmtC(h.coins||0)} coins</div></div><div class="hist-right"><div class="hist-amount wd">−${fmtNaira(h.amount||0)}</div><div class="hist-time">${t}</div></div></div>`;
+    return'';
   }).join('');
-  document.getElementById('matches-list').innerHTML=html;
-  updateStake();
-}
-function toggleOpt(btn){
-  if(isBettingLocked()){showNotif('Betting is closed for this round','err');return;}
-  btn.classList.toggle('active'); updateStake();
-}
-function updateStake(){
-  var matches=document.querySelectorAll('.match-card');
-  var combo=1,allSel=true;
-  matches.forEach(function(mc){
-    var cnt=mc.querySelectorAll('.opt-btn.active').length;
-    if(cnt===0){allSel=false;combo=0;}else combo*=cnt;
-  });
-  _combo=combo;_stake=combo*100;_allSel=allSel;
-  document.getElementById('combo-count').textContent=combo||0;
-  document.getElementById('stake-amt').textContent='₦'+(combo*100).toLocaleString();
-  var pb=document.getElementById('place-btn');
-  if(allSel&&combo>0)pb.classList.add('ready');else pb.classList.remove('ready');
-}
-function goalRushPick(){
-  if(isBettingLocked()){showNotif('Betting is closed','err');return;}
-  clearAll();
-  document.querySelectorAll('.match-card').forEach(function(mc){
-    var btns=mc.querySelectorAll('.opt-btn');
-    if(btns.length)btns[Math.floor(Math.random()*btns.length)].classList.add('active');
-  });
-  updateStake(); showNotif('🎲 Random picks selected!');
-}
-function clearAll(){document.querySelectorAll('.opt-btn').forEach(function(b){b.classList.remove('active');});updateStake();}
-
-// ── PLACE BET ──
-function placeBet(){
-  if(isBettingLocked()){showNotif('Betting is closed for this round','err');return;}
-  if(!_allSel||_combo===0){showNotif('Select at least one option for each of the 14 matches','err');return;}
-  if(!_cache.cu){openModal('auth-gate-modal');return;}
-  var bal=Number((_cache.cuData||{}).balance||0);
-  if(bal<_stake){showNotif('Insufficient balance. Please deposit first.','err');setTimeout(function(){openDeposit();},1000);return;}
-  document.getElementById('cb-combo').textContent=_combo;
-  document.getElementById('cb-stake').textContent='₦'+_stake.toLocaleString();
-  document.getElementById('cb-balance').textContent='₦'+bal.toLocaleString('en',{minimumFractionDigits:2});
-  document.getElementById('cb-after').textContent='₦'+(bal-_stake).toLocaleString('en',{minimumFractionDigits:2});
-  openModal('confirm-bet-modal');
 }
 
-async function doPlaceBet(){
-  closeModal('confirm-bet-modal');
-  showLoading('Placing your bet...');
-  var fbOk = await window._fbReady;
-  if(!fbOk||!window._db||!_cache.cu||!_cache.cuUid){hideLoading();showNotif('Not logged in','err');return;}
-  await _refreshMe();
-  var cd=_cache.cuData||{};
-  if(cd.archived||cd.disabled||cd.status==='banned'){hideLoading();showNotif('Account is not active','err');return;}
-  var bal=Number(cd.balance||0);
-  if(bal<_stake){hideLoading();showNotif('Insufficient balance','err');return;}
-  var matches=getMatches();
-  var sels=[];
-  document.querySelectorAll('.match-card').forEach(function(mc,i){
-    var picks=Array.from(mc.querySelectorAll('.opt-btn.active')).map(function(b){return b.dataset.val;});
-    sels.push({matchIndex:i+1,home:matches[i].home,away:matches[i].away,picks:picks,code:picksToCode(picks)});
-  });
-  // Get current roundId from Firestore app_settings
-  var roundId = 'round_default';
-  try{
-    var rid = await window._F.getDoc(window._F.doc(window._db,'app_settings','current_round'));
-    if(rid.exists()) roundId = rid.data().roundId || roundId;
-  }catch(e){}
+function timeAgo(ts){if(!ts)return'—';const s=Math.floor((Date.now()-ts)/1000);if(s<60)return'Just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return new Date(ts).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'});}
 
-  var ticket={
-    id:          genRef(),
-    created:     new Date().toISOString(),
-    user:        _cache.cu,
-    userUid:     _cache.cuUid,
-    roundId:     roundId,
-    selections:  sels,
-    combination: _combo,
-    stake:       _stake
-  };
-  try{
-    var F=window._F,b=F.writeBatch(window._db);
-    b.update(F.doc(window._db,'users',_cache.cuUid),{balance:F.increment(-_stake),lastUpdated:new Date().toISOString()});
-    b.set(F.doc(window._db,'tickets',ticket.id),ticket);
-    await b.commit();
-    _cache.tickets.unshift(ticket);
-    await _refreshMe();
-  }catch(e){ console.warn(e); hideLoading(); showNotif('Could not place bet. You were not charged.','err'); return; }
-  // Log
-  await _addLog('Placed bet ₦'+_stake, _cache.cu);
-  updateHeaderBalance(); updateSlipBadge(); clearAll(); hideLoading();
-  showSuccess('✅','Bet Placed!','Your bet of ₦'+_stake.toLocaleString()+' has been placed. Good luck!');
-}
+// COMMENTS
+function buildStars(){const wrap=document.getElementById('rating-stars');wrap.innerHTML='';for(let i=1;i<=5;i++){const btn=document.createElement('button');btn.className='star-btn'+(i<=commentRating?' active':'');btn.innerHTML=`<svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#f5c518"/></svg>`;btn.onclick=()=>{commentRating=i;buildStars();};wrap.appendChild(btn);};}
+buildStars();
+function postComment(){if(!currentUser){openModal('m-signin');return;}const txt=document.getElementById('comment-input').value.trim();if(!txt){showToast('⚠️ Write something first');return;}db.collection('comments').add({userId:currentUser.uid,name:currentUser.displayName||'Anonymous',text:txt,rating:commentRating,likes:0,likedBy:[],replies:[],createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>{document.getElementById('comment-input').value='';loadComments();showToast('✅ Comment posted!');});}
+function loadComments(){db.collection('comments').orderBy('createdAt','desc').limit(20).get().then(snap=>{const list=document.getElementById('comment-list');list.innerHTML='';snap.forEach(doc=>{renderComment(doc.id,doc.data());});}).catch(()=>renderSeedComments());}
+function renderComment(id,c){const t=c.createdAt?timeSince(c.createdAt.toDate()):'Just now';const stars=[1,2,3,4,5].map(i=>`<svg viewBox="0 0 24 24" style="width:13px;height:13px;${i<=c.rating?'fill:#f5c518;stroke:#f5c518':'fill:none;stroke:var(--muted2)'}"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke-width="1.8"/></svg>`).join('');const rH=(c.replies||[]).map(r=>`<div class="reply-card"><div class="reply-avatar">${r.name[0].toUpperCase()}</div><div class="reply-text"><span class="reply-name">${r.name}</span>${r.text}</div></div>`).join('');const el=document.createElement('div');el.className='comment-card';el.id='cc-'+id;el.innerHTML=`<div class="comment-header"><div class="comment-avatar">${c.name[0].toUpperCase()}</div><div><div class="comment-name">${c.name}</div><div class="comment-time">${t}</div></div><div class="comment-stars">${stars}</div></div><div class="comment-text">${c.text}</div><div class="comment-actions"><button class="comment-action-btn" onclick="likeComment('${id}',this)"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>${c.likes||0}</span></button><button class="comment-action-btn" onclick="toggleReplyBox('${id}')"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Reply</button></div><div class="replies" id="rep-${id}">${rH}</div><div class="reply-input-wrap" id="riw-${id}"><input class="reply-input" id="ri-${id}" placeholder="Write a reply…"/><button class="btn-reply-send" onclick="postReply('${id}')">Send</button></div>`;document.getElementById('comment-list').appendChild(el);}
+function renderSeedComments(){const seeds=[{name:'Adaeze Okonkwo',text:'Won 10K coins on Stage 3! This game is amazing.',rating:5,likes:24,replies:[{name:'Emeka J.',text:'Same here! Stage 3 is sweet 💰'}]},{name:'Musa Ibrahim',text:'Finally hit Stage 6 after grinding. Higher stages are tough but worth it!',rating:4,likes:18,replies:[]},{name:'Chidinma A.',text:'Customer support responded fast when I had an issue. Very professional.',rating:5,likes:31,replies:[{name:'LuckySpin Support',text:'Thank you! Always here to help 🙏'}]},{name:'Tunde Bakare',text:'Just started and already won 1,000 coins on Stage 1!',rating:5,likes:12,replies:[]}];seeds.forEach((c,i)=>{const el=document.createElement('div');el.className='comment-card';const stars=[1,2,3,4,5].map(j=>`<svg viewBox="0 0 24 24" style="width:13px;height:13px;${j<=c.rating?'fill:#f5c518;stroke:#f5c518':'fill:none;stroke:var(--muted2)'}"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke-width="1.8"/></svg>`).join('');const rH=c.replies.map(r=>`<div class="reply-card"><div class="reply-avatar">${r.name[0]}</div><div class="reply-text"><span class="reply-name">${r.name}</span>${r.text}</div></div>`).join('');el.innerHTML=`<div class="comment-header"><div class="comment-avatar">${c.name[0]}</div><div><div class="comment-name">${c.name}</div><div class="comment-time">2h ago</div></div><div class="comment-stars">${stars}</div></div><div class="comment-text">${c.text}</div><div class="comment-actions"><button class="comment-action-btn"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>${c.likes}</span></button></div><div class="replies${rH?' open':''}">${rH}</div>`;document.getElementById('comment-list').appendChild(el);});}
+function likeComment(id,btn){if(!currentUser){openModal('m-signin');return;}btn.classList.toggle('liked');const span=btn.querySelector('span');const n=parseInt(span.textContent)||0;span.textContent=btn.classList.contains('liked')?n+1:Math.max(0,n-1);db.collection('comments').doc(id).update({likes:firebase.firestore.FieldValue.increment(btn.classList.contains('liked')?1:-1)}).catch(()=>{});}
+function toggleReplyBox(id){document.getElementById('riw-'+id).classList.toggle('open');const rep=document.getElementById('rep-'+id);if(rep)rep.classList.add('open');}
+function postReply(id){if(!currentUser){openModal('m-signin');return;}const inp=document.getElementById('ri-'+id);const txt=inp.value.trim();if(!txt)return;db.collection('comments').doc(id).update({replies:firebase.firestore.FieldValue.arrayUnion({name:currentUser.displayName||'Anonymous',text:txt})}).then(()=>{inp.value='';loadComments();showToast('Reply posted!');});}
 
-function picksToCode(picks){
-  var s=new Set(picks.map(function(p){return p.toLowerCase();}));
-  var h=s.has('home'),d=s.has('draw'),a=s.has('away');
-  if(h&&d&&a)return '1X2';if(h&&d)return '1X';if(d&&a)return 'X2';if(h&&a)return '12';
-  if(h)return '1';if(d)return 'X';if(a)return '2';return '';
-}
+// MODAL HELPERS
+function openModal(id){document.getElementById(id).classList.add('open');document.getElementById('dimmer').classList.add('on');}
+function closeModal(id){document.getElementById(id).classList.remove('open');if(!document.querySelectorAll('.modal-overlay.open').length)document.getElementById('dimmer').classList.remove('on');}
+function switchModal(a,b){closeModal(a);setTimeout(()=>openModal(b),180);}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id);}));
+function openDrawer(){document.getElementById('drawer').classList.add('open');document.getElementById('dimmer').classList.add('on');}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');if(!document.querySelectorAll('.modal-overlay.open').length)document.getElementById('dimmer').classList.remove('on');}
+function closeDimmer(){closeDrawer();document.querySelectorAll('.modal-overlay.open').forEach(m=>closeModal(m.id));}
+function showLoader(t){document.querySelector('#loader .ld-txt').textContent=t||'LOADING…';document.getElementById('loader').classList.add('on');}
+function hideLoader(){document.getElementById('loader').classList.remove('on');}
+let _tt;function showToast(msg,dur=3500){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('on'),dur);}
+function timeSince(d){const s=Math.floor((Date.now()-d)/1000);if(s<60)return'Just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';}
 
-// ── BET SLIP ──
-function openSlip(){
-  var myTickets=_cache.tickets||[];
-  var publishedRounds=_cache.publishedRounds||[];
-  var html=myTickets.length===0
-    ?'<p style="text-align:center;color:var(--text3);padding:20px">No bets placed yet. Make your selections and place a bet!</p>'
-    :myTickets.map(function(t,i){
-      var date=new Date(t.created).toLocaleString();
-      var matchedRound=null;
-      if(t.roundId){
-        matchedRound=publishedRounds.find(function(r){return r.roundId===t.roundId||r.id===t.roundId;})||null;
-      }
-      if(!matchedRound&&t.selections&&t.selections.length>=3){
-        matchedRound=publishedRounds.find(function(r){
-          var rm=r.matches||[];if(rm.length<3)return false;
-          var hits=0;
-          for(var x=0;x<Math.min(4,t.selections.length,rm.length);x++){
-            var s=t.selections[x],m=rm[x];if(!s||!m)continue;
-            if((s.home||'').toLowerCase().trim()===(m.home||'').toLowerCase().trim()
-            &&(s.away||'').toLowerCase().trim()===(m.away||'').toLowerCase().trim()) hits++;
-          }
-          return hits>=3;
-        })||null;
-      }
-      var roundResults=matchedRound?matchedRound.matches:null;
-      var roundWinners=matchedRound?(matchedRound.winners||{}):{};
-      var totalCorrect=0,totalVoid=0;
-      var rows=t.selections.map(function(s,idx){
-        var pick=s.code||'';
-        var matchResult=roundResults?roundResults[idx]:null;
-        var resVal=matchResult?(matchResult.result||'').toString().trim().toUpperCase():'';
-        var isVoid=resVal==='VOID';var hasResult=resVal!=='';
-        var userPickVals=(s.picks||[]).map(function(p){
-          p=(p||'').toLowerCase();
-          if(p==='home'||p==='1')return '1';if(p==='draw'||p==='x')return 'X';if(p==='away'||p==='2')return '2';return '';
-        });
-        var isWin=hasResult&&!isVoid&&userPickVals.indexOf(resVal)!==-1;
-        if(isVoid)totalVoid++;if(isWin)totalCorrect++;
-        var score='';
-        if(matchResult&&matchResult.scoreHome!==undefined&&matchResult.scoreHome!==''&&!isVoid)
-          score='<span style="font-size:10px;color:var(--text3)"> ('+matchResult.scoreHome+'-'+matchResult.scoreAway+')</span>';
-        var indicator=!hasResult
-          ?'<span style="color:var(--text3);font-size:13px;min-width:40px;text-align:right;font-weight:600">—</span>'
-          :isVoid?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right">void</span>'
-          :isWin?'<span style="color:var(--green);font-size:12px;font-weight:800;min-width:40px;text-align:right">✅ Won</span>'
-          :'<span style="color:var(--red);font-size:12px;font-weight:700;min-width:40px;text-align:right">❌ Lost</span>';
-        return '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #1e293b;">'
-          +'<span style="color:var(--text3);width:22px;flex-shrink:0;font-size:11px;font-weight:700">'+s.matchIndex+'</span>'
-          +'<span style="flex:1;font-size:12px;color:var(--text2)">'+esc(s.home)+' v '+esc(s.away)+score+'</span>'
-          +'<span style="font-weight:700;color:var(--green);font-size:12px;min-width:28px;text-align:center">'+esc(pick)+'</span>'
-          +indicator+'</div>';
-      }).join('');
-      var overallStatus='';
-      if(roundResults){
-        var sc=totalCorrect===14?'var(--green)':totalCorrect>=13?'var(--blue)':totalCorrect>=12?'var(--yellow)':'var(--red)';
-        var pe=roundWinners[String(totalCorrect)];
-        var prizeHtml='';
-        if(pe&&Number(pe.prize||0)>0)
-          prizeHtml='<div style="margin-top:6px;padding:8px 10px;background:linear-gradient(135deg,#0a2010,#071407);border:1px solid var(--green);border-radius:8px;text-align:center;">'
-            +'<span style="font-size:12px;color:var(--text2)">🏆 Winning per Ticket: </span>'
-            +'<span style="font-size:15px;font-weight:900;color:var(--gold)">₦'+Number(pe.prize).toLocaleString()+'</span></div>';
-        overallStatus='<div style="margin-top:8px;padding:8px 10px;background:#111827;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'
-          +'<span style="font-size:11px;color:var(--text3)">Result</span>'
-          +'<span style="font-size:13px;font-weight:800;color:'+sc+'">'+totalCorrect+' correct'+(totalVoid>0?' ('+totalVoid+' void)':'')+'</span>'
-          +'</div>'+prizeHtml;
-      }else{
-        overallStatus='<div style="margin-top:8px;padding:8px 10px;background:#111827;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">'
-          +'<span style="font-size:11px;color:var(--text3)">Result</span>'
-          +'<span style="font-size:13px;font-weight:700;color:var(--text3)">⏳ Awaiting results</span></div>';
-      }
-      return '<div class="ticket-card">'
-        +'<div class="tc-header"><div><span class="tc-title">Ticket '+(i+1)+' — '+date+'</span>'
-        +'<div style="font-size:10px;color:var(--text3);margin-top:2px">ID: <span style="font-family:monospace;color:var(--gold)">'+esc(t.id)+'</span></div></div>'
-        +'</div>'
-        +'<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);margin-bottom:2px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">'
-        +'<span style="width:22px">#</span><span style="flex:1">Match</span><span style="min-width:28px;text-align:center">Pick</span><span style="min-width:40px;text-align:right">Result</span></div>'
-        +rows+overallStatus
-        +'<div class="tc-footer" style="margin-top:8px">Combos: <strong>'+t.combination+'</strong> &nbsp;|&nbsp; Stake: <strong>₦'+t.stake.toLocaleString()+'</strong></div>'
-        +'</div>';
-    }).join('');
-  document.getElementById('slip-content').innerHTML=html;
-  openModal('slip-modal');
-}
-
-function updateSlipBadge(){
-  var count=(_cache.tickets||[]).length;
-  var badge=document.getElementById('slip-badge');
-  var txt=document.getElementById('slip-count-txt');
-  if(count>0){badge.textContent=count;badge.classList.add('show');txt.textContent='Bets ('+count+')';}
-  else{badge.classList.remove('show');txt.textContent='Bets';}
-}
-
-// ── HEADER BALANCE ──
-function updateHeaderBalance(){
-  var bal=Number((_cache.cuData||{}).balance||0);
-  document.getElementById('hdr-bal').textContent=bal.toLocaleString('en',{minimumFractionDigits:2});
-}
-
-// ── COUNTDOWN ──
-function startCountdown(){
-  if(_cdInterval){clearInterval(_cdInterval);_cdInterval=null;}
-  var cfg=_cache.countdown;
-  if(!cfg){renderCD(0);updateLockState();return;}
-  var elapsed=Math.floor((Date.now()-(cfg.setAt||Date.now()))/1000);
-  _cdSecs=Math.max(0,(cfg.totalSeconds||0)-elapsed);
-  renderCD(_cdSecs);updateLockState();
-  if(_cdSecs<=0)return;
-  _cdInterval=setInterval(function(){
-    _cdSecs--;if(_cdSecs<0)_cdSecs=0;
-    renderCD(_cdSecs);updateLockState();
-    if(_cdSecs<=0){clearInterval(_cdInterval);_cdInterval=null;}
-  },1000);
-}
-function renderCD(s){
-  var d=Math.floor(s/86400);var rem=s%86400;
-  var h=Math.floor(rem/3600);rem%=3600;
-  var m=Math.floor(rem/60);var sec=rem%60;
-  function p(n){return String(n).padStart(2,'0');}
-  document.getElementById('cd-d').textContent=p(d);
-  document.getElementById('cd-h').textContent=p(h);
-  document.getElementById('cd-m').textContent=p(m);
-  document.getElementById('cd-s').textContent=p(sec);
-}
-function isBettingLocked(){return _cdSecs<=0 && _cache.countdown!==null;}
-function updateLockState(){
-  var locked=isBettingLocked();
-  var banner=document.getElementById('betting-closed-banner');
-  var lockOv=document.getElementById('lock-overlay');
-  if(locked){banner.style.display='block';if(!window._lockShown){window._lockShown=true;lockOv.classList.add('show');setTimeout(function(){lockOv.classList.remove('show');},4000);}}
-  else{banner.style.display='none';lockOv.classList.remove('show');}
-}
-
-// ── AUTH ──
-async function doSignup(){
-  var name=gv('ca-name').trim(),email=gv('ca-email').trim().toLowerCase(),
-      phone=gv('ca-phone').trim(),pw=gv('ca-pw'),pw2=gv('ca-pw2'),
-      age=parseInt(gv('ca-age')||'0'),gender=gv('ca-gender').trim();
-  var msg=document.getElementById('ca-msg');msg.textContent='';
-  if(!name||!email||!phone||!pw||!pw2||!age||!gender){setMsg(msg,'All fields are required','err');return;}
-  if(!/\S+@\S+\.\S+/.test(email)){setMsg(msg,'Enter a valid email address','err');return;}
-  if(!/^\+\d{7,15}$/.test(phone)){setMsg(msg,'Phone must start with + e.g. +2348012345678','err');return;}
-  if(isNaN(age)||age<1||age>120){setMsg(msg,'Enter a valid age','err');return;}
-  if(age<18){setMsg(msg,'⛔ You must be 18 or older','err');return;}
-  if(pw.length<6){setMsg(msg,'Password must be at least 6 characters','err');return;}
-  if(pw!==pw2){setMsg(msg,'❌ Passwords do not match','err');return;}
-  setMsg(msg,'Connecting...','ok');
-  var fbOk=await window._fbReady;
-  if(!fbOk||!window._auth||!window._db){setMsg(msg,'Server connection failed. Check your internet.','err');return;}
-  setMsg(msg,'Creating your account...','ok');
-  try{
-    var uc=await window._F.createUserWithEmailAndPassword(window._auth,email,pw);
-    var uid=uc.user.uid;
-    var profile={uid:uid,fullName:name,name:name,email:email,phone:phone,
-      age:age,gender:gender,balance:0,role:'user',status:'active',
-      disabled:false,archived:false,createdAt:window._F.serverTimestamp()};
-    await window._F.setDoc(window._F.doc(window._db,'users',uid),profile);
-    _cache.cuUid=uid; _cache.cu=phone;
-    _cache.cuData=Object.assign({},profile,{balance:0,createdAt:new Date().toISOString()});
-    _cache.tickets=[]; _saveSession();
-    closeModal('create-modal');
-    ['ca-name','ca-email','ca-phone','ca-age','ca-pw','ca-pw2'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
-    updateMenuItems();updateHeaderBalance();updateSlipBadge();
-    showSuccess('🎉','Welcome, '+name+'!','Your account has been created. You can now deposit and place bets!');
-    await _addLog('Account created',phone);
-  }catch(e){
-    var em='Registration failed. Please try again.';
-    if(e.code==='auth/email-already-in-use') em='This email is already registered. Please login instead.';
-    else if(e.code==='auth/invalid-email')   em='Invalid email address format.';
-    else if(e.code==='auth/weak-password')   em='Password too weak. Use at least 6 characters.';
-    else if(e.code==='auth/network-request-failed') em='Network error. Check your internet connection.';
-    setMsg(msg,em,'err');
-  }
-}
-
-async function doLogin(){
-  var email=gv('li-email').trim().toLowerCase(),pw=gv('li-pw');
-  var msg=document.getElementById('li-msg');msg.textContent='';
-  if(!email||!pw){setMsg(msg,'Email and password required','err');return;}
-  setMsg(msg,'Connecting...','ok');
-  var fbOk=await window._fbReady;
-  if(!fbOk||!window._auth||!window._db){setMsg(msg,'Server connection failed. Check your internet.','err');return;}
-  setMsg(msg,'Signing in...','ok');
-  try{
-    var uc=await window._F.signInWithEmailAndPassword(window._auth,email,pw);
-    var uid=uc.user.uid;
-    var snap=await window._F.getDoc(window._F.doc(window._db,'users',uid));
-    if(!snap.exists()){setMsg(msg,'Account profile not found. Contact support.','err');return;}
-    var data=snap.data();
-    if(data.archived||data.status==='banned'){setMsg(msg,'This account has been suspended.','err');await window._F.signOut(window._auth);return;}
-    if(data.disabled){setMsg(msg,'This account has been disabled.','err');await window._F.signOut(window._auth);return;}
-    _cache.cuUid=uid; _cache.cu=data.phone||uid; _cache.cuData=data; _saveSession();
-    document.getElementById('li-email').value=''; document.getElementById('li-pw').value='';
-    await _loadMyTickets();
-    closeModal('login-modal');
-    updateMenuItems();updateHeaderBalance();updateSlipBadge();
-    _renderRoundsDropdown(_cache.publishedRounds);
-    showNotif('Welcome back, '+(data.fullName||data.name||email)+'! ⚽');
-    await _addLog('Login',_cache.cu);
-  }catch(e){
-    var em='Login failed. Please try again.';
-    if(e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential') em='Incorrect email or password.';
-    else if(e.code==='auth/invalid-email') em='Invalid email address.';
-    else if(e.code==='auth/too-many-requests') em='Too many attempts. Please wait.';
-    else if(e.code==='auth/network-request-failed') em='Network error. Check your internet.';
-    setMsg(msg,em,'err'); document.getElementById('li-pw').value='';
-  }
-}
-
-async function doLogout(){
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._auth){ try{await window._F.signOut(window._auth);}catch(e){} }
-  _clearSession(); updateMenuItems(); updateHeaderBalance(); updateSlipBadge();
-  showNotif('Logged out successfully.');
-}
-
-async function doResetPw(){
-  var email=gv('fp-email').trim().toLowerCase();
-  var msg=document.getElementById('fp-msg');msg.textContent='';
-  if(!email){setMsg(msg,'Enter your email address','err');return;}
-  setMsg(msg,'Connecting...','ok');
-  var fbOk=await window._fbReady;
-  if(!fbOk||!window._auth){setMsg(msg,'Server connection failed.','err');return;}
-  try{
-    await window._F.sendPasswordResetEmail(window._auth,email);
-    setMsg(msg,'✅ Password reset email sent! Check your inbox.','ok');
-    setTimeout(function(){closeModal('forgot-modal');},3000);
-  }catch(e){
-    var em='Could not send reset email.';
-    if(e.code==='auth/user-not-found') em='No account found with this email.';
-    else if(e.code==='auth/invalid-email') em='Invalid email address.';
-    setMsg(msg,em,'err');
-  }
-}
-
-function openForgot(){closeModal('login-modal');openModal('forgot-modal');}
-function switchToLogin(){closeModal('create-modal');openModal('login-modal');}
-function switchToSignup(){closeModal('login-modal');openModal('create-modal');}
-
-// ── LOGS (Firestore) ──
-async function _addLog(action, user){
-  var fbOk=await window._fbReady;
-  if(!fbOk||!window._db) return;
-  try{
-    await window._F.addDoc(window._F.collection(window._db,'logs'),
-      {time:new Date().toISOString(),action:action,user:user||''});
-  }catch(e){}
-}
-
-// ── DEPOSIT (Paystack direct — credited on successful payment) ──
-function openDeposit(){
-  if(!_cache.cu){openModal('auth-gate-modal');return;}
-  document.getElementById('dep-msg').textContent='';
-  document.getElementById('dep-amount').value='';
-  openModal('deposit-method-modal');
-}
-function proceedDeposit(){
-  var msg=document.getElementById('dep-msg');msg.textContent='';
-  var amt=Math.floor(Number(document.getElementById('dep-amount').value));
-  if(!amt||amt<100||amt>100000000){setMsg(msg,'Enter amount between ₦100 and ₦100,000,000','err');return;}
-  if(typeof PaystackPop==='undefined'){setMsg(msg,'Payment service did not load. Check your internet and refresh.','err');return;}
-  var data=_cache.cuData||{};
-  var email=data.email||((_cache.cu||'user').replace(/\W/g,'')+'@goalrush.com');
-  var ref='GRJ-'+Date.now()+'-'+Math.random().toString(36).slice(2,7).toUpperCase();
-  var paid=false;
-  closeModal('deposit-method-modal');
-  PaystackPop.setup({
-    key:PAYSTACK_KEY,email:email,amount:amt*100,currency:'NGN',ref:ref,
-    metadata:{custom_fields:[
-      {display_name:'Phone',variable_name:'phone',value:_cache.cu},
-      {display_name:'Platform',variable_name:'platform',value:'GoalRush Jackpot'}
-    ]},
-    callback:function(response){ paid=true; creditPaystackDeposit(response.reference||ref,amt); },
-    onClose:function(){ setTimeout(function(){ if(!paid) showNotif('Payment window closed. You were not charged.','err'); },600); }
-  }).openIframe();
-}
-async function creditPaystackDeposit(ref,amt){
-  showLoading('Crediting your account...');
-  var F=window._F, rec={id:ref,ref:ref,user:_cache.cu,userUid:_cache.cuUid||'',amount:amt,method:'Paystack',time:new Date().toISOString()};
-  try{
-    var b=F.writeBatch(window._db);
-    b.update(F.doc(window._db,'users',_cache.cuUid),{balance:F.increment(amt),lastDepositRef:ref,lastUpdated:new Date().toISOString()});
-    b.set(F.doc(window._db,'deposits',ref),Object.assign({status:'approved',verified:false},rec));
-    await b.commit();
-    await _refreshMe();
-    _addLog('Deposit ₦'+amt.toLocaleString()+' via Paystack ref:'+ref,_cache.cu);
-    hideLoading();
-    showSuccess('✅','Payment Successful!','₦'+amt.toLocaleString()+' has been added. New balance: ₦'+Number(_cache.cuData.balance||0).toLocaleString()+'.');
-  }catch(e){
-    // Could not credit: leave a pending record so admin can see it, and tell user to email
-    try{ await F.setDoc(F.doc(window._db,'deposits',ref),Object.assign({status:'pending',verified:false,note:'Auto-credit failed'},rec)); }catch(e2){}
-    hideLoading();
-    showNotif('Payment received but not credited yet. Email goalrushjackpot@gmail.com with ref: '+ref,'err');
-  }
-}
-
-// ── WITHDRAW ──
-function openWithdraw(){
-  if(!_cache.cu){openModal('auth-gate-modal');return;}
-  var bal=Number((_cache.cuData||{}).balance||0);
-  document.getElementById('wd-balance').textContent='₦'+bal.toLocaleString('en',{minimumFractionDigits:2});
-  document.getElementById('wd-msg').textContent='';
-  document.getElementById('wd-bank').value='';
-  document.getElementById('wd-account').value='';
-  document.getElementById('wd-amount').value='';
-  openModal('withdraw-modal');
-}
-async function doWithdraw(){
-  var bank=gv('wd-bank').trim(),acct=gv('wd-account').trim(),amt=Number(gv('wd-amount'));
-  var msg=document.getElementById('wd-msg');msg.textContent='';
-  var bal=Number((_cache.cuData||{}).balance||0);
-  if(!bank){setMsg(msg,'Enter bank name','err');return;}
-  if(!acct||acct.length<6){setMsg(msg,'Enter a valid account number','err');return;}
-  if(!amt||amt<100000){setMsg(msg,'Minimum withdrawal is ₦100,000','err');return;}
-  if(amt>100000000){setMsg(msg,'Maximum withdrawal is ₦100,000,000','err');return;}
-  if(amt>bal){setMsg(msg,'Insufficient balance','err');return;}
-  showLoading('Processing withdrawal...');
-  await _refreshMe();
-  bal=Number((_cache.cuData||{}).balance||0);
-  if(amt>bal){hideLoading();setMsg(msg,'Insufficient balance','err');return;}
-  var ref=genRef();
-  try{
-    var F=window._F,b=F.writeBatch(window._db);
-    b.update(F.doc(window._db,'users',_cache.cuUid),{balance:F.increment(-amt),lastUpdated:new Date().toISOString()});
-    b.set(F.doc(window._db,'withdrawals',ref),{id:ref,user:_cache.cu,userUid:_cache.cuUid||'',amount:amt,bank:bank,account:acct,code:ref,time:new Date().toISOString(),status:'pending'});
-    await b.commit();
-    await _refreshMe();
-  }catch(e){ console.warn(e); hideLoading(); setMsg(msg,'Could not process. You were not charged.','err'); return; }
-  await _addLog('Withdrawal ₦'+amt+' ref:'+ref, _cache.cu);
-  updateHeaderBalance(); hideLoading(); closeModal('withdraw-modal');
-  showSuccess('💸','Withdrawal Submitted!','Reference: '+ref+'\n\nAmount: ₦'+amt.toLocaleString()+'\nBank: '+bank+'\nAccount: '+acct+'\n\nYou will receive payment shortly.');
-}
-
-// ── MODALS ──
-function openModal(id){document.getElementById(id).classList.add('open');}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-document.querySelectorAll('.modal-overlay').forEach(function(el){
-  el.addEventListener('click',function(e){if(e.target===this)closeModal(this.id);});
+// AUTH STATE
+auth.onAuthStateChanged(user=>{
+  currentUser=user;
+  if(user)onLogin();else onLogout();
+  hideLoader();drawWheel();buildStageUI();loadComments();
+  try{(adsbygoogle=window.adsbygoogle||[]).push({});}catch(e){}
 });
 
-// ── SUCCESS POPUP ──
-var _spTimer=null;
-function showSuccess(icon,title,msg){
-  document.getElementById('sp-icon').textContent=icon;
-  document.getElementById('sp-title').textContent=title;
-  document.getElementById('sp-msg').textContent=msg;
-  document.getElementById('success-popup').classList.add('show');
-  if(_spTimer)clearTimeout(_spTimer);
-  _spTimer=setTimeout(function(){document.getElementById('success-popup').classList.remove('show');},5000);
-}
-
-// ── NOTIFICATIONS ──
-var _nTimer=null;
-function showNotif(msg,type){
-  var el=document.getElementById('notif');
-  el.textContent=msg; el.className='';
-  if(type==='err')el.classList.add('err');
-  el.classList.add('show');
-  if(_nTimer)clearTimeout(_nTimer);
-  _nTimer=setTimeout(function(){el.classList.remove('show');},3500);
-}
-
-// ── LOADING ──
-function showLoading(txt){document.getElementById('loading-text').textContent=txt||'Processing...';document.getElementById('loading').classList.add('show');}
-function hideLoading(){document.getElementById('loading').classList.remove('show');}
-
-// ── UTILS ──
-function gv(id){var el=document.getElementById(id);return el?el.value:'';}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function setMsg(el,msg,type){el.textContent=msg;el.className='modal-msg '+(type==='err'?'msg-err':'msg-ok');}
-function genRef(){return 'GRJ-'+Math.random().toString(36).substring(2,8).toUpperCase();}
-function togglePw(id,el){var f=document.getElementById(id);f.type=f.type==='password'?'text':'password';el.textContent=f.type==='password'?'👁️':'🙈';}
-
+document.getElementById('loader').classList.add('on');
 </script>
 </body>
 </html>
