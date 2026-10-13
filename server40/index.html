@@ -235,7 +235,7 @@ tbody tr:hover td{background:#0a1a0a40;}
 
 /* ── SCAN SUMMARY ── */
 .scan-summary{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px;
 }
 .ss-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
 .ss-num{font-size:22px;font-weight:900;margin-bottom:3px;}
@@ -377,6 +377,28 @@ tbody tr:hover td{background:#0a1a0a40;}
 #toast.t-err{border-color:var(--red);color:var(--red);box-shadow:var(--glow-red);}
 #toast.t-gold{border-color:var(--gold);color:var(--gold);box-shadow:var(--glow-gold);}
 
+/* ── SVG ICONS ── */
+.svg-ico{display:inline-block;vertical-align:-0.2em;flex-shrink:0;}
+.gi{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;line-height:1;}
+.gi .svg-ico{display:block;}
+.tab-btn,.lc-btn,.save-btn,.bc-send,.refresh-btn,.mb-green,.mb-red,.mb-gray,.mb-orange,.ab,.clear-logs-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.sc-title,.mo-title,.nr-title,.ah-logo{display:flex;align-items:center;gap:8px;}
+.mo-title{justify-content:center;}
+.lc-icon{display:flex;justify-content:center;color:var(--green);}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;margin-right:2px;}
+.dot-g{background:var(--green);}.dot-b{background:var(--blue);}.dot-y{background:var(--yellow);}.dot-r{background:var(--red);}.dot-o{background:var(--orange);}
+
+/* ── NOTIFICATIONS (admin) ── */
+textarea.mo-input{resize:vertical;min-height:90px;}
+.nt-card{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;}
+.nt-card.hid{opacity:.55;}
+.nt-card-main{flex:1;min-width:200px;}
+.nt-card-title{font-size:14px;font-weight:800;color:var(--text);margin-bottom:4px;}
+.nt-card-msg{font-size:12.5px;color:var(--text2);line-height:1.6;white-space:pre-wrap;word-wrap:break-word;}
+.nt-card-time{font-size:10px;color:var(--text3);margin-top:6px;}
+.nt-card-acts{display:flex;gap:6px;flex-wrap:wrap;}
+.per-cell{text-align:center;font-weight:700;}
+
 @media(max-width:700px){
   .stats-grid{grid-template-columns:repeat(2,1fr);}
   .scan-summary{grid-template-columns:repeat(2,1fr);}
@@ -392,7 +414,7 @@ tbody tr:hover td{background:#0a1a0a40;}
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="lc-icon">⚽</div>
+    <div class="lc-icon"><i class="gi" data-ic="ball" data-sz="16"></i></div>
     <div class="lc-title">GOALRUSH ADMIN</div>
     <div class="lc-sub">Control Panel — Authorised Access Only</div>
     <label class="lc-lbl">Admin Email</label>
@@ -401,8 +423,8 @@ tbody tr:hover td{background:#0a1a0a40;}
     <label class="lc-lbl">Password</label>
     <input class="lc-input" id="adm-pass" type="password" placeholder="Admin password"
       onkeydown="if(event.key==='Enter')doLogin()"/>
-    <button class="lc-btn" onclick="doLogin()">🔓 Enter Panel</button>
-    <div class="lc-err" id="login-err">❌ Incorrect username or password.</div>
+    <button class="lc-btn" onclick="doLogin()"><i class="gi" data-ic="unlock" data-sz="16"></i> Enter Panel</button>
+    <div class="lc-err" id="login-err"><i class="gi" data-ic="xc" data-sz="16"></i> Incorrect username or password.</div>
   </div>
 </div>
 
@@ -411,7 +433,7 @@ tbody tr:hover td{background:#0a1a0a40;}
 
   <div id="admin-header">
     <div class="ah-left">
-      <div class="ah-logo">⚽ GoalRush Admin</div>
+      <div class="ah-logo"><i class="gi" data-ic="ball" data-sz="16"></i> GoalRush Admin</div>
       <div class="ah-badge">ADMIN</div>
     </div>
     <div class="ah-right">
@@ -432,29 +454,29 @@ tbody tr:hover td{background:#0a1a0a40;}
 
     <!-- TABS -->
     <div class="tabs-bar">
-      <button class="tab-btn active" onclick="openTab('users')">👥 Users</button>
-      <button class="tab-btn" onclick="openTab('archive')">🗂 Archive</button>
-      <button class="tab-btn" onclick="openTab('deposits')">💰 Deposits</button>
-      <button class="tab-btn" onclick="openTab('withdrawals')">💸 Withdrawals</button>
-      <button class="tab-btn" onclick="openTab('results')">📊 Results</button>
-      <button class="tab-btn" onclick="openTab('prizes')">🏆 Prizes</button>
-      <button class="tab-btn" onclick="openTab('matches')">⚽ Matches</button>
-      <button class="tab-btn" onclick="openTab('countdown')">⏱ Countdown</button>
-      <button class="tab-btn" onclick="openTab('betid')">🔍 Bet ID</button>
-      <button class="tab-btn" onclick="openTab('broadcast')">📢 Broadcast</button>
-      <button class="tab-btn" onclick="openTab('logs')">📋 Logs</button>
+      <button class="tab-btn active" onclick="openTab('users')"><i class="gi" data-ic="users" data-sz="16"></i> Users</button>
+      <button class="tab-btn" onclick="openTab('archive')"><i class="gi" data-ic="archive" data-sz="16"></i> Archive</button>
+      <button class="tab-btn" onclick="openTab('deposits')"><i class="gi" data-ic="wallet" data-sz="16"></i> Deposits</button>
+      <button class="tab-btn" onclick="openTab('withdrawals')"><i class="gi" data-ic="banknote" data-sz="16"></i> Withdrawals</button>
+      <button class="tab-btn" onclick="openTab('results')"><i class="gi" data-ic="chart" data-sz="16"></i> Results</button>
+      <button class="tab-btn" onclick="openTab('prizes')"><i class="gi" data-ic="trophy" data-sz="16"></i> Prizes</button>
+      <button class="tab-btn" onclick="openTab('matches')"><i class="gi" data-ic="ball" data-sz="16"></i> Matches</button>
+      <button class="tab-btn" onclick="openTab('countdown')"><i class="gi" data-ic="clock" data-sz="16"></i> Countdown</button>
+      <button class="tab-btn" onclick="openTab('betid')"><i class="gi" data-ic="search" data-sz="16"></i> Bet ID</button>
+      <button class="tab-btn" onclick="openTab('broadcast')"><i class="gi" data-ic="bell" data-sz="15"></i> Notifications</button>
+      <button class="tab-btn" onclick="openTab('logs')"><i class="gi" data-ic="clipboard" data-sz="16"></i> Logs</button>
     </div>
 
     <!-- ══ USERS TAB ══ -->
     <div class="tab-content active" id="tab-users">
       <div class="section-card">
         <div class="sc-head">
-          <div class="sc-title">👥 Active Users</div>
+          <div class="sc-title"><i class="gi" data-ic="users" data-sz="16"></i> Active Users</div>
           <button class="refresh-btn" onclick="loadUsers()">↺ Refresh</button>
         </div>
         <div class="sc-body">
           <div class="search-row">
-            <input class="search-input" id="user-search" placeholder="🔍 Search by phone, name or email..." oninput="filterUsers()"/>
+            <input class="search-input" id="user-search" placeholder="Search by phone, name or email..." oninput="filterUsers()"/>
           </div>
           <div class="tbl-wrap" id="users-tbl-wrap">
             <div class="tbl-empty">Loading users...</div>
@@ -467,7 +489,7 @@ tbody tr:hover td{background:#0a1a0a40;}
     <div class="tab-content" id="tab-archive">
       <div class="section-card">
         <div class="sc-head">
-          <div class="sc-title">🗂 Archived / Deleted Users</div>
+          <div class="sc-title"><i class="gi" data-ic="archive" data-sz="16"></i> Archived / Deleted Users</div>
           <button class="refresh-btn" onclick="loadArchive()">↺ Refresh</button>
         </div>
         <div class="sc-body">
@@ -485,8 +507,8 @@ tbody tr:hover td{background:#0a1a0a40;}
     <div class="tab-content" id="tab-deposits">
       <div class="section-card">
         <div class="sc-head">
-          <div class="sc-title">💰 Deposit Requests</div>
-          <button class="refresh-btn" onclick="loadDeposits()">↺ Refresh</button>
+          <div class="sc-title"><i class="gi" data-ic="wallet" data-sz="16"></i> Deposit Requests</div>
+          <button class="refresh-btn" onclick="refreshDeposits()"><i class="gi" data-ic="refresh" data-sz="14"></i> Refresh</button>
         </div>
         <div class="sc-body">
           <div class="tbl-wrap" id="deposits-tbl-wrap">
@@ -500,8 +522,8 @@ tbody tr:hover td{background:#0a1a0a40;}
     <div class="tab-content" id="tab-withdrawals">
       <div class="section-card">
         <div class="sc-head">
-          <div class="sc-title">💸 Withdrawal Requests</div>
-          <button class="refresh-btn" onclick="loadWithdrawals()">↺ Refresh</button>
+          <div class="sc-title"><i class="gi" data-ic="banknote" data-sz="16"></i> Withdrawal Requests</div>
+          <button class="refresh-btn" onclick="refreshWithdrawals()"><i class="gi" data-ic="refresh" data-sz="14"></i> Refresh</button>
         </div>
         <div class="sc-body">
           <div class="tbl-wrap" id="withdrawals-tbl-wrap">
@@ -517,7 +539,7 @@ tbody tr:hover td{background:#0a1a0a40;}
       <!-- STEP 1: Enter match results -->
       <div class="section-card">
         <div class="sc-head">
-          <div class="sc-title">📊 Step 1 — Enter Match Results</div>
+          <div class="sc-title"><i class="gi" data-ic="chart" data-sz="16"></i> Step 1 — Enter Match Results</div>
         </div>
         <div class="sc-body">
           <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
@@ -528,7 +550,7 @@ tbody tr:hover td{background:#0a1a0a40;}
             Also enter the final score (optional).
           </p>
           <div id="results-editor"></div>
-          <button class="save-btn" onclick="saveResults()">💾 Save Results</button>
+          <button class="save-btn" onclick="saveResults()"><i class="gi" data-ic="save" data-sz="16"></i> Save Results</button>
           <div class="save-msg" id="results-save-msg"></div>
         </div>
       </div>
@@ -536,22 +558,23 @@ tbody tr:hover td{background:#0a1a0a40;}
       <!-- STEP 2: Scan tickets -->
       <div class="section-card">
         <div class="sc-head">
-          <div class="sc-title">🔍 Step 2 — Scan All Tickets</div>
+          <div class="sc-title"><i class="gi" data-ic="search" data-sz="16"></i> Step 2 — Scan All Tickets</div>
         </div>
         <div class="sc-body">
           <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
             After saving results, click Scan to check all user tickets and find winners.
           </p>
-          <button class="save-btn" style="background:linear-gradient(135deg,#1a7aff,#0055dd)" onclick="scanAllTickets()">🔍 Scan All Tickets Now</button>
+          <button class="save-btn" style="background:linear-gradient(135deg,#1a7aff,#0055dd)" onclick="scanAllTickets()"><i class="gi" data-ic="search" data-sz="16"></i> Scan All Tickets Now</button>
           <div id="alarm-banner">
-            <div class="alarm-text" id="alarm-text">🏆 JACKPOT WINNER FOUND!</div>
+            <div class="alarm-text" id="alarm-text"><i class="gi" data-ic="trophy" data-sz="16"></i> JACKPOT WINNER FOUND!</div>
             <div class="alarm-sub" id="alarm-sub">Check winners below immediately.</div>
           </div>
           <div class="scan-summary" id="scan-summary" style="display:none;margin-top:14px;">
             <div class="ss-card"><div class="ss-num sn-g" id="sc-total">0</div><div class="ss-lbl">Total Scanned</div></div>
-            <div class="ss-card"><div class="ss-num" style="color:var(--green)" id="sc-14">0</div><div class="ss-lbl">🟢 14 Correct</div></div>
-            <div class="ss-card"><div class="ss-num" style="color:var(--blue)" id="sc-13">0</div><div class="ss-lbl">🔵 13 Correct</div></div>
-            <div class="ss-card"><div class="ss-num" style="color:var(--yellow)" id="sc-12">0</div><div class="ss-lbl">🟡 12 Correct</div></div>
+            <div class="ss-card"><div class="ss-num" style="color:var(--green)" id="sc-14">0</div><div class="ss-lbl"><span class="dot dot-g"></span> 14 Correct</div></div>
+            <div class="ss-card"><div class="ss-num" style="color:var(--blue)" id="sc-13">0</div><div class="ss-lbl"><span class="dot dot-b"></span> 13 Correct</div></div>
+            <div class="ss-card"><div class="ss-num" style="color:var(--yellow)" id="sc-12">0</div><div class="ss-lbl"><span class="dot dot-y"></span> 12 Correct</div></div>
+            <div class="ss-card"><div class="ss-num" style="color:var(--orange)" id="sc-11">0</div><div class="ss-lbl"><span class="dot dot-o"></span> 11 Correct</div></div>
           </div>
           <div id="scan-results" style="margin-top:10px;"></div>
         </div>
@@ -560,12 +583,11 @@ tbody tr:hover td{background:#0a1a0a40;}
       <!-- STEP 3: Set winners count & prizes, then publish -->
       <div class="section-card" id="publish-section" style="display:none">
         <div class="sc-head">
-          <div class="sc-title">🏆 Step 3 — Set Winners & Publish to Users</div>
+          <div class="sc-title"><i class="gi" data-ic="trophy" data-sz="16"></i> Step 3 — Set Winners & Publish to Users</div>
         </div>
         <div class="sc-body">
           <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">
-            Fill in the number of winning tickets and prize per ticket for each tier that had winners.
-            Leave blank if nobody hit that tier. Then click <strong style="color:var(--green)">Publish</strong> — users will see the results table immediately in their Results tab.
+            Enter the <strong style="color:var(--gold)">total prize</strong> for each tier. The number of winners is filled in from the scan (you can still edit it). Each prize is <strong style="color:var(--green)">shared equally</strong> between the winners: total &divide; winners = winning per ticket (example: &#8358;10,000,000 with 2 winners = &#8358;5,000,000 each). Leave a tier blank if nobody hit it. Then click <strong style="color:var(--green)">Publish</strong> &mdash; users see the results and their winning per ticket immediately.
           </p>
 
           <!-- Round label -->
@@ -574,51 +596,56 @@ tbody tr:hover td{background:#0a1a0a40;}
             <input class="mo-input" id="pub-round-id" placeholder="e.g. 20260024" style="max-width:220px;"/>
           </div>
 
-          <!-- Winners table entry -->
-          <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+          <!-- Winners / prize pool entry -->
+          <div class="tbl-wrap">
+          <table style="width:100%;border-collapse:collapse;margin-bottom:16px;min-width:560px;">
             <thead>
               <tr>
                 <th style="padding:9px 12px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">Correct Events</th>
-                <th style="padding:9px 12px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">No. of Tickets</th>
-                <th style="padding:9px 12px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">Winning per Ticket (₦)</th>
+                <th style="padding:9px 12px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">Total Prize (&#8358;)</th>
+                <th style="padding:9px 12px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">No. of Winners</th>
+                <th style="padding:9px 12px;text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">Winning per Ticket (&#8358;)</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td style="padding:10px 12px;border-bottom:1px solid var(--border)">
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border);">
                   <span style="display:inline-block;width:4px;height:28px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px"></span>
                   <span style="font-size:13px;font-weight:600">14 out of 14</span>
                 </td>
                 <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
-                  <input type="number" id="wn-14-tickets" class="mo-input" placeholder="0" style="width:90px;text-align:center;margin:0;"/>
+                  <input type="number" min="0" id="wn-14-total" class="mo-input" placeholder="Total prize" oninput="calcPrizes()" style="width:160px;text-align:center;margin:0;"/>
                 </td>
                 <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
-                  <input type="number" id="wn-14-prize" class="mo-input" placeholder="e.g. 3000000" style="width:140px;text-align:center;margin:0;"/>
+                  <input type="number" min="0" id="wn-14-tickets" class="mo-input" placeholder="0" oninput="calcPrizes()" style="width:90px;text-align:center;margin:0;"/>
                 </td>
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border);" class="per-cell" id="wn-14-per"><span style="color:var(--text3)">&mdash;</span></td>
               </tr>
               <tr>
-                <td style="padding:10px 12px;border-bottom:1px solid var(--border)">
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border);">
                   <span style="display:inline-block;width:4px;height:28px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px"></span>
                   <span style="font-size:13px;font-weight:600">13 out of 14</span>
                 </td>
                 <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
-                  <input type="number" id="wn-13-tickets" class="mo-input" placeholder="0" style="width:90px;text-align:center;margin:0;"/>
+                  <input type="number" min="0" id="wn-13-total" class="mo-input" placeholder="Total prize" oninput="calcPrizes()" style="width:160px;text-align:center;margin:0;"/>
                 </td>
                 <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
-                  <input type="number" id="wn-13-prize" class="mo-input" placeholder="e.g. 15000" style="width:140px;text-align:center;margin:0;"/>
+                  <input type="number" min="0" id="wn-13-tickets" class="mo-input" placeholder="0" oninput="calcPrizes()" style="width:90px;text-align:center;margin:0;"/>
                 </td>
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border);" class="per-cell" id="wn-13-per"><span style="color:var(--text3)">&mdash;</span></td>
               </tr>
               <tr>
-                <td style="padding:10px 12px;border-bottom:1px solid var(--border)">
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border);">
                   <span style="display:inline-block;width:4px;height:28px;background:var(--gold);border-radius:2px;vertical-align:middle;margin-right:10px"></span>
                   <span style="font-size:13px;font-weight:600">12 out of 14</span>
                 </td>
                 <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
-                  <input type="number" id="wn-12-tickets" class="mo-input" placeholder="0" style="width:90px;text-align:center;margin:0;"/>
+                  <input type="number" min="0" id="wn-12-total" class="mo-input" placeholder="Total prize" oninput="calcPrizes()" style="width:160px;text-align:center;margin:0;"/>
                 </td>
                 <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
-                  <input type="number" id="wn-12-prize" class="mo-input" placeholder="e.g. 5000" style="width:140px;text-align:center;margin:0;"/>
+                  <input type="number" min="0" id="wn-12-tickets" class="mo-input" placeholder="0" oninput="calcPrizes()" style="width:90px;text-align:center;margin:0;"/>
                 </td>
+                <td style="padding:10px 12px;border-bottom:1px solid var(--border);" class="per-cell" id="wn-12-per"><span style="color:var(--text3)">&mdash;</span></td>
               </tr>
               <tr>
                 <td style="padding:10px 12px;">
@@ -626,21 +653,23 @@ tbody tr:hover td{background:#0a1a0a40;}
                   <span style="font-size:13px;font-weight:600">11 out of 14</span>
                 </td>
                 <td style="padding:10px 12px;text-align:center">
-                  <input type="number" id="wn-11-tickets" class="mo-input" placeholder="0" style="width:90px;text-align:center;margin:0;"/>
+                  <input type="number" min="0" id="wn-11-total" class="mo-input" placeholder="Total prize" oninput="calcPrizes()" style="width:160px;text-align:center;margin:0;"/>
                 </td>
                 <td style="padding:10px 12px;text-align:center">
-                  <input type="number" id="wn-11-prize" class="mo-input" placeholder="e.g. 1000" style="width:140px;text-align:center;margin:0;"/>
+                  <input type="number" min="0" id="wn-11-tickets" class="mo-input" placeholder="0" oninput="calcPrizes()" style="width:90px;text-align:center;margin:0;"/>
                 </td>
+                <td style="padding:10px 12px;" class="per-cell" id="wn-11-per"><span style="color:var(--text3)">&mdash;</span></td>
               </tr>
             </tbody>
           </table>
+          </div>
 
-          <button class="save-btn" onclick="publishResults()">📢 Publish Results to Users</button>
+          <button class="save-btn" onclick="publishResults()"><i class="gi" data-ic="megaphone" data-sz="16"></i> Publish Results to Users</button>
           <div class="save-msg" id="publish-save-msg"></div>
 
           <!-- NEW ROUND -->
           <div class="new-round-box" id="new-round-box" style="display:none;margin-top:16px;">
-            <div class="nr-title">🔄 Start New Round</div>
+            <div class="nr-title"><i class="gi" data-ic="refresh" data-sz="16"></i> Start New Round</div>
             <div class="nr-list" style="margin-bottom:12px;">
               Choose what to reset:<br/><br/>
               <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px;">
@@ -656,8 +685,21 @@ tbody tr:hover td{background:#0a1a0a40;}
                 <span><strong style="color:var(--green)">Reset countdown timer</strong><br/><span style="font-size:11px;color:var(--text3)">Open betting for next round</span></span>
               </label>
             </div>
-            <button class="save-btn" style="background:linear-gradient(135deg,#880022,#550011);color:#fff;box-shadow:none;" onclick="startNewRound()">🔄 Start New Round</button>
+            <button class="save-btn" style="background:linear-gradient(135deg,#880022,#550011);color:#fff;box-shadow:none;" onclick="startNewRound()"><i class="gi" data-ic="refresh" data-sz="16"></i> Start New Round</button>
           </div>
+        </div>
+      </div>
+
+      <!-- PUBLISHED ROUNDS — only the admin can delete these -->
+      <div class="section-card">
+        <div class="sc-head">
+          <div class="sc-title"><i class="gi" data-ic="archive" data-sz="16"></i> Published Rounds (Previous Results)</div>
+        </div>
+        <div class="sc-body">
+          <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+            These are the rounds users see under <strong style="color:var(--green)">Previous Results</strong>. Only the admin can delete a round &mdash; users cannot.
+          </p>
+          <div class="tbl-wrap" id="rounds-tbl-wrap"><div class="tbl-empty">No rounds published yet.</div></div>
         </div>
       </div>
     </div>
@@ -666,25 +708,30 @@ tbody tr:hover td{background:#0a1a0a40;}
     <div class="tab-content" id="tab-prizes">
       <div class="section-card">
         <div class="sc-head">
-          <div class="sc-title">🏆 Jackpot Prize Settings</div>
+          <div class="sc-title"><i class="gi" data-ic="trophy" data-sz="16"></i> Jackpot Prize Settings</div>
         </div>
         <div class="sc-body">
           <p style="font-size:13px;color:var(--text3);margin-bottom:18px;line-height:1.6">
-            Set the prize amounts. Only the <strong style="color:var(--gold)">14 Correct (Super Jackpot)</strong> prize is shown publicly to users on the game page. The 13 and 12 correct prizes are for admin reference only — the teams share them based on how many winners there are.
+            Set the <strong style="color:var(--gold)">total prize pool</strong> for each tier. Only the <strong style="color:var(--gold)">14 Correct (Super Jackpot)</strong> amount is shown publicly on the game page.
+            In <strong style="color:var(--green)">Results &rarr; Step 3</strong> these totals are pre-filled and automatically divided by the number of winners.
           </p>
           <div class="prize-field">
-            <label>🟢 14 Correct — Super Jackpot (shown publicly on game page)</label>
+            <label><span class="dot dot-g"></span> 14 Correct &mdash; Super Jackpot (shown publicly on game page)</label>
             <input class="prize-input" id="prize-14" type="number" placeholder="e.g. 200000000" style="border-color:var(--green)"/>
           </div>
           <div class="prize-field">
-            <label>🔵 13 Correct — Admin Reference Only (shared among winners)</label>
+            <label><span class="dot dot-b"></span> 13 Correct &mdash; total pool (shared among winners)</label>
             <input class="prize-input" id="prize-13" type="number" placeholder="e.g. 5000000"/>
           </div>
           <div class="prize-field">
-            <label>🟡 12 Correct — Admin Reference Only (shared among winners)</label>
+            <label><span class="dot dot-y"></span> 12 Correct &mdash; total pool (shared among winners)</label>
             <input class="prize-input" id="prize-12" type="number" placeholder="e.g. 500000"/>
           </div>
-          <button class="save-btn" onclick="savePrizes()">💾 Save Prize Settings</button>
+          <div class="prize-field">
+            <label><span class="dot dot-o"></span> 11 Correct &mdash; total pool (shared among winners)</label>
+            <input class="prize-input" id="prize-11" type="number" placeholder="e.g. 100000"/>
+          </div>
+          <button class="save-btn" onclick="savePrizes()"><i class="gi" data-ic="save" data-sz="16"></i> Save Prize Settings</button>
           <div class="save-msg" id="prizes-save-msg"></div>
         </div>
       </div>
@@ -694,14 +741,14 @@ tbody tr:hover td{background:#0a1a0a40;}
     <div class="tab-content" id="tab-matches">
       <div class="section-card">
         <div class="sc-head">
-          <div class="sc-title">⚽ Manage Matches (Edit Weekly)</div>
+          <div class="sc-title"><i class="gi" data-ic="ball" data-sz="16"></i> Manage Matches (Edit Weekly)</div>
         </div>
         <div class="sc-body">
           <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
             Update all 14 match fixtures every week. Changes go live on the game page immediately.
           </p>
           <div id="matches-editor"></div>
-          <button class="save-btn" onclick="saveMatches()">💾 Save All Matches</button>
+          <button class="save-btn" onclick="saveMatches()"><i class="gi" data-ic="save" data-sz="16"></i> Save All Matches</button>
           <div class="save-msg" id="matches-save-msg"></div>
         </div>
       </div>
@@ -711,7 +758,7 @@ tbody tr:hover td{background:#0a1a0a40;}
     <div class="tab-content" id="tab-countdown">
       <div class="section-card">
         <div class="sc-head">
-          <div class="sc-title">⏱ Betting Countdown Timer</div>
+          <div class="sc-title"><i class="gi" data-ic="clock" data-sz="16"></i> Betting Countdown Timer</div>
         </div>
         <div class="sc-body">
           <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
@@ -736,7 +783,7 @@ tbody tr:hover td{background:#0a1a0a40;}
     <div class="tab-content" id="tab-betid">
       <div class="section-card">
         <div class="sc-head">
-          <div class="sc-title">🔍 Search Bet by Ticket ID</div>
+          <div class="sc-title"><i class="gi" data-ic="search" data-sz="16"></i> Search Bet by Ticket ID</div>
         </div>
         <div class="sc-body">
           <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">
@@ -748,7 +795,7 @@ tbody tr:hover td{background:#0a1a0a40;}
               style="flex:1;min-width:220px;font-family:monospace;"
               onkeydown="if(event.key==='Enter')searchBetId()"/>
             <button class="refresh-btn" onclick="searchBetId()" style="background:linear-gradient(135deg,var(--green),var(--green2));color:#000;border:none;">
-              🔍 Search
+              <i class="gi" data-ic="search" data-sz="16"></i> Search
             </button>
           </div>
           <div id="betid-result"></div>
@@ -756,20 +803,29 @@ tbody tr:hover td{background:#0a1a0a40;}
       </div>
     </div>
 
-    <!-- ══ BROADCAST TAB ══ -->
+    <!-- ══ NOTIFICATIONS TAB ══ -->
     <div class="tab-content" id="tab-broadcast">
       <div class="section-card">
-        <div class="sc-head"><div class="sc-title">📢 Broadcast to All Users</div></div>
+        <div class="sc-head"><div class="sc-title"><i class="gi" data-ic="megaphone" data-sz="16"></i> Send Notification to All Users</div></div>
         <div class="sc-body">
           <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-            Save a message that all users will see on the game page. Use for announcements, result notifications, or reminders.
+            Users see the <strong style="color:var(--gold)">title</strong> under the bell icon on the game page. When they tap the title, the full <strong style="color:var(--gold)">message</strong> opens for reading. Users can delete a notification from their own bell; you can delete it for everyone below.
           </p>
-          <div class="bc-row">
-            <input class="bc-input" id="bc-msg" placeholder="Type your message to all users..."/>
-            <button class="bc-send" onclick="sendBroadcast()">📢 Save &amp; Broadcast</button>
-          </div>
+          <input class="mo-input" id="bc-title" maxlength="80" placeholder="Title (e.g. Results are out)"/>
+          <textarea class="mo-input" id="bc-msg" rows="4" placeholder="Message users will read when they open the title..."></textarea>
+          <button class="save-btn" onclick="sendBroadcast()"><i class="gi" data-ic="megaphone" data-sz="16"></i> Send Notification</button>
           <div id="bc-status"></div>
         </div>
+      </div>
+      <div class="section-card">
+        <div class="sc-head">
+          <div class="sc-title"><i class="gi" data-ic="bell" data-sz="16"></i> Sent Notifications</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="refresh-btn" id="bc-toggle-hidden" onclick="toggleHiddenNotifs()" style="display:none"></button>
+            <button class="clear-logs-btn" id="bc-delall" onclick="deleteAllNotifs()" style="display:none"><i class="gi" data-ic="trash" data-sz="16"></i> Delete all for everyone</button>
+          </div>
+        </div>
+        <div class="sc-body"><div id="bc-list"><div class="tbl-empty">No notifications sent yet.</div></div></div>
       </div>
     </div>
 
@@ -777,8 +833,8 @@ tbody tr:hover td{background:#0a1a0a40;}
     <div class="tab-content" id="tab-logs">
       <div class="section-card">
         <div class="sc-head">
-          <div class="sc-title">📋 Audit Logs</div>
-          <button class="clear-logs-btn" onclick="clearLogs()">🗑️ Clear All</button>
+          <div class="sc-title"><i class="gi" data-ic="clipboard" data-sz="16"></i> Audit Logs</div>
+          <button class="clear-logs-btn" onclick="clearLogs()"><i class="gi" data-ic="trash" data-sz="16"></i> Clear All</button>
         </div>
         <div class="sc-body">
           <div id="logs-list"></div>
@@ -794,13 +850,13 @@ tbody tr:hover td{background:#0a1a0a40;}
 <!-- FUND USER -->
 <div class="mo" id="mo-fund">
   <div class="mo-box">
-    <div class="mo-title">💰 Fund User Account</div>
+    <div class="mo-title"><i class="gi" data-ic="wallet" data-sz="16"></i> Fund User Account</div>
     <div class="mo-info" id="fund-info">—</div>
     <input class="mo-input" id="fund-amount" type="number" placeholder="Amount to add (₦)"
       onkeydown="if(event.key==='Enter')confirmFund()"/>
     <div class="mo-err" id="fund-err"></div>
     <div class="mo-btns">
-      <button class="mb-green" onclick="confirmFund()">✅ Add Funds</button>
+      <button class="mb-green" onclick="confirmFund()"><i class="gi" data-ic="checkc" data-sz="16"></i> Add Funds</button>
       <button class="mb-gray" onclick="closeMo('mo-fund')">Cancel</button>
     </div>
   </div>
@@ -809,10 +865,10 @@ tbody tr:hover td{background:#0a1a0a40;}
 <!-- CLEAR BALANCE -->
 <div class="mo" id="mo-clear">
   <div class="mo-box">
-    <div class="mo-title">⚠️ Clear Balance</div>
+    <div class="mo-title"><i class="gi" data-ic="alert" data-sz="16"></i> Clear Balance</div>
     <div class="mo-info" id="clear-info">—</div>
     <div class="mo-btns">
-      <button class="mb-red" onclick="confirmClear()">🗑️ Yes, Clear Balance</button>
+      <button class="mb-red" onclick="confirmClear()"><i class="gi" data-ic="trash" data-sz="16"></i> Yes, Clear Balance</button>
       <button class="mb-gray" onclick="closeMo('mo-clear')">Cancel</button>
     </div>
   </div>
@@ -821,10 +877,10 @@ tbody tr:hover td{background:#0a1a0a40;}
 <!-- DELETE / ARCHIVE USER -->
 <div class="mo" id="mo-delete">
   <div class="mo-box">
-    <div class="mo-title">🗂 Archive User</div>
+    <div class="mo-title"><i class="gi" data-ic="archive" data-sz="16"></i> Archive User</div>
     <div class="mo-info" id="delete-info">—</div>
     <div class="mo-btns">
-      <button class="mb-orange" onclick="confirmDelete()">🗂 Archive User</button>
+      <button class="mb-orange" onclick="confirmDelete()"><i class="gi" data-ic="archive" data-sz="16"></i> Archive User</button>
       <button class="mb-gray" onclick="closeMo('mo-delete')">Cancel</button>
     </div>
   </div>
@@ -833,7 +889,7 @@ tbody tr:hover td{background:#0a1a0a40;}
 <!-- VIEW USER BETS / RECEIPT -->
 <div class="mo" id="mo-bets">
   <div class="mo-box" style="max-width:540px;">
-    <div class="mo-title" id="mo-bets-title">🎫 User Tickets</div>
+    <div class="mo-title" id="mo-bets-title"><i class="gi" data-ic="ticket" data-sz="16"></i> User Tickets</div>
     <div id="mo-bets-content" style="max-height:420px;overflow-y:auto;"></div>
     <div class="mo-btns"><button class="mb-gray" onclick="closeMo('mo-bets')">Close</button></div>
   </div>
@@ -842,10 +898,10 @@ tbody tr:hover td{background:#0a1a0a40;}
 <!-- APPROVE DEPOSIT -->
 <div class="mo" id="mo-approve-dep">
   <div class="mo-box">
-    <div class="mo-title">✅ Approve Deposit</div>
+    <div class="mo-title"><i class="gi" data-ic="checkc" data-sz="16"></i> Approve Deposit</div>
     <div class="mo-info" id="approve-dep-info">—</div>
     <div class="mo-btns">
-      <button class="mb-green" onclick="confirmApproveDeposit()">✅ Approve &amp; Credit User</button>
+      <button class="mb-green" onclick="confirmApproveDeposit()"><i class="gi" data-ic="checkc" data-sz="16"></i> Approve &amp; Credit User</button>
       <button class="mb-gray" onclick="closeMo('mo-approve-dep')">Cancel</button>
     </div>
   </div>
@@ -854,10 +910,10 @@ tbody tr:hover td{background:#0a1a0a40;}
 <!-- REJECT DEPOSIT -->
 <div class="mo" id="mo-reject-dep">
   <div class="mo-box">
-    <div class="mo-title">❌ Reject Deposit</div>
+    <div class="mo-title"><i class="gi" data-ic="xc" data-sz="16"></i> Reject Deposit</div>
     <div class="mo-info" id="reject-dep-info">—</div>
     <div class="mo-btns">
-      <button class="mb-red" onclick="confirmRejectDeposit()">❌ Reject</button>
+      <button class="mb-red" onclick="confirmRejectDeposit()"><i class="gi" data-ic="xc" data-sz="16"></i> Reject</button>
       <button class="mb-gray" onclick="closeMo('mo-reject-dep')">Cancel</button>
     </div>
   </div>
@@ -866,18 +922,30 @@ tbody tr:hover td{background:#0a1a0a40;}
 <!-- NEW ROUND CONFIRM -->
 <div class="mo" id="mo-newround">
   <div class="mo-box">
-    <div class="mo-title">🔄 Confirm New Round</div>
+    <div class="mo-title"><i class="gi" data-ic="refresh" data-sz="16"></i> Confirm New Round</div>
     <div class="mo-info">
       This will permanently:<br/>
-      ✅ Delete all bet tickets from this round<br/>
-      ✅ Clear all saved results<br/>
-      ✅ Reset the countdown to zero<br/>
-      ✅ Keep all user accounts and balances<br/><br/>
-      <strong style="color:var(--red)">⚠️ This cannot be undone. Make sure all winners have been paid first.</strong>
+      <i class="gi" data-ic="checkc" data-sz="16"></i> Delete all bet tickets from this round<br/>
+      <i class="gi" data-ic="checkc" data-sz="16"></i> Clear all saved results<br/>
+      <i class="gi" data-ic="checkc" data-sz="16"></i> Reset the countdown to zero<br/>
+      <i class="gi" data-ic="checkc" data-sz="16"></i> Keep all user accounts and balances<br/><br/>
+      <strong style="color:var(--red)"><i class="gi" data-ic="alert" data-sz="16"></i> This cannot be undone. Make sure all winners have been paid first.</strong>
     </div>
     <div class="mo-btns">
-      <button class="mb-red" onclick="confirmNewRound()">🔄 Yes, Start New Round</button>
+      <button class="mb-red" onclick="confirmNewRound()"><i class="gi" data-ic="refresh" data-sz="16"></i> Yes, Start New Round</button>
       <button class="mb-gray" onclick="closeMo('mo-newround')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE PUBLISHED ROUND -->
+<div class="mo" id="mo-delround">
+  <div class="mo-box">
+    <div class="mo-title"><i class="gi" data-ic="trash" data-sz="16"></i> Delete Published Round</div>
+    <div class="mo-info" id="delround-info">&mdash;</div>
+    <div class="mo-btns">
+      <button class="mb-red" onclick="confirmDeleteRound()"><i class="gi" data-ic="trash" data-sz="16"></i> Yes, Delete</button>
+      <button class="mb-gray" onclick="closeMo('mo-delround')">Cancel</button>
     </div>
   </div>
 </div>
@@ -893,8 +961,68 @@ tbody tr:hover td{background:#0a1a0a40;}
 
 <script>
 // ════════════════════════════════════════════════════════
-//  🔥 FIREBASE CONFIG
+//  FIREBASE CONFIG
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  SVG ICON LIBRARY (replaces emoji — crisp on every device)
+// ════════════════════════════════════════════════════════
+var _IC={
+  ball:'<circle cx="12" cy="12" r="10"/><polygon points="12,7.4 16.4,10.6 14.7,15.8 9.3,15.8 7.6,10.6"/><path d="M12 7.4V2.1M16.4 10.6l5-1.6M14.7 15.8l3.1 4.3M9.3 15.8l-3.1 4.3M7.6 10.6l-5-1.6"/>',
+  wallet:'<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  banknote:'<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>',
+  ticket:'<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 11v2M13 17v2"/>',
+  chart:'<path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/>',
+  help:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+  mail:'<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+  login:'<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/>',
+  dice:'<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.1" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.1" fill="currentColor"/>',
+  user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  lock:'<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  unlock:'<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>',
+  key:'<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>',
+  bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  trash:'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  checkc:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/>',
+  xc:'<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+  trophy:'<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  eye:'<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  eyeoff:'<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+  target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  hourglass:'<path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22"/><path d="M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2"/>',
+  refresh:'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  ban:'<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+  megaphone:'<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+  chev:'<path d="m6 9 6 6 6-6"/>',
+  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  save:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
+  archive:'<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+  clipboard:'<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/>',
+  alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  phone:'<rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/>',
+  eyeslash:'<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>',
+  send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+  circle:'<circle cx="12" cy="12" r="9"/>'
+};
+function ic(n,s){
+  s=s||18;
+  return '<svg class="svg-ico" width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(_IC[n]||'')+'</svg>';
+}
+function hydrateIcons(root){
+  (root||document).querySelectorAll('[data-ic]').forEach(function(el){
+    if(el.getAttribute('data-done')) return;
+    el.innerHTML=ic(el.getAttribute('data-ic'),parseInt(el.getAttribute('data-sz'),10)||18);
+    el.setAttribute('data-done','1');
+  });
+}
+
+hydrateIcons();
 var _FIREBASE_CONFIG = {
   apiKey: "AIzaSyDDgcOPxwXS8P5kAvmcqaRd8nTCl2a3Q4E",
   authDomain: "goalrushjackpot.firebaseapp.com",
@@ -918,6 +1046,7 @@ var _cache = {
   countdown: null,
   publishedRounds: [],
   broadcast: null,
+  notifs: [],
   currentRoundId: 'round_default',
 };
 
@@ -942,7 +1071,7 @@ window._fbReady = (async function(){
                    addDoc, serverTimestamp, query, where, deleteDoc, orderBy, limit, increment,
                    signInWithEmailAndPassword, signOut, onAuthStateChanged };
 
-    console.log('✅ Admin Firebase ready');
+    console.log('Admin Firebase ready');
     return true;
   }catch(e){
     console.error('Admin Firebase init failed:', e);
@@ -962,28 +1091,28 @@ async function doLogin(){
   var pw=document.getElementById('adm-pass').value;
   var err=document.getElementById('login-err');
   function fail(m){ err.textContent=m; err.style.display='block'; setTimeout(function(){err.style.display='none';},3000); }
-  if(!em||!pw){ fail('❌ Enter admin email and password.'); return; }
-  var ok=await window._fbReady; if(!ok){ fail('❌ Cannot connect to Firebase.'); return; }
+  if(!em||!pw){ fail('Enter admin email and password.'); return; }
+  var ok=await window._fbReady; if(!ok){ fail('Cannot connect to Firebase.'); return; }
   try{
     var cred=await window._F.signInWithEmailAndPassword(window._auth,em,pw);
     var chk=isAdminUser(cred.user);
     if(!chk.ok){
       await window._F.signOut(window._auth);
-      fail('❌ This email ('+cred.user.email+') is not in the admin list.');
+      fail('This email ('+cred.user.email+') is not in the admin list.');
       return;
     }
     enterAdmin();
   }catch(e){
-    var m='❌ Login failed';
-    if(e.code==='auth/user-not-found') m='❌ No account with this email.';
-    else if(e.code==='auth/wrong-password') m='❌ Wrong password.';
-    else if(e.code==='auth/invalid-email') m='❌ Invalid email format.';
-    else if(e.code==='auth/invalid-credential') m='❌ Wrong email or password.';
-    else if(e.code==='auth/unauthorized-domain') m='❌ This website domain is not authorized in Firebase (Authentication > Settings > Authorized domains).';
-    else if(e.code==='auth/operation-not-allowed') m='❌ Email/Password sign-in is not enabled in Firebase (Authentication > Sign-in method).';
-    else if(e.code==='auth/network-request-failed') m='❌ Network error. Check your internet.';
-    else if(e.code) m='❌ '+e.code;
-    else m='❌ Login failed: '+(e&&(e.message||String(e))||'unknown error')+' [type:'+(e?e.constructor.name:'?')+']';
+    var m='Login failed';
+    if(e.code==='auth/user-not-found') m='No account with this email.';
+    else if(e.code==='auth/wrong-password') m='Wrong password.';
+    else if(e.code==='auth/invalid-email') m='Invalid email format.';
+    else if(e.code==='auth/invalid-credential') m='Wrong email or password.';
+    else if(e.code==='auth/unauthorized-domain') m='This website domain is not authorized in Firebase (Authentication > Settings > Authorized domains).';
+    else if(e.code==='auth/operation-not-allowed') m='Email/Password sign-in is not enabled in Firebase (Authentication > Sign-in method).';
+    else if(e.code==='auth/network-request-failed') m='Network error. Check your internet.';
+    else if(e.code) m=''+e.code;
+    else m='Login failed: '+(e&&(e.message||String(e))||'unknown error')+' [type:'+(e?e.constructor.name:'?')+']';
     fail(m);
   }
 }
@@ -1015,7 +1144,7 @@ window._fbReady.then(function(ok){
 
 async function initAdmin(){
   var fbOk = await window._fbReady;
-  if(!fbOk){ toast('⚠️ Firebase not connected. Check config.','t-err'); }
+  if(!fbOk){ toast('Firebase not connected. Check config.','t-err'); }
   openTab('users');
   await loadAllData();
 }
@@ -1083,9 +1212,10 @@ async function loadAllData(){
     var cs = await F.getDoc(F.doc(db,'app_settings','countdown'));
     if(cs.exists()){ _cache.countdown=cs.data(); loadCurrentCountdown(); }
   });
-  await safe('settings:broadcast', async function(){
-    var bcs = await F.getDoc(F.doc(db,'app_settings','broadcast'));
-    if(bcs.exists()){ _cache.broadcast=bcs.data(); loadBroadcast(); }
+  await safe('settings:notifications', async function(){
+    var ns = await F.getDoc(F.doc(db,'app_settings','notifications'));
+    _cache.notifs = (ns.exists()&&Array.isArray(ns.data().items)) ? ns.data().items : [];
+    loadBroadcast();
   });
   await safe('settings:current_round', async function(){
     var cr = await F.getDoc(F.doc(db,'app_settings','current_round'));
@@ -1099,21 +1229,21 @@ async function loadAllData(){
     var prs = await F.getDocs(F.collection(db,'published_rounds'));
     _cache.publishedRounds=[];
     prs.forEach(function(d){_cache.publishedRounds.push(d.data());});
-    _cache.publishedRounds.sort(function(a,b){return _sortKey(a.savedAt).localeCompare(_sortKey(b.savedAt));});
+    _cache.publishedRounds.sort(function(a,b){return _rk(a)-_rk(b);});
   });
 
   // Refresh UI with whatever loaded successfully
   renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
   loadDeposits(); loadWithdrawals(); loadLogs(); updateStats();
   loadPrizesForm(); loadCurrentCountdown(); loadBroadcast();
-  renderResultsEditor();
+  renderResultsEditor(); renderPublishedRounds();
 
   hideLoad();
   if(errors.length){
-    toast('⚠️ Some data failed to load: '+errors.join(' | '),'t-err');
+    toast('Some data failed to load: '+errors.join(' | '),'t-err');
     console.error('loadAllData errors:',errors);
   } else {
-    toast('✅ All data loaded from Firebase');
+    toast('All data loaded from Firebase');
   }
 }
 
@@ -1149,9 +1279,9 @@ function openTab(tab){
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.toggle('active',(b.getAttribute('onclick')||'').indexOf("'"+tab+"'")>-1);});
   document.querySelectorAll('.tab-content').forEach(function(c){c.classList.toggle('active',c.id==='tab-'+tab);});
   if(tab==='users')    renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
-  if(tab==='deposits') loadDeposits();
-  if(tab==='withdrawals') loadWithdrawals();
-  if(tab==='results')  renderResultsEditor();
+  if(tab==='deposits'){ loadDeposits(); syncList('deposits','deposits',loadDeposits,true); }
+  if(tab==='withdrawals'){ loadWithdrawals(); syncList('withdrawals','withdrawals',loadWithdrawals,true); }
+  if(tab==='results'){ renderResultsEditor(); renderPublishedRounds(); }
   if(tab==='archive')  loadArchive();
   if(tab==='logs')     loadLogs();
   if(tab==='prizes')   loadPrizesForm();
@@ -1160,6 +1290,23 @@ function openTab(tab){
   if(tab==='countdown')loadCurrentCountdown();
 }
 function switchAdminTab(t){ openTab(t); }
+
+// ── Re-read a collection from Firebase (new withdrawals / deposits made by users show up here) ──
+async function syncList(col,cacheKey,renderFn,silent){
+  var fbOk=await window._fbReady; if(!fbOk||!window._db) return;
+  if(!silent) showLoad('Refreshing...');
+  try{
+    var snap=await window._F.getDocs(window._F.collection(window._db,col));
+    var arr=[]; snap.forEach(function(d){ arr.push(d.data()); });
+    arr.sort(function(a,b){ return _sortKey(b.time).localeCompare(_sortKey(a.time)); });
+    _cache[cacheKey]=arr;
+    renderFn(); updateStats();
+    if(!silent) toast('Refreshed');
+  }catch(e){ console.warn('syncList',col,e); if(!silent) toast('Refresh failed: '+(e.code||e.message),'t-err'); }
+  if(!silent) hideLoad();
+}
+function refreshDeposits(){ return syncList('deposits','deposits',loadDeposits); }
+function refreshWithdrawals(){ return syncList('withdrawals','withdrawals',loadWithdrawals); }
 
 // ── STATS ──
 function updateStats(){
@@ -1207,20 +1354,20 @@ function renderUsersTable(users){
     var reg=esc(fmtDate(u.createdAt||u.created));
     var key=esc(u.phone||u.uid||'');
     return '<tr>'
-      +'<td><div class="td-phone">'+name+'</div><div style="font-size:11px;color:var(--text3)">📱 '+phone+'</div>'
+      +'<td><div class="td-phone">'+name+'</div><div style="font-size:11px;color:var(--text3)">'+ic('phone',12)+' '+phone+'</div>'
       +(u.age?'<div style="font-size:10px;color:var(--text3)">Age: '+esc(String(u.age))+(u.gender?' · '+esc(u.gender):'')+'</div>':'')+'</td>'
       +'<td style="font-size:11px;color:var(--text3)">'+email+'</td>'
       +'<td class="td-bal">₦'+bal+'</td>'
       +'<td>'+status+'</td>'
       +'<td style="font-size:11px;color:var(--text3)">'+reg+'</td>'
       +'<td><div class="acts">'
-        +'<button class="ab ab-fund" onclick="openFund(\''+key+'\')">💰 Fund</button>'
+        +'<button class="ab ab-fund" onclick="openFund(\''+key+'\')">'+ic('wallet',14)+' Fund</button>'
         +(u.disabled
-          ?'<button class="ab ab-en" onclick="setDisabled(\''+key+'\',false)">✅ Enable</button>'
-          :'<button class="ab ab-dis" onclick="setDisabled(\''+key+'\',true)">⛔ Disable</button>')
-        +'<button class="ab ab-clear" onclick="openClear(\''+key+'\')">🗑 Clear Bal</button>'
-        +'<button class="ab ab-view" onclick="viewUserBets(\''+key+'\')">🎫 Tickets</button>'
-        +'<button class="ab ab-del" onclick="openDelete(\''+key+'\')">🗂 Archive</button>'
+          ?'<button class="ab ab-en" onclick="setDisabled(\''+key+'\',false)">'+ic('checkc',14)+' Enable</button>'
+          :'<button class="ab ab-dis" onclick="setDisabled(\''+key+'\',true)">'+ic('ban',14)+' Disable</button>')
+        +'<button class="ab ab-clear" onclick="openClear(\''+key+'\')">'+ic('trash',14)+' Clear Bal</button>'
+        +'<button class="ab ab-view" onclick="viewUserBets(\''+key+'\')">'+ic('ticket',14)+' Tickets</button>'
+        +'<button class="ab ab-del" onclick="openDelete(\''+key+'\')">'+ic('archive',14)+' Archive</button>'
       +'</div></td>'
       +'</tr>';
   }).join('');
@@ -1256,7 +1403,7 @@ async function confirmFund(){
   await addLog('Funded ₦'+amt.toLocaleString(),_pendingUser);
   renderUsersTable(Object.values(_cache.users).filter(function(x){return !x.archived;}));
   updateStats(); hideLoad(); closeMo('mo-fund');
-  toast('✅ ₦'+amt.toLocaleString()+' added to '+(u.name||u.fullName||_pendingUser));
+  toast('₦'+amt.toLocaleString()+' added to '+(u.name||u.fullName||_pendingUser));
 }
 
 // ── Disable/Enable ──
@@ -1275,7 +1422,7 @@ async function setDisabled(key, disabled){
   await addLog(disabled?'Account disabled':'Account enabled',key);
   renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
   updateStats(); hideLoad();
-  toast(disabled?'⛔ Account disabled':'✅ Account enabled');
+  toast(disabled?'Account disabled':'Account enabled');
 }
 
 // ── Clear balance ──
@@ -1301,7 +1448,7 @@ async function confirmClear(){
   await addLog('Balance cleared',_pendingUser);
   renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
   updateStats(); hideLoad(); closeMo('mo-clear');
-  toast('🗑️ Balance cleared','t-err');
+  toast('Balance cleared','t-err');
 }
 
 // ── Archive user ──
@@ -1327,7 +1474,7 @@ async function confirmDelete(){
   await addLog('User archived',_pendingUser);
   renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
   loadArchive(); updateStats(); hideLoad(); closeMo('mo-delete');
-  toast('🗂 User archived','t-gold');
+  toast('User archived','t-gold');
 }
 
 // ── Archive tab ──
@@ -1342,7 +1489,7 @@ function loadArchive(){
       +'<td class="td-bal">₦'+Number(u.balance||0).toLocaleString()+'</td>'
       +'<td><span class="sbadge sb-arc">Archived</span></td>'
       +'<td style="font-size:11px;color:var(--text3)">'+esc(fmtDate(u.archivedAt||u.created))+'</td>'
-      +'<td><div class="acts"><button class="ab ab-restore" onclick="restoreUser(\''+key+'\')">♻️ Restore</button></div></td>'
+      +'<td><div class="acts"><button class="ab ab-restore" onclick="restoreUser(\''+key+'\')">'+ic('refresh',14)+' Restore</button></div></td>'
       +'</tr>';
   }).join('');
   document.getElementById('archive-tbl-wrap').innerHTML=
@@ -1363,34 +1510,22 @@ async function restoreUser(key){
   await addLog('User restored',key);
   loadArchive();
   renderUsersTable(Object.values(_cache.users).filter(function(u){return !u.archived;}));
-  updateStats(); hideLoad(); toast('✅ User restored');
+  updateStats(); hideLoad(); toast('User restored');
 }
 
 // ── View User Bets ──
 function viewUserBets(userKey){
   var u=_cache.users[userKey]||{};
   var tickets=_cache.tickets.filter(function(t){return t.user===userKey;});
-  setText('mo-bets-title','🎫 Tickets — '+esc(u.name||u.fullName||userKey));
+  setText('mo-bets-title','Tickets — '+esc(u.name||u.fullName||userKey));
   var balBox='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:14px;">'
     +'<div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Balance</div>'
     +'<div style="font-size:20px;font-weight:900;color:var(--gold)">₦'+Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2})+'</div>'
-    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">📱 '+esc(u.phone||'—')+' · 📧 '+esc(u.email||'—')+'</div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:4px">'+ic('phone',12)+' '+esc(u.phone||'—')+' &middot; '+ic('mail',12)+' '+esc(u.email||'—')+'</div>'
     +'</div>';
   if(!tickets.length){ document.getElementById('mo-bets-content').innerHTML=balBox+'<div class="tbl-empty">No tickets placed.</div>'; openMo('mo-bets'); return; }
   var html=balBox+tickets.map(function(t,ti){
-    var matchedRound=null;
-    if(t.roundId){ matchedRound=_cache.publishedRounds.find(function(r){return r.roundId===t.roundId||r.id===t.roundId;})||null; }
-    if(!matchedRound&&t.selections&&t.selections.length>=3){
-      matchedRound=_cache.publishedRounds.find(function(r){
-        var rm=r.matches||[]; if(rm.length<3)return false; var hits=0;
-        for(var x=0;x<Math.min(4,t.selections.length,rm.length);x++){
-          var s=t.selections[x],m=rm[x]; if(!s||!m)continue;
-          if((s.home||'').toLowerCase().trim()===(m.home||'').toLowerCase().trim()
-          &&(s.away||'').toLowerCase().trim()===(m.away||'').toLowerCase().trim()) hits++;
-        }
-        return hits>=3;
-      })||null;
-    }
+    var matchedRound=findRoundForTicket(t,_cache.publishedRounds);
     var roundResults=matchedRound?matchedRound.matches:null;
     var roundWinners=matchedRound?(matchedRound.winners||{}):{};
     var correctCount=0,voidCount=0;
@@ -1402,7 +1537,7 @@ function viewUserBets(userKey){
       var picks=(s.picks||[]).map(function(p){ p=(p||'').toLowerCase(); if(p==='home'||p==='1')return '1'; if(p==='draw'||p==='x')return 'X'; if(p==='away'||p==='2')return '2'; return ''; });
       var isMatch=hasResult&&!isVoid&&picks.indexOf(resVal)!==-1;
       if(isVoid) voidCount++; if(isMatch) correctCount++;
-      var matchIcon=''; if(hasResult){ matchIcon=isVoid?'<span style="color:var(--text3);font-size:11px">void</span>':isMatch?'<span style="color:var(--green)">✅</span>':'<span style="color:var(--red)">❌</span>'; }
+      var matchIcon=''; if(hasResult){ matchIcon=isVoid?'<span style="color:var(--text3);font-size:11px">void</span>':isMatch?'<span style="color:var(--green)">'+ic('check',14)+'</span>':'<span style="color:var(--red)">'+ic('x',14)+'</span>'; }
       var score=''; if(matchResult&&typeof matchResult==='object'&&matchResult.scoreHome!==''&&matchResult.scoreHome!==undefined&&!isVoid){ score='<span style="color:var(--text2);font-size:11px">'+matchResult.scoreHome+'-'+matchResult.scoreAway+'</span> '; }
       return '<div class="receipt-row">'
         +'<span class="rr-num">'+s.matchIndex+'</span>'
@@ -1412,11 +1547,11 @@ function viewUserBets(userKey){
         +matchIcon+'</div>';
     }).join('');
     var tc=!roundResults?'var(--text3)':correctCount===14?'var(--green)':correctCount===13?'var(--blue)':correctCount===12?'var(--yellow)':'var(--red)';
-    var tl=!roundResults?'⏳ Awaiting results':correctCount===14?'🟢 JACKPOT — 14/14':correctCount===13?'🔵 2nd — 13/14':correctCount===12?'🟡 3rd — 12/14':'🔴 '+correctCount+'/14 Correct';
+    var tl=!roundResults?ic('hourglass',14)+' Awaiting results':correctCount===14?dot('g')+' JACKPOT — 14/14':correctCount===13?dot('b')+' 2nd — 13/14':correctCount===12?dot('y')+' 3rd — 12/14':dot('r')+' '+correctCount+'/14 Correct';
     if(voidCount>0&&roundResults) tl+=' ('+voidCount+' void)';
     var prizeHtml='';
     if(roundResults&&roundWinners[String(correctCount)]&&Number(roundWinners[String(correctCount)].prize||0)>0)
-      prizeHtml='<div style="margin-top:4px;font-size:12px;color:var(--gold);font-weight:700">🏆 Winning per Ticket: ₦'+Number(roundWinners[String(correctCount)].prize).toLocaleString()+'</div>';
+      prizeHtml='<div style="margin-top:4px;font-size:12px;color:var(--gold);font-weight:700">'+ic('trophy',14)+' Winning per Ticket: ₦'+fmtN(roundWinners[String(correctCount)].prize)+'</div>';
     return '<div class="ticket-summary-box">'
       +'<div class="ts-ref">Ticket '+(ti+1)+' · Ref: '+esc(t.id||'—')+' · '+fmtDate(t.created)+'</div>'
       +'<div class="ts-stake">Combos: '+t.combination+' · Stake: ₦'+t.stake.toLocaleString()+'</div>'
@@ -1437,7 +1572,7 @@ function loadDeposits(){
   var rows=deps.map(function(d,i){
     var sb=d.status==='pending'?'<span class="sbadge sb-pend">Pending</span>':d.status==='approved'?'<span class="sbadge sb-ok">Approved</span>':'<span class="sbadge sb-dis">Rejected</span>';
     var acts=d.status==='pending'
-      ?'<button class="ab ab-approve" onclick="openApproveDeposit('+i+')">✅ Approve</button><button class="ab ab-reject" onclick="openRejectDeposit('+i+')">❌ Reject</button>':'';
+      ?'<button class="ab ab-approve" onclick="openApproveDeposit('+i+')">'+ic('check',14)+' Approve</button><button class="ab ab-reject" onclick="openRejectDeposit('+i+')">'+ic('x',14)+' Reject</button>':'';
     return '<tr>'
       +'<td class="td-phone">'+esc(d.user||'—')+'</td>'
       +'<td class="td-bal">₦'+Number(d.amount||0).toLocaleString()+'</td>'
@@ -1470,7 +1605,7 @@ async function confirmApproveDeposit(){
   loadDeposits();
   renderUsersTable(Object.values(_cache.users).filter(function(x){return !x.archived;}));
   hideLoad(); closeMo('mo-approve-dep');
-  toast('✅ ₦'+Number(d.amount).toLocaleString()+' credited to '+d.user);
+  toast('₦'+Number(d.amount).toLocaleString()+' credited to '+d.user);
 }
 function openRejectDeposit(idx){ _pendingDepIdx=idx; var d=_cache.deposits[idx]||{}; document.getElementById('reject-dep-info').innerHTML='Reject deposit of <strong>₦'+Number(d.amount||0).toLocaleString()+'</strong> from <strong>'+esc(d.user||'—')+'</strong>?<br/>Ref: '+esc(d.id||'—'); openMo('mo-reject-dep'); }
 async function confirmRejectDeposit(){
@@ -1481,7 +1616,7 @@ async function confirmRejectDeposit(){
   if(fbOk&&window._db&&d.id){ try{ await window._F.setDoc(window._F.doc(window._db,'deposits',d.id),{status:'rejected'},{merge:true}); }catch(e){} }
   await addLog('Deposit rejected ₦'+Number(d.amount).toLocaleString(),d.user);
   loadDeposits(); hideLoad(); closeMo('mo-reject-dep');
-  toast('❌ Deposit rejected','t-err');
+  toast('Deposit rejected','t-err');
 }
 
 // ════════════════════════════════════════════════════════
@@ -1492,8 +1627,9 @@ function loadWithdrawals(){
   if(!wds.length){ document.getElementById('withdrawals-tbl-wrap').innerHTML='<div class="tbl-empty">No withdrawal requests yet.</div>'; updateStats(); return; }
   var rows=wds.map(function(w){
     var sb=w.status==='pending'?'<span class="sbadge sb-pend">Pending</span>':'<span class="sbadge sb-done">Paid</span>';
-    var acts=w.status==='pending'?'<button class="ab ab-approve" onclick="markWdPaid(\''+esc(w.id||w.code)+'\')">✅ Mark Paid</button>':'';
-    return '<tr><td class="td-phone">'+esc(w.user||'—')+'</td><td class="td-bal">₦'+Number(w.amount||0).toLocaleString()+'</td><td style="font-size:12px">'+esc(w.bank||'—')+'</td><td style="font-family:monospace;font-size:12px">'+esc(w.account||'—')+'</td><td>'+sb+'</td><td style="font-size:11px;color:var(--text3)">'+esc(fmtDate(w.time))+'</td><td style="font-size:11px;color:var(--gold);font-family:monospace">'+esc(w.code||w.id||'—')+'</td><td><div class="acts">'+acts+'</div></td></tr>';
+    var acts=w.status==='pending'?'<button class="ab ab-approve" onclick="markWdPaid(\''+esc(w.id||w.code)+'\')">'+ic('check',14)+' Mark Paid</button>':'';
+    var nm=w.name||((_cache.users[w.user]||{}).fullName)||((_cache.users[w.user]||{}).name)||'';
+    return '<tr><td class="td-phone">'+esc(w.user||'—')+(nm?'<div style="font-size:11px;color:var(--text2);font-weight:400">'+esc(nm)+'</div>':'')+'</td><td class="td-bal">₦'+Number(w.amount||0).toLocaleString()+'</td><td style="font-size:12px">'+esc(w.bank||'—')+'</td><td style="font-family:monospace;font-size:12px">'+esc(w.account||'—')+'</td><td>'+sb+'</td><td style="font-size:11px;color:var(--text3)">'+esc(fmtDate(w.time))+'</td><td style="font-size:11px;color:var(--gold);font-family:monospace">'+esc(w.code||w.id||'—')+'</td><td><div class="acts">'+acts+'</div></td></tr>';
   }).join('');
   document.getElementById('withdrawals-tbl-wrap').innerHTML=
     '<table><thead><tr><th>User</th><th>Amount</th><th>Bank</th><th>Account</th><th>Status</th><th>Time</th><th>Ref Code</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>';
@@ -1506,7 +1642,7 @@ async function markWdPaid(id){
   var fbOk=await window._fbReady;
   if(fbOk&&window._db&&id){ try{ await window._F.setDoc(window._F.doc(window._db,'withdrawals',id),{status:'paid',paidAt:new Date().toISOString()},{merge:true}); }catch(e){} }
   await addLog('Withdrawal paid ref:'+id, w?w.user:'');
-  loadWithdrawals(); hideLoad(); toast('✅ Withdrawal marked as paid');
+  loadWithdrawals(); hideLoad(); toast('Withdrawal marked as paid');
 }
 
 // ════════════════════════════════════════════════════════
@@ -1564,21 +1700,112 @@ async function saveResults(){
     final.push({result:res,scoreHome:sh?sh.value:'',scoreAway:sa?sa.value:'',home:matches[i]?matches[i].home:'',away:matches[i]?matches[i].away:'',time:matches[i]?matches[i].time:''});
   }
   var missing=final.filter(function(r){return !r.result;}).length;
-  if(missing>0){ document.getElementById('results-save-msg').innerHTML='<span style="color:var(--red)">⚠️ '+missing+' match(es) still need a result.</span>'; return; }
+  if(missing>0){ document.getElementById('results-save-msg').innerHTML='<span style="color:var(--red)">'+missing+' match(es) still need a result.</span>'; return; }
   _cache.results=final;
   var fbOk=await window._fbReady;
   if(fbOk&&window._db){
     try{
       await window._F.setDoc(window._F.doc(window._db,'app_settings','current_results'),
         {results:final,updatedAt:new Date().toISOString()},{merge:true});
-      document.getElementById('results-save-msg').innerHTML='<span style="color:var(--green)">✅ Results saved to Firebase! Click Scan to find winners.</span>';
+      document.getElementById('results-save-msg').innerHTML='<span style="color:var(--green)">Results saved to Firebase! Click Scan to find winners.</span>';
     }catch(e){
       document.getElementById('results-save-msg').innerHTML='<span style="color:var(--red)">Firebase save failed: '+e.message+'</span>';
     }
   }
   await addLog('Match results saved','admin');
   setTimeout(function(){document.getElementById('results-save-msg').textContent='';},5000);
-  toast('✅ Results saved');
+  toast('Results saved');
+}
+
+// ════════════════════════════════════════════════════════
+//  PRIZE SPLIT HELPERS  (total prize ÷ number of winners)
+// ════════════════════════════════════════════════════════
+var TIERS=['14','13','12','11'];
+function numVal(id){ var el=document.getElementById(id); return el?el.value:''; }
+function fmtN(n){ return Number(n||0).toLocaleString('en',{maximumFractionDigits:2}); }
+function dot(c){ return '<span class="dot dot-'+c+'"></span>'; }
+// Shared equally; rounded DOWN to the kobo so the payout can never exceed the pool.
+function perTicket(total,n){
+  total=Number(total)||0; n=Number(n)||0;
+  if(total<=0||n<=0) return 0;
+  return Math.floor(Math.round(total*100)/n)/100;
+}
+function calcPrizes(){
+  TIERS.forEach(function(k){
+    var per=perTicket(numVal('wn-'+k+'-total'),numVal('wn-'+k+'-tickets'));
+    var el=document.getElementById('wn-'+k+'-per'); if(!el) return;
+    el.innerHTML=per>0?'<strong style="color:var(--gold)">&#8358;'+fmtN(per)+'</strong>':'<span style="color:var(--text3)">&mdash;</span>';
+  });
+}
+// pre-fill each tier's total from Prizes settings (only where still empty)
+function prefillPrizeTotals(){
+  var p=_cache.prizes||{};
+  [['14','jackpot'],['13','second'],['12','third'],['11','fourth']].forEach(function(x){
+    var el=document.getElementById('wn-'+x[0]+'-total'); if(el&&!el.value&&p[x[1]]) el.value=p[x[1]];
+  });
+}
+
+// ── Which published round does a ticket belong to? ──
+function _rk(r){ return Number(r.savedTs)||Date.parse(r.savedAt)||0; }
+function findRoundForTicket(t,rounds){
+  rounds=rounds||[];
+  var tc=Date.parse(_sortKey(t.created))||0;
+  var cands=rounds.filter(function(r){ return r.ticketRoundId&&r.savedTs&&r.ticketRoundId===t.roundId; })
+                  .sort(function(a,b){ return a.savedTs-b.savedTs; });
+  if(cands.length){
+    for(var i=0;i<cands.length;i++){ if(cands[i].savedTs>=tc) return cands[i]; }
+    return null;
+  }
+  var byId=rounds.find(function(r){ return t.roundId&&(r.roundId===t.roundId||r.id===t.roundId); });
+  if(byId) return byId;
+  if(t.selections&&t.selections.length>=3){
+    return rounds.find(function(r){
+      var rm=r.matches||[]; if(rm.length<3) return false; var hits=0;
+      for(var x=0;x<Math.min(4,t.selections.length,rm.length);x++){
+        var s=t.selections[x], m=rm[x]; if(!s||!m) continue;
+        if((s.home||'').toLowerCase().trim()===(m.home||'').toLowerCase().trim()
+         &&(s.away||'').toLowerCase().trim()===(m.away||'').toLowerCase().trim()) hits++;
+      }
+      return hits>=3;
+    })||null;
+  }
+  return null;
+}
+
+// ── PUBLISHED ROUNDS (admin-only delete) ──
+var _roundsView=[], _pendingRoundIdx=-1;
+function renderPublishedRounds(){
+  var box=document.getElementById('rounds-tbl-wrap'); if(!box) return;
+  _roundsView=(_cache.publishedRounds||[]).slice().sort(function(a,b){ return _rk(b)-_rk(a); });
+  if(!_roundsView.length){ box.innerHTML='<div class="tbl-empty">No rounds published yet.</div>'; return; }
+  var rows=_roundsView.map(function(r,i){
+    var w=r.winners||{};
+    var sum=TIERS.filter(function(k){ return w[k]&&Number(w[k].tickets)>0; }).map(function(k){
+      return k+': '+w[k].tickets+' x \u20A6'+fmtN(w[k].prize);
+    }).join('  |  ')||'No winners';
+    return '<tr><td class="td-phone">'+esc(r.id)+'</td>'
+      +'<td style="font-size:11px;color:var(--text3)">'+esc(r.savedAt||'\u2014')+'</td>'
+      +'<td style="font-size:12px;color:var(--text2)">'+esc(sum)+'</td>'
+      +'<td><div class="acts"><button class="ab ab-clear" onclick="openDeleteRound('+i+')">'+ic('trash',14)+' Delete</button></div></td></tr>';
+  }).join('');
+  box.innerHTML='<table><thead><tr><th>Round</th><th>Published</th><th>Winners (correct: tickets x per ticket)</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+function openDeleteRound(i){
+  var r=_roundsView[i]; if(!r) return; _pendingRoundIdx=i;
+  document.getElementById('delround-info').innerHTML='Delete <strong>Round '+esc(r.id)+'</strong> ('+esc(r.savedAt||'')+')?<br/>Users will no longer see these results or their winnings under <strong>Previous Results</strong> and <strong>My Bets</strong>. This cannot be undone.';
+  openMo('mo-delround');
+}
+async function confirmDeleteRound(){
+  var r=_roundsView[_pendingRoundIdx]; if(!r){ closeMo('mo-delround'); return; }
+  var fbOk=await window._fbReady; if(!fbOk||!window._db){ toast('Firebase not connected.','t-err'); return; }
+  showLoad('Deleting round...');
+  try{
+    await window._F.deleteDoc(window._F.doc(window._db,'published_rounds',r.id));
+    _cache.publishedRounds=_cache.publishedRounds.filter(function(x){ return x.id!==r.id; });
+    await addLog('Published round deleted - Round '+r.id,'admin');
+    renderPublishedRounds(); toast('Round '+r.id+' deleted','t-gold');
+  }catch(e){ toast('Delete failed: '+(e.code||e.message),'t-err'); }
+  hideLoad(); closeMo('mo-delround');
 }
 
 // ── TICKET SCANNER ──
@@ -1587,86 +1814,110 @@ function resultToVal(r){ r=(r||'').toString().toUpperCase().trim(); if(r==='VOID
 
 async function scanAllTickets(){
   var results=_cache.results;
-  if(!results||results.length<14){ toast('⚠️ Save all 14 results first before scanning.','t-err'); return; }
-  var tickets=_cache.tickets;
-  if(!tickets.length){ document.getElementById('scan-results').innerHTML='<div class="tbl-empty">No tickets to scan this round.</div>'; document.getElementById('scan-summary').style.display='grid'; setText('sc-total','0'); setText('sc-14','0'); setText('sc-13','0'); setText('sc-12','0'); document.getElementById('publish-section').style.display='block'; return; }
-  var w14=[],w13=[],w12=[],others=[];
+  if(!results||results.length<14){ toast('Save all 14 results first before scanning.','t-err'); return; }
+  // Only tickets placed in the CURRENT round are scanned (older tickets kept "for record" are ignored)
+  var cur=_cache.currentRoundId||'round_default';
+  var tickets=(_cache.tickets||[]).filter(function(t){ return (t.roundId||'round_default')===cur; });
+  var W={'14':[],'13':[],'12':[],'11':[]}, others=[];
   tickets.forEach(function(t){
     var correct=0;
-    t.selections.forEach(function(s,i){
+    (t.selections||[]).forEach(function(s,i){
       var rawRes=results[i]; var resVal=typeof rawRes==='object'?(rawRes.result||''):rawRes;
       var res=resultToVal(resVal); if(res==='VOID')return;
       var picks=(s.picks||[]).map(function(p){return pickToVal(p);});
       if(res&&picks.indexOf(res)!==-1) correct++;
     });
     t._correct=correct;
-    if(correct===14) w14.push(t); else if(correct===13) w13.push(t); else if(correct===12) w12.push(t); else others.push(t);
+    if(W[String(correct)]) W[String(correct)].push(t); else others.push(t);
   });
   document.getElementById('scan-summary').style.display='grid';
-  setText('sc-total',tickets.length); setText('sc-14',w14.length); setText('sc-13',w13.length); setText('sc-12',w12.length);
-  var hasWinners=w14.length>0||w13.length>0||w12.length>0;
-  var alarmBanner=document.getElementById('alarm-banner');
-  if(hasWinners){
-    alarmBanner.classList.add('show');
-    var msgs=[]; if(w14.length>0)msgs.push(w14.length+' JACKPOT WINNER(S)!'); if(w13.length>0)msgs.push(w13.length+' 2nd Prize Winner(s)'); if(w12.length>0)msgs.push(w12.length+' 3rd Prize Winner(s)');
-    setText('alarm-text','🔔 '+msgs.join(' · ')); setText('alarm-sub','Check winners below — fill in the winners table and publish results to users.');
-    try{ var ctx=new(window.AudioContext||window.webkitAudioContext)(); var osc=ctx.createOscillator(); osc.connect(ctx.destination); osc.frequency.value=880; osc.start(); osc.stop(ctx.currentTime+0.4); }catch(e){}
-  } else { alarmBanner.classList.remove('show'); }
-  if(w14.length){ var el=document.getElementById('wn-14-tickets'); if(el&&!el.value)el.value=w14.length; }
-  if(w13.length){ var el=document.getElementById('wn-13-tickets'); if(el&&!el.value)el.value=w13.length; }
-  if(w12.length){ var el=document.getElementById('wn-12-tickets'); if(el&&!el.value)el.value=w12.length; }
-  var html='';
-  if(w14.length) html+='<div class="winner-section"><div class="winner-section-title ws-14">🟢 14 CORRECT — SUPER JACKPOT WINNERS ('+w14.length+')</div>'+w14.map(function(t){return winnerCard(t,'wc-14');}).join('')+'</div>';
-  if(w13.length) html+='<div class="winner-section"><div class="winner-section-title ws-13">🔵 13 CORRECT — 2ND PRIZE ('+w13.length+')</div>'+w13.map(function(t){return winnerCard(t,'wc-13');}).join('')+'</div>';
-  if(w12.length) html+='<div class="winner-section"><div class="winner-section-title ws-12">🟡 12 CORRECT — 3RD PRIZE ('+w12.length+')</div>'+w12.map(function(t){return winnerCard(t,'wc-12');}).join('')+'</div>';
-  if(others.length) html+='<div class="winner-section"><div class="winner-section-title ws-red">🔴 NO PRIZE — '+others.length+' Ticket(s)</div></div>';
-  document.getElementById('scan-results').innerHTML=html;
+  setText('sc-total',tickets.length);
+  TIERS.forEach(function(k){ setText('sc-'+k,W[k].length); });
+  // winners count comes from the scan; totals come from the Prizes settings; per-ticket is calculated
+  prefillPrizeTotals();
+  TIERS.forEach(function(k){ var el=document.getElementById('wn-'+k+'-tickets'); if(el) el.value=W[k].length||''; });
+  calcPrizes();
   document.getElementById('publish-section').style.display='block';
   document.getElementById('new-round-box').style.display='block';
-  await addLog('Tickets scanned. 14:'+w14.length+' 13:'+w13.length+' 12:'+w12.length,'admin');
+  var alarmBanner=document.getElementById('alarm-banner');
+  if(!tickets.length){
+    alarmBanner.classList.remove('show');
+    document.getElementById('scan-results').innerHTML='<div class="tbl-empty">No tickets to scan this round.</div>';
+    return;
+  }
+  var hasWinners=W['14'].length>0||W['13'].length>0||W['12'].length>0;
+  if(hasWinners){
+    alarmBanner.classList.add('show');
+    var msgs=[];
+    if(W['14'].length)msgs.push(W['14'].length+' JACKPOT WINNER(S)!');
+    if(W['13'].length)msgs.push(W['13'].length+' 2nd Prize Winner(s)');
+    if(W['12'].length)msgs.push(W['12'].length+' 3rd Prize Winner(s)');
+    if(W['11'].length)msgs.push(W['11'].length+' 4th Prize Winner(s)');
+    setText('alarm-text',msgs.join(' | ')); setText('alarm-sub','Check winners below. The prize is shared equally: set the totals in Step 3 and publish.');
+    try{ var ctx=new(window.AudioContext||window.webkitAudioContext)(); var osc=ctx.createOscillator(); osc.connect(ctx.destination); osc.frequency.value=880; osc.start(); osc.stop(ctx.currentTime+0.4); }catch(e){}
+  } else { alarmBanner.classList.remove('show'); }
+  var TT={'14':['ws-14','wc-14',dot('g')+' 14 CORRECT \u2014 SUPER JACKPOT WINNERS'],
+          '13':['ws-13','wc-13',dot('b')+' 13 CORRECT \u2014 2ND PRIZE'],
+          '12':['ws-12','wc-12',dot('y')+' 12 CORRECT \u2014 3RD PRIZE'],
+          '11':['ws-12','wc-12',dot('o')+' 11 CORRECT \u2014 4TH PRIZE']};
+  var html='';
+  TIERS.forEach(function(k){
+    if(!W[k].length) return;
+    html+='<div class="winner-section"><div class="winner-section-title '+TT[k][0]+'">'+TT[k][2]+' ('+W[k].length+')</div>'+W[k].map(function(t){return winnerCard(t,TT[k][1]);}).join('')+'</div>';
+  });
+  if(others.length) html+='<div class="winner-section"><div class="winner-section-title ws-red">'+dot('r')+' NO PRIZE \u2014 '+others.length+' Ticket(s)</div></div>';
+  document.getElementById('scan-results').innerHTML=html;
+  await addLog('Tickets scanned. 14:'+W['14'].length+' 13:'+W['13'].length+' 12:'+W['12'].length+' 11:'+W['11'].length,'admin');
 }
 
 function winnerCard(t,cls){
   var u=_cache.users[t.user]||{};
   var msg=encodeURIComponent('🏆 Congratulations from GoalRush Jackpot!\n\nYou got '+t._correct+'/14 correct this round.\nTicket Ref: '+t.id+'\nYour account: '+t.user+'\n\nPlease reply to claim your prize. Well done! ⚽');
-  return '<div class="winner-card '+cls+'"><div class="winner-info"><div class="wi-phone">'+esc(t.user)+'</div><div style="font-size:11px;color:var(--text2)">Name: '+esc(u.name||u.fullName||'—')+'</div><div class="wi-ticket">Ref: '+esc(t.id||'—')+' · Stake: ₦'+t.stake.toLocaleString()+'</div><div class="wi-correct" style="color:'+(t._correct===14?'var(--green)':t._correct===13?'var(--blue)':'var(--yellow)')+'">'+t._correct+'/14 Correct</div></div><a class="wa-btn" href="https://wa.me/'+esc(t.user.replace(/[^0-9]/g,''))+'?text='+msg+'" target="_blank">📲 WhatsApp</a></div>';
+  return '<div class="winner-card '+cls+'"><div class="winner-info"><div class="wi-phone">'+esc(t.user)+'</div><div style="font-size:11px;color:var(--text2)">Name: '+esc(u.name||u.fullName||'—')+'</div><div class="wi-ticket">Ref: '+esc(t.id||'—')+' · Stake: ₦'+t.stake.toLocaleString()+'</div><div class="wi-correct" style="color:'+(t._correct===14?'var(--green)':t._correct===13?'var(--blue)':'var(--yellow)')+'">'+t._correct+'/14 Correct</div></div><a class="wa-btn" href="https://wa.me/'+esc(t.user.replace(/[^0-9]/g,''))+'?text='+msg+'" target="_blank">'+ic('phone',14)+' WhatsApp</a></div>';
 }
 
 // ── PUBLISH ──
 async function publishResults(){
   var roundId=document.getElementById('pub-round-id').value.trim();
   if(!roundId){ toast('Enter a Round label e.g. 20260024','t-err'); return; }
+  if(roundId.indexOf('/')>-1){ toast('Round label cannot contain "/"','t-err'); return; }
   var results=_cache.results;
   if(!results||results.length<14){ toast('Save match results first','t-err'); return; }
   var matches=getMatches();
-  var winners={};
-  [['14','wn-14'],['13','wn-13'],['12','wn-12'],['11','wn-11']].forEach(function(p){
-    var tEl=document.getElementById(p[1]+'-tickets'); var pEl=document.getElementById(p[1]+'-prize');
-    var tickets=tEl?parseInt(tEl.value||'0'):0; var prize=pEl?parseInt(pEl.value||'0'):0;
-    if(tickets>0) winners[p[0]]={tickets:tickets,prize:prize};
+  // prize per ticket = total prize / number of winners (so 2 winners on 14 correct get half each)
+  var winners={}, noPrize=[];
+  TIERS.forEach(function(k){
+    var n=parseInt(numVal('wn-'+k+'-tickets'),10)||0;
+    var total=Number(numVal('wn-'+k+'-total'))||0;
+    if(n>0){
+      var per=perTicket(total,n);
+      winners[k]={tickets:n,total:total,prize:per};
+      if(per<=0) noPrize.push(k);
+    }
   });
+  if(noPrize.length&&!confirm('No total prize entered for '+noPrize.join(', ')+' correct. Publish anyway? Users will see a dash for those tiers.')) return;
   var matchList=matches.map(function(m,i){
     var r=results[i]||{};
     return {home:m.home,away:m.away,time:m.time||'',result:typeof r==='object'?r.result:r,scoreHome:typeof r==='object'?r.scoreHome:'',scoreAway:typeof r==='object'?r.scoreAway:''};
   });
   var now=new Date();
   var savedAt=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-  var round={id:roundId,roundId:roundId,savedAt:savedAt,winners:winners,matches:matchList,results:results};
+  var round={id:roundId,roundId:roundId,ticketRoundId:(_cache.currentRoundId||'round_default'),savedAt:savedAt,savedTs:Date.now(),winners:winners,matches:matchList,results:results};
   var fbOk=await window._fbReady;
   if(fbOk&&window._db){
     try{
       await window._F.setDoc(window._F.doc(window._db,'published_rounds',roundId),round);
-      // Update cache
       var idx=_cache.publishedRounds.findIndex(function(r){return r.id===roundId;});
       if(idx>=0) _cache.publishedRounds[idx]=round; else _cache.publishedRounds.push(round);
-      document.getElementById('publish-save-msg').innerHTML='<span style="color:var(--green)">✅ Round '+esc(roundId)+' published to ALL devices via Firebase!</span>';
-      toast('📢 Results published to all users via Firebase!','t-gold');
+      renderPublishedRounds();
+      document.getElementById('publish-save-msg').innerHTML='<span style="color:var(--green)">Round '+esc(roundId)+' published to ALL devices via Firebase!</span>';
+      toast('Results published to all users','t-gold');
     }catch(e){
-      document.getElementById('publish-save-msg').innerHTML='<span style="color:var(--red)">Firebase publish failed: '+e.message+'</span>';
+      document.getElementById('publish-save-msg').innerHTML='<span style="color:var(--red)">Firebase publish failed: '+esc(e.message)+'</span>';
       toast('Firebase publish failed: '+e.message,'t-err');
     }
   } else { toast('Firebase not connected.','t-err'); }
-  await addLog('Results published — Round '+roundId,'admin');
+  await addLog('Results published - Round '+roundId,'admin');
   setTimeout(function(){document.getElementById('publish-save-msg').textContent='';},6000);
 }
 
@@ -1704,7 +1955,8 @@ async function confirmNewRound(){
   _cache.currentRoundId=newRoundId;
   if(fbOk&&window._db){ try{ await window._F.setDoc(window._F.doc(window._db,'app_settings','current_round'),{roundId:newRoundId,setAt:new Date().toISOString()}); }catch(e){} }
   actions.push('new round ID: '+newRoundId);
-  ['wn-14-tickets','wn-14-prize','wn-13-tickets','wn-13-prize','wn-12-tickets','wn-12-prize','wn-11-tickets','wn-11-prize','pub-round-id'].forEach(function(id){ var el=document.getElementById(id); if(el)el.value=''; });
+  ['wn-14-total','wn-14-tickets','wn-13-total','wn-13-tickets','wn-12-total','wn-12-tickets','wn-11-total','wn-11-tickets','pub-round-id'].forEach(function(id){ var el=document.getElementById(id); if(el)el.value=''; });
+  calcPrizes();
   document.getElementById('scan-results').innerHTML='';
   var ss=document.getElementById('scan-summary'); if(ss)ss.style.display='none';
   var ps=document.getElementById('publish-section'); if(ps)ps.style.display='none';
@@ -1712,7 +1964,7 @@ async function confirmNewRound(){
   var ab=document.getElementById('alarm-banner'); if(ab)ab.classList.remove('show');
   await addLog('New round started — '+actions.join(', '),'admin');
   updateStats(); hideLoad();
-  toast('🔄 New round started! ('+actions.join(', ')+')','t-gold');
+  toast('New round started! ('+actions.join(', ')+')','t-gold');
 }
 function startNewRound(){ openMo('mo-newround'); }
 
@@ -1721,24 +1973,26 @@ function startNewRound(){ openMo('mo-newround'); }
 // ════════════════════════════════════════════════════════
 function loadPrizesForm(){
   var p=_cache.prizes; if(!p)return;
-  var f14=document.getElementById('prize-14'); var f13=document.getElementById('prize-13'); var f12=document.getElementById('prize-12');
-  if(f14&&p.jackpot)f14.value=p.jackpot; if(f13&&p.second)f13.value=p.second; if(f12&&p.third)f12.value=p.third;
+  [['prize-14','jackpot'],['prize-13','second'],['prize-12','third'],['prize-11','fourth']].forEach(function(x){
+    var el=document.getElementById(x[0]); if(el&&p[x[1]]) el.value=p[x[1]];
+  });
 }
 async function savePrizes(){
-  var j=Number(document.getElementById('prize-14').value); var s=Number(document.getElementById('prize-13').value); var t=Number(document.getElementById('prize-12').value);
+  var j=Number(document.getElementById('prize-14').value), s=Number(document.getElementById('prize-13').value),
+      t=Number(document.getElementById('prize-12').value), f=Number(document.getElementById('prize-11').value);
   if(!j){ document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--red)">Enter the Super Jackpot amount.</span>'; return; }
-  var prizeData={jackpot:j,second:s,third:t,updatedAt:new Date().toISOString()};
+  var prizeData={jackpot:j,second:s,third:t,fourth:f,updatedAt:new Date().toISOString()};
   _cache.prizes=prizeData;
   var fbOk=await window._fbReady;
   if(fbOk&&window._db){
     try{
       await window._F.setDoc(window._F.doc(window._db,'app_settings','prizes'),prizeData,{merge:true});
-      document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--green)">✅ Prize settings saved on ALL devices!</span>';
-    }catch(e){ document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--red)">Failed: '+e.message+'</span>'; }
+      document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--green)">Prize settings saved on ALL devices!</span>';
+    }catch(e){ document.getElementById('prizes-save-msg').innerHTML='<span style="color:var(--red)">Failed: '+esc(e.message)+'</span>'; }
   }
-  await addLog('Prize settings updated — Jackpot: ₦'+j.toLocaleString(),'admin');
+  await addLog('Prize settings updated - Jackpot: \u20A6'+j.toLocaleString(),'admin');
   setTimeout(function(){document.getElementById('prizes-save-msg').textContent='';},5000);
-  toast('🏆 Prize settings saved');
+  toast('Prize settings saved');
 }
 
 // ════════════════════════════════════════════════════════
@@ -1769,8 +2023,8 @@ async function saveMatches(){
   if(fbOk&&window._db){
     try{
       await window._F.setDoc(window._F.doc(window._db,'app_settings','matches'),{matches:matches,updatedAt:new Date().toISOString()},{merge:true});
-      msgEl.innerHTML='<span style="color:var(--green)">✅ All 14 matches saved to Firebase — live on ALL devices NOW!</span>';
-      toast('⚽ Matches updated on all devices');
+      msgEl.innerHTML='<span style="color:var(--green)">All 14 matches saved to Firebase — live on ALL devices NOW!</span>';
+      toast('Matches updated on all devices');
     }catch(e){ msgEl.innerHTML='<span style="color:var(--red)">Firebase save failed: '+e.message+'</span>'; }
   }
   await addLog('Matches updated','admin');
@@ -1795,7 +2049,7 @@ async function startCountdown(){
     try{ await window._F.setDoc(window._F.doc(window._db,'app_settings','countdown'),cfg,{merge:true}); }catch(e){}
   }
   await addLog('Countdown set: '+d+'d '+h+'h '+m+'m '+s+'s','admin');
-  toast('⏱ Countdown started on all devices — '+d+'d '+h+'h '+m+'m '+s+'s');
+  toast('Countdown started on all devices — '+d+'d '+h+'h '+m+'m '+s+'s');
 }
 async function resetCountdown(){
   _cache.countdown=null;
@@ -1808,12 +2062,12 @@ async function resetCountdown(){
 function loadCurrentCountdown(){
   var cfg=_cache.countdown;
   var el=document.getElementById('cd-current');
-  if(!cfg){el.textContent='⚪ No countdown active — betting is open.';el.style.color='var(--green)';return;}
+  if(!cfg){el.textContent='No countdown active — betting is open.';el.style.color='var(--green)';return;}
   var elapsed=Math.floor((Date.now()-(cfg.setAt||Date.now()))/1000);
   var remaining=Math.max(0,(cfg.totalSeconds||0)-elapsed);
   var d=Math.floor(remaining/86400),r=remaining%86400,h=Math.floor(r/3600);r%=3600;var m=Math.floor(r/60),s=r%60;
-  if(remaining>0){ el.innerHTML='⏱ Remaining: <span style="color:var(--gold)">'+d+'d '+h+'h '+m+'m '+s+'s</span>'; el.style.color='var(--text)'; }
-  else{ el.innerHTML='🔴 <span style="color:var(--red)">Countdown expired — betting CLOSED</span>'; }
+  if(remaining>0){ el.innerHTML='Remaining: <span style="color:var(--gold)">'+d+'d '+h+'h '+m+'m '+s+'s</span>'; el.style.color='var(--text)'; }
+  else{ el.innerHTML='<span style="color:var(--red)">Countdown expired — betting CLOSED</span>'; }
 }
 
 // ── BET ID SEARCH ──
@@ -1822,20 +2076,10 @@ function searchBetId(){
   var resultDiv=document.getElementById('betid-result');
   if(!input){ resultDiv.innerHTML='<div class="tbl-empty" style="color:var(--red);">Please enter a Ticket ID.</div>'; return; }
   var ticket=_cache.tickets.find(function(t){return (t.id||'').toUpperCase()===input;});
-  if(!ticket){ resultDiv.innerHTML='<div style="background:#1a0000;border:1px solid var(--red);border-radius:12px;padding:20px;text-align:center;"><div style="font-size:32px;margin-bottom:10px;">❌</div><div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:6px;">Ticket Not Found</div><div style="font-size:13px;color:var(--text3);">No bet with ID <span style="font-family:monospace;color:var(--gold)">'+esc(input)+'</span> exists.</div></div>'; return; }
+  if(!ticket){ resultDiv.innerHTML='<div style="background:#1a0000;border:1px solid var(--red);border-radius:12px;padding:20px;text-align:center;"><div style="display:flex;justify-content:center;color:var(--red);margin-bottom:10px;">'+ic('xc',34)+'</div><div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:6px;">Ticket Not Found</div><div style="font-size:13px;color:var(--text3);">No bet with ID <span style="font-family:monospace;color:var(--gold)">'+esc(input)+'</span> exists.</div></div>'; return; }
   var u=_cache.users[ticket.user]||{};
-  var matchedRound=_cache.publishedRounds.find(function(r){return r.roundId===ticket.roundId||r.id===ticket.roundId;})||null;
-  if(!matchedRound&&ticket.selections&&ticket.selections.length>=3){
-    matchedRound=_cache.publishedRounds.find(function(r){
-      var rm=r.matches||[];if(rm.length<3)return false;var hits=0;
-      for(var x=0;x<Math.min(4,ticket.selections.length,rm.length);x++){
-        var s=ticket.selections[x],m=rm[x];if(!s||!m)continue;
-        if((s.home||'').toLowerCase().trim()===(m.home||'').toLowerCase().trim()&&(s.away||'').toLowerCase().trim()===(m.away||'').toLowerCase().trim())hits++;
-      }
-      return hits>=3;
-    })||null;
-  }
-  var roundResults=matchedRound?matchedRound.matches:null;
+  var matchedRound=findRoundForTicket(ticket,_cache.publishedRounds);
+    var roundResults=matchedRound?matchedRound.matches:null;
   var totalCorrect=0,totalVoid=0;
   var matchRows=ticket.selections.map(function(s,idx){
     var pick=s.code||'';
@@ -1846,35 +2090,96 @@ function searchBetId(){
     var isWin=hasResult&&!isVoid&&userPickVals.indexOf(resVal)!==-1;
     if(isVoid)totalVoid++;if(isWin)totalCorrect++;
     var score='';if(matchResult&&matchResult.scoreHome!==undefined&&!isVoid)score=' <span style="font-size:10px;color:var(--text3)">('+matchResult.scoreHome+'-'+matchResult.scoreAway+')</span>';
-    var indicator=!hasResult?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right;">—</span>':isVoid?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right;">void</span>':isWin?'<span style="color:var(--green);font-size:13px;font-weight:800;min-width:40px;text-align:right;">✅ Won</span>':'<span style="color:var(--red);font-size:13px;font-weight:700;min-width:40px;text-align:right;">❌ Lost</span>';
+    var indicator=!hasResult?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right;">—</span>':isVoid?'<span style="color:var(--text3);font-size:11px;min-width:40px;text-align:right;">void</span>':isWin?'<span style="color:var(--green);font-size:13px;font-weight:800;min-width:40px;text-align:right;">'+ic('check',13)+' Won</span>':'<span style="color:var(--red);font-size:13px;font-weight:700;min-width:40px;text-align:right;">'+ic('x',13)+' Lost</span>';
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text3);width:24px;font-size:11px;font-weight:700;flex-shrink:0;">'+s.matchIndex+'</span><span style="flex:1;font-size:12px;color:var(--text2);">'+esc(s.home||'—')+' v '+esc(s.away||'—')+score+'</span><span style="color:var(--green);font-weight:700;font-size:13px;min-width:28px;text-align:center;">'+esc(pick)+'</span>'+indicator+'</div>';
   }).join('');
   var sc=!roundResults?'var(--text3)':totalCorrect===14?'var(--green)':totalCorrect>=13?'var(--blue)':totalCorrect>=12?'var(--yellow)':'var(--red)';
   var sl=!roundResults?'— Awaiting results':(totalCorrect+' correct'+(totalVoid?' ('+totalVoid+' void)':''));
-  resultDiv.innerHTML='<div style="background:var(--card);border:2px solid var(--green);border-radius:14px;padding:18px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);"><div><div style="font-size:14px;font-weight:800;color:var(--gold);">🎫 Ticket Found</div><div style="font-family:monospace;font-size:12px;color:var(--green);margin-top:4px;">ID: '+esc(ticket.id||'—')+'</div></div><span style="font-size:10px;color:var(--text3);">'+fmtDate(ticket.created)+'</span></div><div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:14px;"><div style="font-size:14px;font-weight:700;color:var(--green);">'+esc(u.name||u.fullName||ticket.user)+'</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Phone: '+esc(ticket.user)+'</div><div style="font-size:12px;color:var(--gold);margin-top:4px;">Balance: ₦'+Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2})+'</div></div>'+matchRows+'<div style="margin-top:12px;padding:10px 12px;background:var(--bg3);border-radius:9px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;color:var(--text3);">Overall</span><span style="font-size:14px;font-weight:800;color:'+sc+';">'+sl+'</span></div><div style="margin-top:10px;font-size:13px;color:var(--text2);padding-top:10px;border-top:1px solid var(--border);">Combinations: <strong style="color:var(--gold);">'+ticket.combination+'</strong> &nbsp;|&nbsp; Stake: <strong style="color:var(--gold);">₦'+ticket.stake.toLocaleString()+'</strong></div></div>';
+  resultDiv.innerHTML='<div style="background:var(--card);border:2px solid var(--green);border-radius:14px;padding:18px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);"><div><div style="font-size:14px;font-weight:800;color:var(--gold);display:flex;align-items:center;gap:6px;">'+ic('ticket',16)+' Ticket Found</div><div style="font-family:monospace;font-size:12px;color:var(--green);margin-top:4px;">ID: '+esc(ticket.id||'—')+'</div></div><span style="font-size:10px;color:var(--text3);">'+fmtDate(ticket.created)+'</span></div><div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:14px;"><div style="font-size:14px;font-weight:700;color:var(--green);">'+esc(u.name||u.fullName||ticket.user)+'</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">Phone: '+esc(ticket.user)+'</div><div style="font-size:12px;color:var(--gold);margin-top:4px;">Balance: ₦'+Number(u.balance||0).toLocaleString('en',{minimumFractionDigits:2})+'</div></div>'+matchRows+'<div style="margin-top:12px;padding:10px 12px;background:var(--bg3);border-radius:9px;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;color:var(--text3);">Overall</span><span style="font-size:14px;font-weight:800;color:'+sc+';">'+sl+'</span></div><div style="margin-top:10px;font-size:13px;color:var(--text2);padding-top:10px;border-top:1px solid var(--border);">Combinations: <strong style="color:var(--gold);">'+ticket.combination+'</strong> &nbsp;|&nbsp; Stake: <strong style="color:var(--gold);">₦'+ticket.stake.toLocaleString()+'</strong></div></div>';
   addLog('Bet ID searched: '+input,'admin');
 }
 
-// ── BROADCAST ──
-function loadBroadcast(){
-  var bc=_cache.broadcast;
-  if(bc&&bc.message){ var el=document.getElementById('bc-msg'); if(el)el.value=bc.message; }
+// ── NOTIFICATIONS ──
+// Stored in Firestore app_settings/notifications { items:[{id,title,message,ts}] }.
+// Users see the title under the bell and tap it to read the message. A user deleting one only removes
+// it from their own bell. "Delete for all" below removes it from everybody. "Hide for me" only tidies
+// THIS admin list (saved in this browser) and never touches what users see.
+var _admHidden=[]; try{ _admHidden=JSON.parse(localStorage.getItem('adm_hidden_notifs')||'[]'); }catch(e){}
+var _showHidden=false;
+function _saveHidden(){ try{ localStorage.setItem('adm_hidden_notifs',JSON.stringify(_admHidden)); }catch(e){} }
+function loadBroadcast(){ renderNotifAdmin(); }
+async function _mutateNotifs(fn){
+  var ref=window._F.doc(window._db,'app_settings','notifications');
+  var snap=await window._F.getDoc(ref);   // re-read first so we never overwrite a newer list
+  var items=(snap.exists()&&Array.isArray(snap.data().items))?snap.data().items:[];
+  items=fn(items)||items;
+  await window._F.setDoc(ref,{items:items,updatedAt:new Date().toISOString()});
+  _cache.notifs=items;
 }
 async function sendBroadcast(){
+  var title=document.getElementById('bc-title').value.trim();
   var msg=document.getElementById('bc-msg').value.trim();
-  if(!msg){toast('Enter a message first.','t-err');return;}
-  var obj={message:msg,sentAt:Date.now(),sentAtStr:new Date().toLocaleString()};
-  _cache.broadcast=obj;
-  var fbOk=await window._fbReady;
-  if(fbOk&&window._db){
-    try{
-      await window._F.setDoc(window._F.doc(window._db,'app_settings','broadcast'),obj,{merge:true});
-      document.getElementById('bc-status').innerHTML='✅ Broadcast sent at '+new Date().toLocaleTimeString()+' — pushed to ALL devices via Firebase.';
-    }catch(e){ document.getElementById('bc-status').innerHTML='Failed: '+e.message; }
-  }
-  await addLog('Broadcast sent: '+msg.slice(0,60),'admin');
-  setTimeout(function(){document.getElementById('bc-status').textContent='';},6000);
-  toast('📢 Broadcast sent to all users!');
+  if(!title){ toast('Enter a title.','t-err'); return; }
+  if(!msg){ toast('Enter the message.','t-err'); return; }
+  var fbOk=await window._fbReady; if(!fbOk||!window._db){ toast('Firebase not connected.','t-err'); return; }
+  var n={id:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),title:title,message:msg,ts:Date.now()};
+  showLoad('Sending...');
+  try{
+    await _mutateNotifs(function(items){ items.unshift(n); return items; });
+    document.getElementById('bc-title').value=''; document.getElementById('bc-msg').value='';
+    document.getElementById('bc-status').textContent='Sent at '+new Date().toLocaleTimeString()+' - users see it under the bell after they refresh.';
+    setTimeout(function(){ document.getElementById('bc-status').textContent=''; },6000);
+    renderNotifAdmin(); toast('Notification sent to all users');
+    await addLog('Notification sent: '+title.slice(0,60),'admin');
+  }catch(e){ toast('Failed: '+(e.code||e.message),'t-err'); }
+  hideLoad();
+}
+function renderNotifAdmin(){
+  var box=document.getElementById('bc-list'); if(!box) return;
+  var all=(_cache.notifs||[]).slice().sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+  var hiddenCount=all.filter(function(n){ return _admHidden.indexOf(n.id)>-1; }).length;
+  var list=_showHidden?all:all.filter(function(n){ return _admHidden.indexOf(n.id)===-1; });
+  var tg=document.getElementById('bc-toggle-hidden');
+  if(tg){ tg.style.display=hiddenCount?'inline-flex':'none'; tg.innerHTML=ic(_showHidden?'eyeoff':'eye',14)+' '+(_showHidden?'Hide hidden':'Show hidden ('+hiddenCount+')'); }
+  var da=document.getElementById('bc-delall'); if(da) da.style.display=all.length?'inline-flex':'none';
+  if(!list.length){ box.innerHTML='<div class="tbl-empty">'+(all.length?'All notifications are hidden from your list.':'No notifications sent yet.')+'</div>'; return; }
+  box.innerHTML=list.map(function(n){
+    var hid=_admHidden.indexOf(n.id)>-1, id=esc(n.id);
+    return '<div class="nt-card'+(hid?' hid':'')+'">'
+      +'<div class="nt-card-main"><div class="nt-card-title">'+esc(n.title||'Notification')+(hid?' <span class="sbadge sb-dis">hidden from my list</span>':'')+'</div>'
+      +'<div class="nt-card-msg">'+esc(n.message||'')+'</div>'
+      +'<div class="nt-card-time">'+(n.ts?esc(fmtDate(new Date(n.ts).toISOString())):'\u2014')+'</div></div>'
+      +'<div class="nt-card-acts">'
+      +(hid?'<button class="ab ab-view" onclick="unhideNotif(\''+id+'\')">'+ic('eye',14)+' Unhide</button>'
+           :'<button class="ab ab-view" onclick="hideNotifMe(\''+id+'\')" title="Remove from my list only - users still see it">'+ic('eyeoff',14)+' Hide for me</button>')
+      +'<button class="ab ab-clear" onclick="deleteNotifAll(\''+id+'\')" title="Delete for all users">'+ic('trash',14)+' Delete for all</button>'
+      +'</div></div>';
+  }).join('');
+}
+function hideNotifMe(id){ if(_admHidden.indexOf(id)===-1) _admHidden.push(id); _saveHidden(); renderNotifAdmin(); }
+function unhideNotif(id){ _admHidden=_admHidden.filter(function(x){ return x!==id; }); _saveHidden(); renderNotifAdmin(); }
+function toggleHiddenNotifs(){ _showHidden=!_showHidden; renderNotifAdmin(); }
+async function deleteNotifAll(id){
+  if(!confirm('Delete this notification for ALL users? This cannot be undone.')) return;
+  showLoad('Deleting...');
+  try{
+    await _mutateNotifs(function(items){ return items.filter(function(n){ return n.id!==id; }); });
+    _admHidden=_admHidden.filter(function(x){ return x!==id; }); _saveHidden();
+    renderNotifAdmin(); toast('Notification deleted for everyone','t-gold');
+    await addLog('Notification deleted','admin');
+  }catch(e){ toast('Failed: '+(e.code||e.message),'t-err'); }
+  hideLoad();
+}
+async function deleteAllNotifs(){
+  if(!confirm('Delete ALL notifications for ALL users? This cannot be undone.')) return;
+  showLoad('Deleting...');
+  try{
+    await _mutateNotifs(function(){ return []; });
+    _admHidden=[]; _saveHidden();
+    renderNotifAdmin(); toast('All notifications deleted','t-gold');
+    await addLog('All notifications deleted','admin');
+  }catch(e){ toast('Failed: '+(e.code||e.message),'t-err'); }
+  hideLoad();
 }
 
 // ── LOGS ──
@@ -1896,7 +2201,7 @@ async function clearLogs(){
       await Promise.all(dels);
     }catch(e){}
   }
-  loadLogs(); toast('🗑️ All logs cleared','t-err');
+  loadLogs(); toast('All logs cleared','t-err');
 }
 async function addLog(action,user){
   _cache.logs.unshift({time:new Date().toISOString(),action:action,user:user||''});
