@@ -503,7 +503,7 @@ select.modal-input option,select.modal-input optgroup{background:#0b1120;color:#
 <div id="cover">
   <div class="cover-inner">
     <div class="cover-prize">Predict 14 matches — win</div>
-    <div class="cover-amount" id="cover-prize-amount">NGN 200,000,000</div>
+    <div class="cover-amount" id="cover-prize-amount">NGN 000,000,000</div>
     <div class="cover-sub"><i class="gi" data-ic="trophy" data-sz="15"></i> Consolation prizes for 13 &amp; 12 correct!</div>
     <div class="cover-actions">
       <button class="cov-btn cov-deposit" onclick="openDeposit()">Deposit</button>
@@ -1080,7 +1080,7 @@ function loadCoverPrize(){
   var el=document.getElementById('cover-prize-amount');
   if(!el) return;
   var j = _cache.prizes && _cache.prizes.jackpot ? Number(_cache.prizes.jackpot) : 0;
-  el.textContent = j>0 ? 'NGN '+j.toLocaleString() : 'NGN 200,000,000';
+  el.textContent = j>0 ? 'NGN '+j.toLocaleString() : 'NGN 000,000,000';
 }
 
 // ── NOTIFICATIONS (bell icon, under the Bets ticket) ──
