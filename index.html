@@ -3,6 +3,16 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<!-- PWA (lets PWABuilder / Bubblewrap turn the site into an APK) -->
+<link rel="manifest" href="/manifest.json"/>
+<meta name="theme-color" content="#0b1120"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){ navigator.serviceWorker.register('/sw.js').catch(function(){}); });
+}
+</script>
 <title>GoalRush Jackpot</title>
 <style>
 /* ═══════════════════════════════════════
